@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, HostListener, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, HostListener, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -100,7 +100,15 @@ import { ApiService } from '../../services/api.service';
                     <!-- Individual Guidelines -->
                     <label *ngFor="let g of guidelines" class="dropdown-item" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; user-select: none;">
                       <input type="checkbox" [checked]="isSelectedGuideline(g.id)" (change)="toggleGuideline(g.id)">
-                      <span>{{ g.name }}</span>
+                      <span style="flex: 1;">{{ g.name }}</span>
+                      <button type="button" (click)="deleteGuideline(g.id, $event)" style="background: none; border: none; cursor: pointer; padding: 4px; color: #ef4444; opacity: 0.7; font-size: 1rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)';" onmouseout="this.style.opacity=0.7; this.style.transform='scale(1)';" title="Delete Guideline">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
                     </label>
                     
                     <div *ngIf="guidelines.length === 0" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.85rem;">
@@ -161,7 +169,10 @@ import { ApiService } from '../../services/api.service';
       <div class="card" *ngIf="results.length > 0">
         <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
           <span>📋 Analysis Matrix Results</span>
-          <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-warning btn-sm" (click)="clearResults()" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">🧹 Clear Results</button>
+            <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
+          </div>
         </div>
         
         <div class="table-container">
@@ -177,7 +188,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of results">
+              <tr *ngFor="let row of results | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
                 <td style="font-weight: 600; white-space: nowrap;">{{ row.req_id }}</td>
                 <td style="max-width: 300px;">{{ row.input_req }}</td>
                 <td>
@@ -193,6 +204,22 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </tbody>
           </table>
+        </div>
+        
+        <!-- Pagination Footer -->
+        <div class="pagination-footer" *ngIf="results.length > pageSize" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background-color: #f8f9fa; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
+          <div class="pagination-info">
+            Showing <strong style="color: var(--text-primary);">{{ (currentPage - 1) * pageSize + 1 }}</strong> - <strong style="color: var(--text-primary);">{{ getMin(currentPage * pageSize, results.length) }}</strong> of <strong style="color: var(--text-primary);">{{ results.length }}</strong> requirements
+          </div>
+          <div class="pagination-controls" style="display: flex; align-items: center; gap: 12px;">
+            <button class="btn btn-sm btn-secondary pagination-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)" style="padding: 3px 10px; font-size: 0.75rem; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid var(--border-color); background-color: #fff; cursor: pointer;">
+              ‹ Prev
+            </button>
+            <span class="pagination-indicator" style="font-weight: 500; color: var(--text-primary);">Page {{ currentPage }} of {{ getTotalPages() }}</span>
+            <button class="btn btn-sm btn-secondary pagination-btn" [disabled]="currentPage === getTotalPages()" (click)="setPage(currentPage + 1)" style="padding: 3px 10px; font-size: 0.75rem; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid var(--border-color); background-color: #fff; cursor: pointer;">
+              Next ›
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -421,11 +448,15 @@ export class RequirementsComponent implements OnInit, OnDestroy {
   results: any[] = [];
   history: any[] = [];
   
+  // Pagination
+  currentPage = 1;
+  pageSize = 15;
+  
   isTraceabilityRun = false;
   
   private timerSubscription: any;
 
-  constructor(private apiService: ApiService, private elementRef: ElementRef) {}
+  constructor(private apiService: ApiService, private elementRef: ElementRef, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadGuidelines();
@@ -501,6 +532,21 @@ export class RequirementsComponent implements OnInit, OnDestroy {
     }
   }
 
+  deleteGuideline(id: string, event: Event) {
+    event.stopPropagation();
+    if (confirm('Are you sure you want to delete this strict guideline file?')) {
+      this.apiService.deleteGuideline(id).subscribe({
+        next: () => {
+          this.selectedGuidelineIds = this.selectedGuidelineIds.filter(gId => gId !== id);
+          this.loadGuidelines();
+        },
+        error: (err) => {
+          alert('Failed to delete guideline: ' + (err.error?.detail || err.message));
+        }
+      });
+    }
+  }
+
   uploadStandard() {
     if (!this.standardFile || !this.newStandardName) return;
     this.isUploadingStandard = true;
@@ -513,9 +559,11 @@ export class RequirementsComponent implements OnInit, OnDestroy {
         this.newStandardName = '';
         this.standardFile = null;
         this.loadGuidelines();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.isUploadingStandard = false;
+        this.cdr.detectChanges();
         alert('Failed to upload guidelines: ' + (err.error?.detail || err.message));
       }
     });
@@ -525,6 +573,7 @@ export class RequirementsComponent implements OnInit, OnDestroy {
     this.apiService.getGuidelines().subscribe({
       next: (res) => {
         this.guidelines = res;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -562,6 +611,10 @@ export class RequirementsComponent implements OnInit, OnDestroy {
     this.isFinished = false;
     this.runStatus = 'running';
     this.results = [];
+    this.currentPage = 1;
+    this.currentRow = 0;
+    this.totalRows = 0;
+    this.activeRunId = 'Initializing...';
 
     this.apiService.startAnalysis(
       runType,
@@ -597,6 +650,7 @@ export class RequirementsComponent implements OnInit, OnDestroy {
           this.apiService.getRunResults(this.activeRunId).subscribe({
             next: (res) => {
               this.results = res;
+              this.cdr.detectChanges();
             }
           });
 
@@ -615,6 +669,7 @@ export class RequirementsComponent implements OnInit, OnDestroy {
           } else {
             this.isPaused = false;
           }
+          this.cdr.detectChanges();
         }
       });
     }, 1000);
@@ -658,10 +713,12 @@ export class RequirementsComponent implements OnInit, OnDestroy {
     this.activeRunId = runId;
     const matchedRun = this.history.find(r => r.run_id === runId);
     this.isTraceabilityRun = matchedRun?.type === 'traceability';
+    this.currentPage = 1;
     
     this.apiService.getRunResults(runId).subscribe({
       next: (res) => {
         this.results = res;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -690,7 +747,7 @@ export class RequirementsComponent implements OnInit, OnDestroy {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AARAM_Run_${this.activeRunId.substring(0,8)}.csv`);
+    link.setAttribute("download", `AIRAM_Run_${this.activeRunId.substring(0,8)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -699,5 +756,32 @@ export class RequirementsComponent implements OnInit, OnDestroy {
   hasCorrections(): boolean {
     if (!this.results || this.results.length === 0) return false;
     return this.results.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
+  }
+
+  // Pagination & Reset Methods
+  getTotalPages(): number {
+    return Math.ceil(this.results.length / this.pageSize) || 1;
+  }
+
+  setPage(page: number) {
+    if (page >= 1 && page <= this.getTotalPages()) {
+      this.currentPage = page;
+      this.cdr.detectChanges();
+    }
+  }
+
+  getMin(a: number, b: number): number {
+    return Math.min(a, b);
+  }
+
+  clearResults() {
+    this.results = [];
+    this.activeRunId = '';
+    this.runStatus = '';
+    this.isFinished = false;
+    this.currentRow = 0;
+    this.totalRows = 0;
+    this.currentPage = 1;
+    this.cdr.detectChanges();
   }
 }

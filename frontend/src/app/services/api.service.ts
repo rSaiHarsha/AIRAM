@@ -9,7 +9,7 @@ export class ApiService {
   
 private baseUrl = window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
-    : 'https://aaram.onrender.com';
+    : 'https://airam.onrender.com';
   
   constructor(private http: HttpClient) {}
 
@@ -25,6 +25,10 @@ private baseUrl = window.location.hostname === 'localhost'
     return this.http.post(`${this.baseUrl}/api/guidelines/upload`, formData);
   }
 
+  deleteGuideline(id: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/api/guidelines/${id}`);
+  }
+
   getGuidelines(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/api/guidelines`);
   }
@@ -34,7 +38,7 @@ private baseUrl = window.location.hostname === 'localhost'
     return this.http.get(`${this.baseUrl}/api/rag/metrics`);
   }
 
-  searchRag(query: string, limit: number = 5, collectionName: string = 'aaram_guidelines'): Observable<any[]> {
+  searchRag(query: string, limit: number = 5, collectionName: string = 'airam_guidelines'): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/api/rag/search`, {
       params: { 
         query, 
@@ -56,7 +60,7 @@ private baseUrl = window.location.hostname === 'localhost'
 
   trainRAG(
     file: File, 
-    collectionName: string = 'aaram_guidelines', 
+    collectionName: string = 'airam_guidelines', 
     collectionMode: string = 'create',
     startPage?: number,
     endPage?: number

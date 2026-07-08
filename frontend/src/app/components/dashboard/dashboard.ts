@@ -1,4 +1,4 @@
-import { Component, OnInit, EventEmitter, Output, Input } from '@angular/core';
+import { Component, OnInit, EventEmitter, Output, Input, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService } from '../../services/api.service';
 
@@ -43,11 +43,16 @@ import { ApiService } from '../../services/api.service';
       <div class="card">
         <div class="card-title">📂 Execution Runs History</div>
         
-        <div *ngIf="history.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
+        <div *ngIf="isLoadingHistory" class="loading-state" style="padding: 32px; text-align: center; color: var(--text-secondary);">
+          <div class="spinner"></div>
+          <div style="font-size: 0.9rem; font-weight: 500;">Loading data please wait...</div>
+        </div>
+
+        <div *ngIf="!isLoadingHistory && history.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
           No previous analysis execution runs found. Go to the <strong>Requirement Analysis</strong> tab to upload and evaluate requirements!
         </div>
 
-        <div *ngIf="history.length > 0" class="minimized-shelf">
+        <div *ngIf="!isLoadingHistory && history.length > 0" class="minimized-shelf">
           <div *ngFor="let run of history" class="history-card" [class.minimized]="run.minimized === 1">
             <div class="history-header">
               <div class="history-meta">
@@ -334,6 +339,20 @@ import { ApiService } from '../../services/api.service';
       font-weight: 500;
       color: var(--text-primary);
     }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(13, 110, 253, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--color-primary);
+      animation: spin 1s linear infinite;
+      margin-bottom: 12px;
+    }
   `]
 })
 export class DashboardComponent implements OnInit {
@@ -342,6 +361,8 @@ export class DashboardComponent implements OnInit {
   @Input() set active(val: boolean) {
     if (val) {
       this.loadData();
+    } else {
+      this.expandedResults = {};
     }
   }
 
@@ -350,17 +371,20 @@ export class DashboardComponent implements OnInit {
   overallPassRate: number = 0;
   expandedResults: { [runId: string]: any[] } = {};
   currentPage: { [runId: string]: number } = {};
+  isLoadingHistory: boolean = true;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadData();
   }
 
   loadData() {
+    this.isLoadingHistory = true;
     this.apiService.getHistory().subscribe({
       next: (res) => {
         this.history = res;
+        this.isLoadingHistory = false;
         this.calculatePassRate();
         
         // Pre-fetch results for any already expanded cards
@@ -368,9 +392,15 @@ export class DashboardComponent implements OnInit {
           if (run.minimized !== 1) {
             this.apiService.getRunResults(run.run_id).subscribe(details => {
               this.expandedResults[run.run_id] = details;
+              this.cdr.detectChanges();
             });
           }
         });
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isLoadingHistory = false;
+        this.cdr.detectChanges();
       }
     });
 
@@ -461,7 +491,7 @@ export class DashboardComponent implements OnInit {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AARAM_Run_${runId.substring(0,8)}.csv`);
+    link.setAttribute("download", `AIRAM_Run_${runId.substring(0,8)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

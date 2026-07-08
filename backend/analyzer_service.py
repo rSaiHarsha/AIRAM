@@ -16,6 +16,8 @@ from backend.database import (
     save_execution_run,
     update_execution_status,
     save_execution_result,
+    create_placeholder_result,
+    update_execution_result_by_id,
     get_guideline_content,
     get_guideline_details
 )
@@ -300,7 +302,7 @@ def analyze_quality(
         llm=llm,
         rag=rag,
         rag_context=rules_context,
-        selected_collections="aaram_guidelines",
+        selected_collections="airam_guidelines",
         is_strict_json=is_strict_json
     )
     
@@ -322,7 +324,7 @@ def analyze_quality(
                 llm=llm,
                 rag=rag,
                 rag_context=rules_context,
-                selected_collections="aaram_guidelines",
+                selected_collections="airam_guidelines",
                 feedback_rule=failed_rule_str,
                 feedback_rationale=res.get("Rationale")
             )
@@ -440,38 +442,42 @@ async def run_requirements_analysis_job(
         req_id = r.name
         req_text = r.content
         
+        # Immediately insert placeholder row so the UI table knows we are waiting for the LLM
+        row_id = create_placeholder_result(run_id, req_id, req_text)
+        
+        # Update progress bar state
+        ACTIVE_JOBS[run_id]["current_row"] = idx + 1
+        
         # Resolve rules context: fetch from RAG similarity search if enabled
         rules_context = ""
         if use_rag and req_text:
             try:
                 # Query RAGEngine
-                rules_context = rag_engine.query(req_text, collection_name="aaram_guidelines", top_k=2)
+                rules_context = rag_engine.query(req_text, collection_name="airam_guidelines", top_k=2)
             except Exception as e:
                 print(f"RAG rules search failed: {e}")
                 
         # Analyze using LLM or local fallbacks based on mode
         if mode == "traceability":
             # Call traceability analyzer
-            result = analyze_traceability_with_llm(r, swe1_reqs, llm_manager)
+            result = await asyncio.to_thread(analyze_traceability_with_llm, r, swe1_reqs, llm_manager)
             if not correct_trace:
                 result["corrected_req"] = None
         else:
             # Call quality auditor
-            result = analyze_quality(idx, r, llm_manager, rag_engine, rules_context, is_strict_json, correct_quality)
+            result = await asyncio.to_thread(analyze_quality, idx, r, llm_manager, rag_engine, rules_context, is_strict_json, correct_quality)
             
-        # Save results immediately
+        # Update the placeholder row with the final results
         status = result.get("status", "REVIEW").upper()
         failed_rule = result.get("failed_rule")
         rationale = result.get("rationale", "No explanation provided.")
         corrected_req = result.get("corrected_req", req_text)
         swe1_id = result.get("swe1_id")
         
-        save_execution_result(
-            run_id=run_id,
-            req_id=req_id,
-            input_req=req_text,
+        update_execution_result_by_id(
+            row_id=row_id,
             status=status,
-            failed_rule=failed_rule or swe1_id, # In traceability, failed_rule column can capture swe1_id or matching info
+            failed_rule=failed_rule or swe1_id,
             rationale=rationale,
             corrected_req=corrected_req,
             swe1_id=swe1_id
