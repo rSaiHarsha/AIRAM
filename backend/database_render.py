@@ -1,202 +1,360 @@
 import os
 import sqlite3
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from dotenv import load_dotenv
+import json
 
-load_dotenv()
+DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "airam.db")
+OLD_DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requalitrace.db")
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-SQLITE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "airam.db")
-
-def get_pg_connection():
-    if not DATABASE_URL:
-        return None
+# Automatically migrate database if old one exists
+if not os.path.exists(DATABASE_PATH) and os.path.exists(OLD_DATABASE_PATH):
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        return conn
+        import shutil
+        shutil.copy2(OLD_DATABASE_PATH, DATABASE_PATH)
+        print(f"[database] Migrated old database to {DATABASE_PATH}")
     except Exception as e:
-        print(f"[database_render] Failed to connect to PostgreSQL: {e}", flush=True)
-        return None
+        print(f"[database] Failed to migrate database: {e}")
 
-def init_pg_db():
-    conn = get_pg_connection()
-    if not conn:
-        return
-    try:
-        cursor = conn.cursor()
-        
-        # Guidelines Table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS guidelines (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                content TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Chunks Table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS chunks (
-                id SERIAL PRIMARY KEY,
-                doc_name TEXT NOT NULL,
-                chunk_index INTEGER NOT NULL,
-                chunk_text TEXT NOT NULL,
-                token_count INTEGER NOT NULL,
-                qdrant_id TEXT,
-                embedded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Execution Runs Table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS execution_runs (
-                run_id TEXT PRIMARY KEY,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                type TEXT NOT NULL,
-                status TEXT NOT NULL,
-                minimized INTEGER DEFAULT 0
-            )
-        """)
-        
-        # Execution Results Table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS execution_results (
-                id SERIAL PRIMARY KEY,
-                run_id TEXT NOT NULL,
-                req_id TEXT NOT NULL,
-                input_req TEXT NOT NULL,
-                status TEXT NOT NULL,
-                failed_rule TEXT,
-                rationale TEXT,
-                corrected_req TEXT,
-                swe1_id TEXT
-            )
-        """)
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("[database_render] PostgreSQL tables initialized successfully.", flush=True)
-    except Exception as e:
-        print(f"[database_render] Error initializing PostgreSQL: {e}", flush=True)
+def get_connection():
+    conn = sqlite3.connect(DATABASE_PATH, timeout=20.0)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def pull_from_render_to_sqlite():
-    """Download all data from Render PG and populate SQLite (run at boot)"""
-    conn_pg = get_pg_connection()
-    if not conn_pg:
-        print("[database_render] No PG URL or connection, skipping pull.", flush=True)
-        return
-        
-    print("[database_render] Restoring local SQLite database from Render Postgres...", flush=True)
+def init_db():
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Guidelines Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS guidelines (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Chunks Table for progressive loading & metrics
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chunks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            doc_name TEXT NOT NULL,
+            chunk_index INTEGER NOT NULL,
+            chunk_text TEXT NOT NULL,
+            token_count INTEGER NOT NULL,
+            qdrant_id TEXT,
+            embedded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Execution Runs table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS execution_runs (
+            run_id TEXT PRIMARY KEY,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            type TEXT NOT NULL, -- 'quality', 'traceability', 'combined'
+            status TEXT NOT NULL, -- 'running', 'paused', 'stopped', 'completed'
+            minimized INTEGER DEFAULT 0, -- 0 = normal, 1 = minimized
+            current_row INTEGER DEFAULT 0,
+            total_rows INTEGER DEFAULT 0
+        )
+    """)
     try:
-        # Initialize PG tables just in case
-        init_pg_db()
-        
-        cursor_pg = conn_pg.cursor(cursor_factory=RealDictCursor)
-        conn_sl = sqlite3.connect(SQLITE_PATH)
-        cursor_sl = conn_sl.cursor()
-        
-        # 1. Guidelines
-        cursor_pg.execute("SELECT id, name, content, created_at FROM guidelines")
-        for row in cursor_pg.fetchall():
-            cursor_sl.execute(
-                "INSERT OR REPLACE INTO guidelines (id, name, content, created_at) VALUES (?, ?, ?, ?)",
-                (row['id'], row['name'], row['content'], row['created_at'])
-            )
-            
-        # 2. Chunks
-        cursor_pg.execute("SELECT id, doc_name, chunk_index, chunk_text, token_count, qdrant_id, embedded_at FROM chunks")
-        for row in cursor_pg.fetchall():
-            cursor_sl.execute(
-                "INSERT OR REPLACE INTO chunks (id, doc_name, chunk_index, chunk_text, token_count, qdrant_id, embedded_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (row['id'], row['doc_name'], row['chunk_index'], row['chunk_text'], row['token_count'], row['qdrant_id'], row['embedded_at'])
-            )
-            
-        # 3. Execution Runs
-        cursor_pg.execute("SELECT run_id, timestamp, type, status, minimized FROM execution_runs")
-        for row in cursor_pg.fetchall():
-            cursor_sl.execute(
-                "INSERT OR REPLACE INTO execution_runs (run_id, timestamp, type, status, minimized) VALUES (?, ?, ?, ?, ?)",
-                (row['run_id'], row['timestamp'], row['type'], row['status'], row['minimized'])
-            )
-            
-        # 4. Execution Results
-        cursor_pg.execute("SELECT id, run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id FROM execution_results")
-        for row in cursor_pg.fetchall():
-            cursor_sl.execute(
-                "INSERT OR REPLACE INTO execution_results (id, run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (row['id'], row['run_id'], row['req_id'], row['input_req'], row['status'], row['failed_rule'], row['rationale'], row['corrected_req'], row['swe1_id'])
-            )
-            
-        conn_sl.commit()
-        cursor_sl.close()
-        conn_sl.close()
-        
-        cursor_pg.close()
-        conn_pg.close()
-        print("[database_render] SQLite successfully restored from Render PG.", flush=True)
-    except Exception as e:
-        print(f"[database_render] Error pulling data: {e}", flush=True)
+        cursor.execute("ALTER TABLE execution_runs ADD COLUMN current_row INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE execution_runs ADD COLUMN total_rows INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    
+    # Execution Results Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS execution_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id TEXT NOT NULL,
+            req_id TEXT,
+            input_req TEXT,
+            status TEXT NOT NULL, -- 'PASS', 'FAIL', 'REVIEW'
+            failed_rule TEXT,
+            rationale TEXT,
+            corrected_req TEXT,
+            swe1_id TEXT, -- populated for SWE.2 traceability
+            swe1_text TEXT, -- populated for SWE.2 traceability
+            category TEXT, -- 'swe1', 'swe2', 'traceability'
+            FOREIGN KEY (run_id) REFERENCES execution_runs(run_id)
+        )
+    """)
+    
+    # Safely migrate existing databases
+    try:
+        cursor.execute("ALTER TABLE execution_results ADD COLUMN swe1_text TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE execution_results ADD COLUMN category TEXT")
+    except Exception:
+        pass
+    
+    conn.commit()
+    conn.close()
 
-def sync_sqlite_to_postgres():
-    """Upload all current SQLite data to PostgreSQL (fallback backup)"""
-    conn_pg = get_pg_connection()
-    if not conn_pg:
-        return
+# Helper accessors
+def save_guidelines(guideline_id: str, name: str, data: dict):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR REPLACE INTO guidelines (id, name, content) VALUES (?, ?, ?)",
+        (guideline_id, name, json.dumps(data))
+    )
+    conn.commit()
+    conn.close()
+
+def get_all_guidelines():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, created_at FROM guidelines")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_guideline_content(guideline_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT content FROM guidelines WHERE id = ?", (guideline_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return json.loads(row["content"]) if row else None
+
+def get_guideline_details(guideline_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, content FROM guidelines WHERE id = ?", (guideline_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "content": json.loads(row["content"])
+        }
+    return None
+
+def delete_guideline(guideline_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM guidelines WHERE id = ?", (guideline_id,))
+    conn.commit()
+    conn.close()
+    trigger_render_sync()
+
+def save_chunk_log(doc_name: str, chunk_index: int, text: str, tokens: int, qdrant_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO chunks (doc_name, chunk_index, chunk_text, token_count, qdrant_id) VALUES (?, ?, ?, ?, ?)",
+        (doc_name, chunk_index, text, tokens, qdrant_id)
+    )
+    conn.commit()
+    conn.close()
+
+def clear_chunks_for_doc(doc_name: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM chunks WHERE doc_name = ?", (doc_name,))
+    conn.commit()
+    conn.close()
+
+def get_chunking_metrics():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) as total_chunks, SUM(token_count) as total_tokens, AVG(token_count) as avg_tokens FROM chunks")
+    row = cursor.fetchone()
+    conn.close()
+    if row and row["total_chunks"] > 0:
+        return {
+            "total_chunks": row["total_chunks"],
+            "total_tokens": row["total_tokens"],
+            "avg_tokens": round(row["avg_tokens"], 1)
+        }
+    return {"total_chunks": 0, "total_tokens": 0, "avg_tokens": 0}
+
+def save_execution_run(run_id: str, run_type: str, status: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR REPLACE INTO execution_runs (run_id, type, status) VALUES (?, ?, ?)",
+        (run_id, run_type, status)
+    )
+    conn.commit()
+    conn.close()
+
+def update_execution_status(run_id: str, status: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE execution_runs SET status = ? WHERE run_id = ?", (status, run_id))
+    conn.commit()
+    conn.close()
+
+def update_execution_progress(run_id: str, current_row: int, total_rows: int, status: str = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if status:
+        cursor.execute(
+            "UPDATE execution_runs SET current_row = ?, total_rows = ?, status = ? WHERE run_id = ?",
+            (current_row, total_rows, status, run_id)
+        )
+    else:
+        cursor.execute(
+            "UPDATE execution_runs SET current_row = ?, total_rows = ? WHERE run_id = ?",
+            (current_row, total_rows, run_id)
+        )
+    conn.commit()
+    conn.close()
+
+def get_execution_run(run_id: str) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM execution_runs WHERE run_id = ?", (run_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return {
+            "run_id": row["run_id"],
+            "timestamp": row["timestamp"],
+            "type": row["type"],
+            "status": row["status"],
+            "minimized": row["minimized"],
+            "current_row": row["current_row"],
+            "total_rows": row["total_rows"]
+        }
+    return None
+
+def get_execution_status(run_id: str) -> str:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT status FROM execution_runs WHERE run_id = ?", (run_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row["status"] if row else None
+
+def update_execution_minimized(run_id: str, minimized: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE execution_runs SET minimized = ? WHERE run_id = ?", (minimized, run_id))
+    conn.commit()
+    conn.close()
+
+def save_execution_result(run_id: str, req_id: str, input_req: str, status: str, failed_rule: str, rationale: str, corrected_req: str, swe1_id: str = None, swe1_text: str = None, category: str = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+    )
+    conn.commit()
+    conn.close()
+
+def create_placeholder_result(run_id: str, req_id: str, input_req: str, category: str = None) -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+    )
+    last_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return last_id
+
+def update_execution_result_by_id(
+    row_id: int, 
+    status: str, 
+    failed_rule: str, 
+    rationale: str, 
+    corrected_req: str, 
+    swe1_id: str = None, 
+    swe1_text: str = None,
+    req_id: str = None,
+    input_req: str = None,
+    category: str = None
+):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    params = [status, failed_rule, rationale, corrected_req, swe1_id, swe1_text]
+    sql = "UPDATE execution_results SET status = ?, failed_rule = ?, rationale = ?, corrected_req = ?, swe1_id = ?, swe1_text = ?"
+    
+    if req_id is not None:
+        sql += ", req_id = ?"
+        params.append(req_id)
+    if input_req is not None:
+        sql += ", input_req = ?"
+        params.append(input_req)
+    if category is not None:
+        sql += ", category = ?"
+        params.append(category)
         
-    print("[database_render] Backing up SQLite to Render Postgres...", flush=True)
+    sql += " WHERE id = ?"
+    params.append(row_id)
+    
+    cursor.execute(sql, tuple(params))
+    conn.commit()
+    conn.close()
+
+def get_previous_executions(limit: int = 10):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Fetch execution runs with a summary count of pass, fail, review
+    cursor.execute(f"""
+        SELECT 
+            r.run_id, r.timestamp, r.type, r.status, r.minimized,
+            SUM(CASE WHEN s.status = 'PASS' THEN 1 ELSE 0 END) as pass_count,
+            SUM(CASE WHEN s.status = 'FAIL' THEN 1 ELSE 0 END) as fail_count,
+            SUM(CASE WHEN s.status = 'REVIEW' THEN 1 ELSE 0 END) as review_count,
+            COUNT(s.id) as total_count
+        FROM execution_runs r
+        LEFT JOIN execution_results s ON r.run_id = s.run_id
+        GROUP BY r.run_id
+        ORDER BY r.timestamp DESC
+        LIMIT {limit}
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        row_dict = dict(r)
+        if "timestamp" in row_dict and row_dict["timestamp"]:
+            row_dict["timestamp"] = row_dict["timestamp"].replace(" ", "T") + "Z"
+        results.append(row_dict)
+    return results
+
+def get_execution_results(run_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM execution_results WHERE run_id = ? ORDER BY id ASC", (run_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def delete_execution_run(run_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM execution_results WHERE run_id = ?", (run_id,))
+    cursor.execute("DELETE FROM execution_runs WHERE run_id = ?", (run_id,))
+    conn.commit()
+    conn.close()
+    trigger_render_sync()
+
+def trigger_render_sync():
     try:
-        init_pg_db()
-        cursor_pg = conn_pg.cursor()
-        
-        conn_sl = sqlite3.connect(SQLITE_PATH)
-        conn_sl.row_factory = sqlite3.Row
-        cursor_sl = conn_sl.cursor()
-        
-        # 1. Sync Guidelines
-        cursor_sl.execute("SELECT id, name, content, created_at FROM guidelines")
-        for row in cursor_sl.fetchall():
-            cursor_pg.execute("""
-                INSERT INTO guidelines (id, name, content, created_at) 
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, content = EXCLUDED.content
-            """, (row['id'], row['name'], row['content'], row['created_at']))
-            
-        # 2. Sync Chunks
-        cursor_sl.execute("SELECT id, doc_name, chunk_index, chunk_text, token_count, qdrant_id, embedded_at FROM chunks")
-        for row in cursor_sl.fetchall():
-            cursor_pg.execute("""
-                INSERT INTO chunks (id, doc_name, chunk_index, chunk_text, token_count, qdrant_id, embedded_at) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET doc_name = EXCLUDED.doc_name, chunk_index = EXCLUDED.chunk_index, chunk_text = EXCLUDED.chunk_text, token_count = EXCLUDED.token_count, qdrant_id = EXCLUDED.qdrant_id
-            """, (row['id'], row['doc_name'], row['chunk_index'], row['chunk_text'], row['token_count'], row['qdrant_id'], row['embedded_at']))
-            
-        # 3. Sync Execution Runs
-        cursor_sl.execute("SELECT run_id, timestamp, type, status, minimized FROM execution_runs")
-        for row in cursor_sl.fetchall():
-            cursor_pg.execute("""
-                INSERT INTO execution_runs (run_id, timestamp, type, status, minimized) 
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (run_id) DO UPDATE SET status = EXCLUDED.status, minimized = EXCLUDED.minimized
-            """, (row['run_id'], row['timestamp'], row['type'], row['status'], row['minimized']))
-            
-        # 4. Sync Execution Results
-        cursor_sl.execute("SELECT id, run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id FROM execution_results")
-        for row in cursor_sl.fetchall():
-            cursor_pg.execute("""
-                INSERT INTO execution_results (id, run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, failed_rule = EXCLUDED.failed_rule, rationale = EXCLUDED.rationale, corrected_req = EXCLUDED.corrected_req
-            """, (row['id'], row['run_id'], row['req_id'], row['input_req'], row['status'], row['failed_rule'], row['rationale'], row['corrected_req'], row['swe1_id']))
-            
-        conn_pg.commit()
-        cursor_pg.close()
-        conn_pg.close()
-        
-        cursor_sl.close()
-        conn_sl.close()
-        print("[database_render] PostgreSQL database sync completed.", flush=True)
+        from backend.database_render import sync_sqlite_to_postgres
+        import threading
+        threading.Thread(target=sync_sqlite_to_postgres, daemon=True).start()
     except Exception as e:
-        print(f"[database_render] Error pushing data: {e}", flush=True)
+        print(f"[database] Failed to start Render sync: {e}", flush=True)
+
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized successfully at", DATABASE_PATH)
