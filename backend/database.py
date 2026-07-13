@@ -245,12 +245,12 @@ def update_execution_minimized(run_id: str, minimized: int):
     conn.commit()
     conn.close()
 
-def save_execution_result(run_id: str, req_id: str, input_req: str, status: str, failed_rule: str, rationale: str, corrected_req: str, swe1_id: str = None, category: str = None):
+def save_execution_result(run_id: str, req_id: str, input_req: str, status: str, failed_rule: str, rationale: str, corrected_req: str, swe1_id: str = None, swe1_text: str = None, category: str = None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, category)
+        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
     )
     conn.commit()
     conn.close()
