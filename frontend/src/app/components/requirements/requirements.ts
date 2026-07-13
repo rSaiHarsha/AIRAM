@@ -174,14 +174,44 @@ import { ApiService } from '../../services/api.service';
       <!-- Main Results Datatable -->
       <div class="card" *ngIf="results.length > 0">
         <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-          <span>📋 Analysis Matrix Results</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-weight: 600;">📋 Analysis Matrix Results</span>
+            <div class="toggle-group" *ngIf="!isTraceabilityRun" style="display: flex; background: #e2e8f0; padding: 2px; border-radius: 6px;">
+              <button class="toggle-btn" (click)="showDashboard = false" [style.background]="!showDashboard ? '#fff' : 'transparent'" [style.box-shadow]="!showDashboard ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'" [style.color]="!showDashboard ? '#0f172a' : '#64748b'" [style.font-weight]="!showDashboard ? '600' : '500'" style="border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">Table View</button>
+              <button class="toggle-btn" (click)="showDashboard = true" [style.background]="showDashboard ? '#fff' : 'transparent'" [style.box-shadow]="showDashboard ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'" [style.color]="showDashboard ? '#0f172a' : '#64748b'" [style.font-weight]="showDashboard ? '600' : '500'" style="border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">Dashboard</button>
+            </div>
+          </div>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-warning btn-sm" (click)="clearResults()" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">🧹 Clear Results</button>
             <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
           </div>
         </div>
+
+        <!-- Dashboard View -->
+        <div class="dashboard-container" *ngIf="showDashboard && !isTraceabilityRun" style="padding: 16px;">
+          <h3 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary); font-size: 1.1rem;">Category Quality Metrics</h3>
+          <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
+            <div class="metric-card" *ngFor="let stat of dashboardStats" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600; color: #334155; font-size: 0.95rem;">{{ stat.name }}</span>
+                <span style="font-weight: 700; font-size: 1.1rem;" [ngStyle]="{'color': stat.percentage >= 90 ? '#15803d' : (stat.percentage >= 75 ? '#b45309' : '#b91c1c')}">{{ stat.percentage }}%</span>
+              </div>
+              <div class="progress-bg" style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                <div class="progress-fill" [style.width.%]="stat.percentage" [ngStyle]="{'background': stat.percentage >= 90 ? '#22c55e' : (stat.percentage >= 75 ? '#f59e0b' : '#ef4444')}" style="height: 100%;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b;">
+                <span>Passed: {{ stat.passed }}</span>
+                <span>Failed: {{ stat.failed }}</span>
+              </div>
+            </div>
+            
+            <div *ngIf="dashboardStats.length === 0" style="grid-column: 1 / -1; padding: 32px; text-align: center; color: var(--text-secondary); background: #f8fafc; border-radius: 8px; border: 1px dashed var(--border-color);">
+              No category statistics available. Make sure your uploaded rules include "category" definitions.
+            </div>
+          </div>
+        </div>
         
-        <div class="table-container">
+        <div class="table-container" *ngIf="!showDashboard || isTraceabilityRun">
           <table>
             <thead>
               <tr *ngIf="!isTraceabilityRun">
@@ -995,9 +1025,84 @@ JSON Schema:
     return Math.min(a, b);
   }
 
+  showDashboard = false;
+
+  get dashboardStats(): any[] {
+    if (!this.results || this.results.length === 0) return [];
+    
+    // Build a master rules dictionary mapping rule_name -> category
+    const rulesMaster: any = {};
+    if (this.guidelines && this.guidelines.length > 0) {
+      this.guidelines.forEach(g => {
+        if (g.content) {
+          try {
+            const parsed = typeof g.content === 'string' ? JSON.parse(g.content) : g.content;
+            Object.assign(rulesMaster, parsed);
+          } catch (e) {
+            console.error('Error parsing guideline content', e);
+          }
+        }
+      });
+    }
+
+    const categories: { [key: string]: { total: number, failed: number } } = {};
+
+    // Initialize categories from the master rules
+    Object.values(rulesMaster).forEach((rule: any) => {
+      if (rule.category && !categories[rule.category]) {
+        categories[rule.category] = { total: 0, failed: 0 };
+      }
+    });
+
+    // If no categories were found in rules.json, we can't show stats
+    if (Object.keys(categories).length === 0) return [];
+
+    const totalReqs = this.results.length;
+    
+    // Assign total to all categories
+    Object.keys(categories).forEach(cat => {
+      categories[cat].total = totalReqs;
+    });
+
+    // Count failures
+    this.results.forEach(row => {
+      if (row.failed_rule && row.failed_rule !== 'N/A' && row.failed_rule.trim() !== '') {
+        const failedIds = row.failed_rule.split(',').map((id: string) => id.trim());
+        const failedCategoriesForThisRow = new Set<string>();
+        
+        failedIds.forEach((id: string) => {
+          const ruleDef = rulesMaster[id];
+          if (ruleDef && ruleDef.category) {
+            failedCategoriesForThisRow.add(ruleDef.category);
+          }
+        });
+
+        failedCategoriesForThisRow.forEach(cat => {
+          if (categories[cat]) {
+            categories[cat].failed += 1;
+          }
+        });
+      }
+    });
+
+    return Object.keys(categories).map(cat => {
+      const stats = categories[cat];
+      const passed = stats.total - stats.failed;
+      const percentage = stats.total > 0 ? Math.round((passed / stats.total) * 100) : 100;
+      return {
+        name: cat,
+        passed,
+        failed: stats.failed,
+        total: stats.total,
+        percentage
+      };
+    }).sort((a, b) => b.percentage - a.percentage); // Sort by highest percentage
+  }
+
   clearResults() {
     this.results = [];
     this.activeRunId = '';
+    this.showDashboard = false;
     this.runStatus = '';
     this.isFinished = false;
     this.currentRow = 0;
