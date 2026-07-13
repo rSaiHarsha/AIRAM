@@ -29,7 +29,8 @@ from backend.database import (
     update_execution_status,
     get_chunking_metrics,
     delete_execution_run,
-    trigger_render_sync
+    trigger_render_sync,
+    get_execution_run
 )
 from backend.database_render import pull_from_render_to_sqlite
 from backend.rag_service import train_document_stream, search_guideline_chunks
@@ -231,9 +232,14 @@ async def stop_analysis(run_id: str):
 
 @app.get("/api/analysis/{run_id}/status")
 async def get_analysis_status(run_id: str):
-    """Gets running/active progress details of a job."""
-    if run_id in ACTIVE_JOBS:
-        return ACTIVE_JOBS[run_id]
+    """Gets running/active progress details of a job from the database."""
+    run_details = get_execution_run(run_id)
+    if run_details:
+        return {
+            "status": run_details["status"],
+            "current_row": run_details["current_row"],
+            "total_rows": run_details["total_rows"]
+        }
     return {"status": "inactive"}
 
 @app.get("/api/analysis/{run_id}/results")
