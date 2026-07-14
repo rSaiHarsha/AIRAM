@@ -186,32 +186,13 @@ import { ApiService } from '../../services/api.service';
             <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
           </div>
         </div>
-
-        <!-- Dashboard View -->
-        <div class="dashboard-container" *ngIf="showDashboard && !isTraceabilityRun" style="padding: 16px;">
-          <h3 style="margin-top: 0; margin-bottom: 16px; color: var(--text-primary); font-size: 1.1rem;">Category Quality Metrics</h3>
-          <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;">
-            <div class="metric-card" *ngFor="let stat of dashboardStats" style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; color: #334155; font-size: 0.95rem;">{{ stat.name }}</span>
-                <span style="font-weight: 700; font-size: 1.1rem;" [ngStyle]="{'color': stat.percentage >= 90 ? '#15803d' : (stat.percentage >= 75 ? '#b45309' : '#b91c1c')}">{{ stat.percentage }}%</span>
-              </div>
-              <div class="progress-bg" style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-                <div class="progress-fill" [style.width.%]="stat.percentage" [ngStyle]="{'background': stat.percentage >= 90 ? '#22c55e' : (stat.percentage >= 75 ? '#f59e0b' : '#ef4444')}" style="height: 100%;"></div>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b;">
-                <span>Passed: {{ stat.passed }}</span>
-                <span>Failed: {{ stat.failed }}</span>
-              </div>
-            </div>
-            
-            <div *ngIf="dashboardStats.length === 0" style="grid-column: 1 / -1; padding: 32px; text-align: center; color: var(--text-secondary); background: #f8fafc; border-radius: 8px; border: 1px dashed var(--border-color);">
-              No category statistics available. Make sure your uploaded rules include "category" definitions.
-            </div>
-          </div>
+        <div class="tabs-nav" style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+          <button class="btn btn-sm" [class.btn-primary]="activeTab === 'sys1'" [class.btn-secondary]="activeTab !== 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+          <button class="btn btn-sm" [class.btn-primary]="activeTab === 'sys2'" [class.btn-secondary]="activeTab !== 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+          <button class="btn btn-sm" [class.btn-primary]="activeTab === 'traceability'" [class.btn-secondary]="activeTab !== 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
         </div>
         
-        <div class="table-container" *ngIf="!showDashboard || isTraceabilityRun">
+        <div class="table-container">
           <table>
             <thead>
               <tr *ngIf="!isTraceabilityRun">
@@ -232,7 +213,7 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </thead>
             <tbody>
-              <ng-container *ngFor="let row of results | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
+              <ng-container *ngFor="let row of filteredResults | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
                 <!-- Quality Analysis View -->
                 <tr *ngIf="!isTraceabilityRun">
                   <td style="font-weight: 600; white-space: nowrap;">{{ row.req_id }}</td>
@@ -270,9 +251,9 @@ import { ApiService } from '../../services/api.service';
         </div>
         
         <!-- Pagination Footer -->
-        <div class="pagination-footer" *ngIf="results.length > pageSize" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background-color: #f8f9fa; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
+        <div class="pagination-footer" *ngIf="filteredResults.length > pageSize" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background-color: #f8f9fa; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
           <div class="pagination-info">
-            Showing <strong style="color: var(--text-primary);">{{ (currentPage - 1) * pageSize + 1 }}</strong> - <strong style="color: var(--text-primary);">{{ getMin(currentPage * pageSize, results.length) }}</strong> of <strong style="color: var(--text-primary);">{{ results.length }}</strong> requirements
+            Showing <strong style="color: var(--text-primary);">{{ (currentPage - 1) * pageSize + 1 }}</strong> - <strong style="color: var(--text-primary);">{{ getMin(currentPage * pageSize, filteredResults.length) }}</strong> of <strong style="color: var(--text-primary);">{{ filteredResults.length }}</strong> requirements
           </div>
           <div class="pagination-controls" style="display: flex; align-items: center; gap: 12px;">
             <button class="btn btn-sm btn-secondary pagination-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)" style="padding: 3px 10px; font-size: 0.75rem; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid var(--border-color); background-color: #fff; cursor: pointer;">
@@ -631,6 +612,9 @@ JSON Schema:
   
   isTraceabilityRun = false;
   
+  // Tab state for output table
+  activeTab: 'sys1' | 'sys2' | 'traceability' = 'sys1';
+  
   private timerSubscription: any;
 
   constructor(private apiService: ApiService, private elementRef: ElementRef, private cdr: ChangeDetectorRef) {}
@@ -706,6 +690,11 @@ JSON Schema:
     const file = event.target.files[0];
     if (file) {
       this.standardFile = file;
+      // Auto-populate the name field from filename (without extension)
+      if (!this.newStandardName || this.newStandardName.trim() === '') {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        this.newStandardName = nameWithoutExt;
+      }
     }
   }
 
@@ -807,8 +796,10 @@ JSON Schema:
     if (this.actions.trace || this.actions.correctTrace) {
       runType = 'traceability';
       this.isTraceabilityRun = true;
+      this.activeTab = 'traceability';
     } else {
       this.isTraceabilityRun = false;
+      this.activeTab = 'sys1';
     }
     
     this.isRunning = true;
@@ -929,6 +920,7 @@ JSON Schema:
     this.activeRunId = runId;
     const matchedRun = this.history.find(r => r.run_id === runId);
     this.isTraceabilityRun = matchedRun?.type === 'traceability';
+    this.activeTab = this.isTraceabilityRun ? 'traceability' : 'sys1';
     this.currentPage = 1;
     
     this.apiService.getRunResults(runId).subscribe({
@@ -980,6 +972,20 @@ JSON Schema:
     return this.totalRows > 0 ? (this.currentRow / this.totalRows) * 100 : 0;
   }
 
+  get filteredResults(): any[] {
+    if (this.isTraceabilityRun) {
+      return this.results.filter(r => r.category === 'traceability' || r.category == null);
+    }
+    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'sys1' && r.category == null));
+  }
+
+  hasCategory(category: string): boolean {
+    if (category === 'sys1' && !this.isTraceabilityRun) {
+      return this.results.some(r => r.category === category || r.category == null);
+    }
+    return this.results.some(r => r.category === category);
+  }
+
   exportResults() {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "ID,Input Requirement,Status,Rule/Trace Target,Rationale,Corrected Requirement\n";
@@ -1005,13 +1011,13 @@ JSON Schema:
   }
 
   hasCorrections(): boolean {
-    if (!this.results || this.results.length === 0) return false;
-    return this.results.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
+    if (!this.filteredResults || this.filteredResults.length === 0) return false;
+    return this.filteredResults.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
   }
 
   // Pagination & Reset Methods
   getTotalPages(): number {
-    return Math.ceil(this.results.length / this.pageSize) || 1;
+    return Math.ceil(this.filteredResults.length / this.pageSize) || 1;
   }
 
   setPage(page: number) {
