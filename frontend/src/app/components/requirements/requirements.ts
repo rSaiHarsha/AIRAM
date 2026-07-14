@@ -9,44 +9,54 @@ import { ApiService } from '../../services/api.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="req-container">
-      <div class="card">
-        <div class="card-title">📝 Requirements Ingestion & Execution Config</div>
-        
-        <div class="grid grid-2">
-          <!-- Left Configuration: Upload fields -->
-          <div class="upload-section">
-            <div class="form-group">
-              <label class="form-label">High Level Requirements (SWE.1 / HLR) - Optional/Traceability Target</label>
-              <div class="dropzone-mini" (click)="swe1Input.click()" [class.has-file]="swe1File">
-                <span>📁</span>
-                <span>{{ swe1File ? swe1File.name : 'Upload SWE.1 / HLR Excel or CSV' }}</span>
-                <input #swe1Input type="file" (change)="onFileSelected($event, 'swe1')" style="display: none;" accept=".csv,.xlsx">
-              </div>
-            </div>
+      <div style="margin-bottom: 24px;">
+        <h2 class="section-title" style="margin-bottom: 4px;">Requirement Evaluation Workspace</h2>
+        <p class="section-desc">Upload requirements and evaluate them against standards.</p>
+      </div>
 
-            <div class="form-group" style="margin-top: 16px;">
-              <label class="form-label">Low Level Requirements (SWE.2 / LLR) - Primary Target</label>
-              <div class="dropzone-mini" (click)="swe2Input.click()" [class.has-file]="swe2File">
-                <span>📁</span>
-                <span>{{ swe2File ? swe2File.name : 'Upload SWE.2 / LLR Excel or CSV' }}</span>
-                <input #swe2Input type="file" (change)="onFileSelected($event, 'swe2')" style="display: none;" accept=".csv,.xlsx">
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 20px;">
+          Workspace Setup
+        </div>
+        
+        <div class="grid grid-2" style="align-items: stretch; gap: 24px;">
+          <!-- Left Configuration: Upload fields -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1;">
+                <label class="form-label">SYS 1 / HLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
+                <div class="dropzone" (click)="swe1Input.click()" [class.has-file]="swe1File" style="height: 100px; padding: 16px;">
+                  <div class="dropzone-icon" style="margin-bottom: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  </div>
+                  <div class="dropzone-text" style="font-size: 0.8rem;">{{ swe1File ? swe1File.name : 'Click to upload CSV/XLSX' }}</div>
+                  <input #swe1Input type="file" (change)="onFileSelected($event, 'swe1')" style="display: none;" accept=".csv,.xlsx">
+                </div>
+              </div>
+
+              <div style="flex: 1;">
+                <label class="form-label">SYS 2 / LLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
+                <div class="dropzone" (click)="swe2Input.click()" [class.has-file]="swe2File" style="height: 100px; padding: 16px;">
+                  <div class="dropzone-icon" style="margin-bottom: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  </div>
+                  <div class="dropzone-text" style="font-size: 0.8rem;">{{ swe2File ? swe2File.name : 'Click to upload CSV/XLSX' }}</div>
+                  <input #swe2Input type="file" (change)="onFileSelected($event, 'swe2')" style="display: none;" accept=".csv,.xlsx">
+                </div>
               </div>
             </div>
 
             <!-- Analysis Model selector -->
-            <div class="form-group" style="margin-top: 16px;">
+            <div class="form-group">
               <label class="form-label">Analysis Model</label>
-              <select [(ngModel)]="selectedAnalysisModel" style="width: 100%; min-height: 38px;">
+              <select [(ngModel)]="selectedAnalysisModel" style="width: 100%;">
                 <option value="nvidia/llama-3.3-nemotron-super-49b-v1.5">Llama 3.3 Nemotron 49B (NVIDIA)</option>
               </select>
             </div>
-          </div>
-
-          <!-- Right Configuration: Actions & Settings -->
-          <div class="config-settings">
+            
             <div class="form-group">
               <label class="form-label">Select Analysis Actions</label>
-              <div class="checkbox-group">
+              <div class="checkbox-group" style="display: flex; gap: 16px; flex-wrap: wrap;">
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.analyse" [disabled]="actions.correct"> Quality Analysis
                 </label>
@@ -54,41 +64,41 @@ import { ApiService } from '../../services/api.service';
                   <input type="checkbox" [(ngModel)]="actions.correct" (ngModelChange)="onCorrectionToggle($event)"> Quality Correction
                 </label>
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.trace"> Traceability Analysis (SWE.2 to SWE.1)
+                  <input type="checkbox" [(ngModel)]="actions.trace"> Traceability Analysis (SYS.2 to SYS.1)
                 </label>
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.correctTrace"> Traceability Correction
                 </label>
               </div>
             </div>
+          </div>
 
-            <div class="form-group" style="margin-top: 12px;">
-              <label class="form-label">Rules Evaluation Mode</label>
-              <div class="radio-group" style="flex-wrap: wrap; gap: 12px; align-items: center;">
-                <label class="radio-lbl">
-                  <input type="radio" name="rule_mode" value="rag" [(ngModel)]="rulesMode"> RAG Engine Search
-                </label>
-                <label class="radio-lbl">
-                  <input type="radio" name="rule_mode" value="strict" [(ngModel)]="rulesMode"> Strict Guidelines File
-                </label>
-                <label class="radio-lbl" style="display: flex; align-items: center; gap: 6px;">
-                  <input type="radio" name="rule_mode" value="custom" [(ngModel)]="rulesMode"> Custom LLM Context
-                  <button type="button" *ngIf="rulesMode === 'custom'" class="btn btn-secondary btn-sm" (click)="openCustomContextModal()" style="padding: 2px 8px; font-size: 0.75rem; height: auto; min-height: 24px; display: inline-flex; align-items: center; gap: 3px; border-radius: 4px;">
-                    ⚙️ Configure
-                  </button>
-                </label>
+          <!-- Right Configuration: Actions & Settings -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label">Mode</label>
+              <div class="segmented-control">
+                <div class="segment" [class.active]="rulesMode === 'strict'" (click)="rulesMode = 'strict'">Strict Rules</div>
+                <div class="segment" [class.active]="rulesMode === 'rag'" (click)="rulesMode = 'rag'">RAG Engine</div>
+                <div class="segment" [class.active]="rulesMode === 'custom'" (click)="rulesMode = 'custom'">Custom LLM</div>
               </div>
             </div>
 
+            <div *ngIf="rulesMode === 'custom'" style="margin-top: -8px; margin-bottom: 8px;">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="openCustomContextModal()" style="width: 100%;">
+                ⚙️ Configure Custom Context
+              </button>
+            </div>
+
             <!-- Guidelines File Selector if strict is chosen -->
-            <div class="form-group" *ngIf="rulesMode === 'strict'" style="margin-top: 12px;">
+            <div class="form-group" *ngIf="rulesMode === 'strict'">
               <label class="form-label">Strict Guidelines Reference</label>
               <div style="display: flex; gap: 8px; align-items: stretch; position: relative;">
                 
                 <!-- Custom Multi-select Dropdown -->
                 <div class="custom-dropdown" style="flex: 1; position: relative;">
                   <!-- Dropdown Toggle Button -->
-                  <div class="dropdown-toggle" (click)="toggleDropdown()" style="display: flex; justify-content: space-between; align-items: center; min-height: 38px; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.9rem; user-select: none;">
+                  <div class="dropdown-toggle" (click)="toggleDropdown()" style="display: flex; justify-content: space-between; align-items: center; min-height: 38px; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85rem; user-select: none;">
                     <span>{{ getSelectedCountText() }}</span>
                     <span style="font-size: 0.8rem; color: var(--text-secondary);">▼</span>
                   </div>
@@ -108,12 +118,7 @@ import { ApiService } from '../../services/api.service';
                       <input type="checkbox" [checked]="isSelectedGuideline(g.id)" (change)="toggleGuideline(g.id)">
                       <span style="flex: 1;">{{ g.name }}</span>
                       <button type="button" (click)="deleteGuideline(g.id, $event)" style="background: none; border: none; cursor: pointer; padding: 4px; color: #ef4444; opacity: 0.7; font-size: 1rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)';" onmouseout="this.style.opacity=0.7; this.style.transform='scale(1)';" title="Delete Guideline">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          <line x1="10" y1="11" x2="10" y2="17"></line>
-                          <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
+                        ✕
                       </button>
                     </label>
                     
@@ -130,69 +135,72 @@ import { ApiService } from '../../services/api.service';
             </div>
 
             <!-- Embedding Model selector (Visible only if RAG search is chosen) -->
-            <div class="form-group" *ngIf="rulesMode === 'rag'" style="margin-top: 12px;">
+            <div class="form-group" *ngIf="rulesMode === 'rag'">
               <label class="form-label">RAG Embedding Model</label>
-              <select [(ngModel)]="selectedEmbedModel" style="width: 100%; min-height: 38px;">
+              <select [(ngModel)]="selectedEmbedModel" style="width: 100%;">
                 <option value="nvidia/embeddings-nv-embed-qa-4">nv-embed-qa-4 (NVIDIA)</option>
               </select>
             </div>
-          </div>
-        </div>
+            
+            <div style="flex-grow: 1;"></div>
+            
+            <div class="execution-controls" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+              <div class="btn-group" style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!swe1File && !swe2File" style="flex: 1;">
+                  🚀 Start Execution
+                </button>
+                <button class="btn btn-warning" (click)="pauseRun()" *ngIf="isRunning && !isPaused" style="flex: 1;">
+                  ⏸️ Pause
+                </button>
+                <button class="btn btn-success" (click)="resumeRun()" *ngIf="isRunning && isPaused" style="flex: 1;">
+                  ▶️ Resume
+                </button>
+                <button class="btn btn-danger" (click)="stopRun()" *ngIf="isRunning" style="flex: 1;">
+                  🛑 Stop
+                </button>
+              </div>
 
-        <!-- Execution Control Buttons and Progress Bar -->
-        <div class="execution-controls" style="margin-top: 24px;">
-          <div class="btn-group">
-            <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!swe1File && !swe2File">
-              🚀 Start Execution
-            </button>
-            <button class="btn btn-warning" (click)="pauseRun()" *ngIf="isRunning && !isPaused">
-              ⏸️ Pause
-            </button>
-            <button class="btn btn-success" (click)="resumeRun()" *ngIf="isRunning && isPaused">
-              ▶️ Resume
-            </button>
-            <button class="btn btn-danger" (click)="stopRun()" *ngIf="isRunning">
-              🛑 Stop
-            </button>
-          </div>
-
-          <div *ngIf="isRunning || isFinished" class="progress-bar-container" style="margin-top: 16px;">
-            <div class="progress-meta">
-              <span>Execution Run ID: <code>{{ activeRunId }}</code></span>
-              <span *ngIf="isRunning">Processing Row: {{ currentRow }}/{{ totalRows }}</span>
-              <span *ngIf="isFinished">Run Status: <strong>{{ runStatus | uppercase }}</strong></span>
-            </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar" [class.bg-running]="runStatus === 'running'" [class.bg-paused]="runStatus === 'paused'" [style.width.%]="getProgressPercent()"></div>
+              <div *ngIf="isRunning || isFinished" class="progress-bar-container" style="margin-top: 16px;">
+                <div class="progress-meta" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px;">
+                  <span>Run ID: <code style="color: var(--text-primary);">{{ activeRunId }}</code></span>
+                  <span *ngIf="isRunning">Processing Row: {{ currentRow }}/{{ totalRows }}</span>
+                  <span *ngIf="isFinished">Run Status: <strong style="color: var(--text-primary);">{{ runStatus | uppercase }}</strong></span>
+                </div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                  <div [class.bg-running]="runStatus === 'running'" [class.bg-paused]="runStatus === 'paused'" [style.width.%]="getProgressPercent()" style="height: 100%; transition: width 0.2s ease-in-out;"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-
-
       <!-- Main Results Datatable -->
-      <div class="card" *ngIf="results.length > 0">
-        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-weight: 600;">📋 Analysis Matrix Results</span>
-            <div class="toggle-group" *ngIf="!isTraceabilityRun" style="display: flex; background: #e2e8f0; padding: 2px; border-radius: 6px;">
-              <button class="toggle-btn" (click)="showDashboard = false" [style.background]="!showDashboard ? '#fff' : 'transparent'" [style.box-shadow]="!showDashboard ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'" [style.color]="!showDashboard ? '#0f172a' : '#64748b'" [style.font-weight]="!showDashboard ? '600' : '500'" style="border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">Table View</button>
-              <button class="toggle-btn" (click)="showDashboard = true" [style.background]="showDashboard ? '#fff' : 'transparent'" [style.box-shadow]="showDashboard ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'" [style.color]="showDashboard ? '#0f172a' : '#64748b'" [style.font-weight]="showDashboard ? '600' : '500'" style="border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;">Dashboard</button>
+      <div class="card" *ngIf="results.length > 0" style="padding: 0;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="font-weight: 600; font-size: 1.05rem;">📋 Analysis Matrix Results</div>
+            
+            <div class="segmented-control" *ngIf="!isTraceabilityRun" style="width: auto;">
+              <div class="segment" [class.active]="!showDashboard" (click)="showDashboard = false" style="padding: 4px 12px; font-size: 0.75rem;">Table View</div>
+              <div class="segment" [class.active]="showDashboard" (click)="showDashboard = true" style="padding: 4px 12px; font-size: 0.75rem;">Dashboard</div>
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-warning btn-sm" (click)="clearResults()" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba;">🧹 Clear Results</button>
+            <button class="btn btn-secondary btn-sm" (click)="clearResults()">🧹 Clear Results</button>
             <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
           </div>
         </div>
-        <div class="tabs-nav" style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-          <button class="btn btn-sm" [class.btn-primary]="activeTab === 'sys1'" [class.btn-secondary]="activeTab !== 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
-          <button class="btn btn-sm" [class.btn-primary]="activeTab === 'sys2'" [class.btn-secondary]="activeTab !== 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
-          <button class="btn btn-sm" [class.btn-primary]="activeTab === 'traceability'" [class.btn-secondary]="activeTab !== 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
+        
+        <div style="padding: 0 24px;">
+          <div class="tabs-nav">
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
+          </div>
         </div>
         
-        <div class="table-container">
+        <div class="table-container" style="padding: 0 24px 24px 24px; border: none; border-radius: 0;">
           <table>
             <thead>
               <tr *ngIf="!isTraceabilityRun">
@@ -251,16 +259,16 @@ import { ApiService } from '../../services/api.service';
         </div>
         
         <!-- Pagination Footer -->
-        <div class="pagination-footer" *ngIf="filteredResults.length > pageSize" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background-color: #f8f9fa; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-secondary);">
-          <div class="pagination-info">
+        <div *ngIf="filteredResults.length > pageSize" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background-color: #f8fafc; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-secondary); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+          <div>
             Showing <strong style="color: var(--text-primary);">{{ (currentPage - 1) * pageSize + 1 }}</strong> - <strong style="color: var(--text-primary);">{{ getMin(currentPage * pageSize, filteredResults.length) }}</strong> of <strong style="color: var(--text-primary);">{{ filteredResults.length }}</strong> requirements
           </div>
-          <div class="pagination-controls" style="display: flex; align-items: center; gap: 12px;">
-            <button class="btn btn-sm btn-secondary pagination-btn" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)" style="padding: 3px 10px; font-size: 0.75rem; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid var(--border-color); background-color: #fff; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="btn btn-secondary btn-sm" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)" style="padding: 4px 12px;">
               ‹ Prev
             </button>
-            <span class="pagination-indicator" style="font-weight: 500; color: var(--text-primary);">Page {{ currentPage }} of {{ getTotalPages() }}</span>
-            <button class="btn btn-sm btn-secondary pagination-btn" [disabled]="currentPage === getTotalPages()" (click)="setPage(currentPage + 1)" style="padding: 3px 10px; font-size: 0.75rem; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; border: 1px solid var(--border-color); background-color: #fff; cursor: pointer;">
+            <span style="font-weight: 500; color: var(--text-primary);">Page {{ currentPage }} of {{ getTotalPages() }}</span>
+            <button class="btn btn-secondary btn-sm" [disabled]="currentPage === getTotalPages()" (click)="setPage(currentPage + 1)" style="padding: 4px 12px;">
               Next ›
             </button>
           </div>
@@ -272,11 +280,11 @@ import { ApiService } from '../../services/api.service';
     <div class="modal-backdrop" *ngIf="showUploadModal">
       <div class="modal-card">
         <div class="modal-header">
-          <div class="modal-title">🔧 Manage & Upload Standards Guidelines</div>
-          <button type="button" class="btn-close" (click)="closeUploadModal()">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">🔧 Manage & Upload Standards Guidelines</h3>
+          <button type="button" class="modal-close" (click)="closeUploadModal()">✕</button>
         </div>
         <div class="modal-body">
-          <p class="section-desc" style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
             Configure strict standard documents in JSON format (e.g. INCOSE rules list, ASPICE guidelines) to enable validation.
           </p>
 
@@ -287,21 +295,25 @@ import { ApiService } from '../../services/api.service';
 
           <div class="form-group" style="margin-top: 16px;">
             <label class="form-label">Upload JSON Guidelines File</label>
-            <div class="dropzone-mini" (click)="stdInput.click()" [class.has-file]="standardFile">
-              <span>📁</span>
-              <span>{{ standardFile ? standardFile.name : 'Choose JSON Guidelines File' }}</span>
+            <div class="dropzone" (click)="stdInput.click()" [class.has-file]="standardFile" style="height: 100px; padding: 16px;">
+              <div class="dropzone-icon" style="margin-bottom: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              </div>
+              <div class="dropzone-text" style="font-size: 0.8rem;">{{ standardFile ? standardFile.name : 'Choose JSON Guidelines File' }}</div>
               <input #stdInput type="file" (change)="onStandardFileSelected($event)" style="display: none;" accept=".json">
             </div>
           </div>
 
-          <button 
-            type="button"
-            class="btn btn-primary" 
-            [disabled]="!newStandardName || !standardFile || isUploadingStandard" 
-            (click)="uploadStandard()"
-            style="margin-top: 24px; width: 100%;">
-            {{ isUploadingStandard ? 'Uploading...' : 'Upload Standards Document' }}
-          </button>
+          <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" (click)="closeUploadModal()">Cancel</button>
+            <button 
+              type="button"
+              class="btn btn-primary" 
+              [disabled]="!newStandardName || !standardFile || isUploadingStandard" 
+              (click)="uploadStandard()">
+              {{ isUploadingStandard ? 'Uploading...' : 'Upload Standards Document' }}
+            </button>
+          </div>
 
           <div *ngIf="uploadedStatus" class="alert alert-success" style="margin-top: 16px; padding: 12px; background: #e6f4ea; color: var(--color-success); border-radius: 6px; font-size: 0.85rem;">
             {{ uploadedStatus }}
@@ -314,137 +326,144 @@ import { ApiService } from '../../services/api.service';
     <div class="modal-backdrop" *ngIf="showCustomContextModal">
       <div class="modal-card" style="width: 650px; max-width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
         <div class="modal-header" style="flex-shrink: 0;">
-            <div class="modal-title">⚙️ Configure Custom LLM Context</div>
-          <button type="button" class="btn-close" (click)="closeCustomContextModal()">✕</button>
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">⚙️ Configure Custom LLM Context</h3>
+          <button type="button" class="modal-close" (click)="closeCustomContextModal()">✕</button>
         </div>
-        <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px; padding: 16px 24px; overflow-y: auto; flex: 1;">
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px; padding: 24px; overflow-y: auto; flex: 1;">
           
           <!-- Simple Tab Switcher (Only visible if Quality Correction is enabled) -->
           <div *ngIf="actions.correct" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 8px;">
             <button type="button" (click)="activeConfigTab = 'analysis'" [style.border-bottom]="activeConfigTab === 'analysis' ? '2px solid var(--color-primary)' : 'none'" [style.color]="activeConfigTab === 'analysis' ? 'var(--color-primary)' : 'var(--text-secondary)'" style="background: none; border: none; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.9rem; outline: none;">🔍 Auditor Config</button>
-            <button type="button" (click)="activeConfigTab = 'correction'" [style.border-bottom]="activeConfigTab === 'correction' ? '2px solid var(--color-primary)' : 'none'" [style.color]="activeConfigTab === 'correction' ? 'var(--color-primary)' : 'var(--text-secondary)'" style="background: none; border: none; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.9rem; outline: none;">🛠️ Corrector Config</button>
+            <button type="button" (click)="activeConfigTab = 'correction'" [style.border-bottom]="activeConfigTab === 'correction' ? '2px solid var(--color-primary)' : 'none'" [style.color]="activeConfigTab === 'correction' ? 'var(--text-secondary)' : 'var(--text-secondary)'" style="background: none; border: none; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.9rem; outline: none;">🛠️ Corrector Config</button>
           </div>
 
           <!-- Tab 1: Analysis Auditor Config -->
           <ng-container *ngIf="activeConfigTab === 'analysis'">
-            <p class="section-desc" style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; margin-top: 0;">
               Define your custom validation rules. This block is injected into the LLM system prompt for the Quality Auditor.
             </p>
 
             <!-- 1. Header (Read-only) -->
             <div class="form-group" style="margin-top: 4px;">
               <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">System Persona (Read-only Header)</label>
-              <div style="background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 0.7rem; color: #666; max-height: 60px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; line-height: 1.25;">{{ fixedPromptHeader }}</div>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptHeader }}</div>
             </div>
 
             <!-- 2. Custom Criteria (Editable) -->
-            <div class="form-group" style="margin-top: 4px;">
-              <label class="form-label" style="font-weight: 600; font-size: 0.8rem; color: var(--color-primary);">Custom Audit Rules (Editable Context)</label>
-              <textarea [(ngModel)]="customContextText" rows="3" placeholder="Write your custom validation rules here..." style="width: 100%; border: 1px solid var(--color-primary); border-radius: 6px; padding: 8px; font-size: 0.8rem; font-family: inherit; resize: vertical; outline: none;"></textarea>
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; color: var(--color-primary);">Custom Audit Rules (Editable Context)</label>
+              <textarea [(ngModel)]="customContextText" rows="4" placeholder="Write your custom validation rules here..." style="width: 100%; border: 1px solid var(--color-primary); border-radius: 6px; padding: 12px; font-size: 0.85rem; font-family: inherit; resize: vertical; outline: none; box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.1);"></textarea>
             </div>
 
             <!-- 3. Footer (Read-only) -->
-            <div class="form-group" style="margin-top: 4px;">
+            <div class="form-group" style="margin-top: 8px;">
               <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">Output Format Constraint (Read-only Footer)</label>
-              <div style="background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 0.7rem; color: #666; max-height: 60px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; line-height: 1.25;">{{ fixedPromptFooter }}</div>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptFooter }}</div>
             </div>
           </ng-container>
 
           <!-- Tab 2: Correction Corrector Config -->
           <ng-container *ngIf="activeConfigTab === 'correction' && actions.correct">
-            <p class="section-desc" style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; margin-top: 0;">
               Define your custom instructions for rewriting requirements. This block is injected into the LLM system prompt for the Quality Corrector.
             </p>
 
             <!-- 1. Header (Read-only) -->
             <div class="form-group" style="margin-top: 4px;">
               <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">Corrector Persona (Read-only Header)</label>
-              <div style="background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 0.7rem; color: #666; max-height: 60px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; line-height: 1.25;">{{ fixedPromptHeaderCorrection }}</div>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptHeaderCorrection }}</div>
             </div>
 
             <!-- 2. Custom Criteria (Editable) -->
-            <div class="form-group" style="margin-top: 4px;">
-              <label class="form-label" style="font-weight: 600; font-size: 0.8rem; color: var(--color-primary);">Custom Correction Rules (Editable Context)</label>
-              <textarea [(ngModel)]="customContextCorrectionText" rows="3" placeholder="Write your custom rewriting/correction guidelines here..." style="width: 100%; border: 1px solid var(--color-primary); border-radius: 6px; padding: 8px; font-size: 0.8rem; font-family: inherit; resize: vertical; outline: none;"></textarea>
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; color: var(--color-primary);">Custom Correction Rules (Editable Context)</label>
+              <textarea [(ngModel)]="customContextCorrectionText" rows="4" placeholder="Write your custom rewriting/correction guidelines here..." style="width: 100%; border: 1px solid var(--color-primary); border-radius: 6px; padding: 12px; font-size: 0.85rem; font-family: inherit; resize: vertical; outline: none; box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.1);"></textarea>
             </div>
 
             <!-- 3. Footer (Read-only) -->
-            <div class="form-group" style="margin-top: 4px;">
+            <div class="form-group" style="margin-top: 8px;">
               <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">Output Format Constraint (Read-only Footer)</label>
-              <div style="background-color: #f8f9fa; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-size: 0.7rem; color: #666; max-height: 60px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; line-height: 1.25;">{{ fixedPromptFooterCorrection }}</div>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptFooterCorrection }}</div>
             </div>
           </ng-container>
 
-          <div style="display: flex; gap: 12px; margin-top: 8px; flex-shrink: 0;">
-            <button type="button" class="btn btn-primary" (click)="saveCustomContext()" style="flex: 1;">Save Configurations</button>
+          <div style="display: flex; gap: 12px; margin-top: 16px; flex-shrink: 0; justify-content: flex-end;">
             <button type="button" class="btn btn-secondary" (click)="closeCustomContextModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveCustomContext()">Save Configurations</button>
           </div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .dropzone-mini {
-      border: 1px dashed #ced4da;
-      border-radius: 6px;
-      padding: 14px;
-      background-color: #fff;
-      display: flex;
+    .checkbox-lbl {
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-      cursor: pointer;
+      gap: 8px;
       font-size: 0.85rem;
-      color: var(--text-secondary);
-      transition: var(--transition);
+      cursor: pointer;
+      color: var(--text-primary);
     }
-    .dropzone-mini:hover {
-      border-color: var(--color-primary);
-      background-color: #f8fafd;
+    .segmented-control {
+      display: flex;
+      background-color: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+      width: 100%;
     }
-    .dropzone-mini.has-file {
-      border-color: var(--color-success);
-      color: var(--color-success);
+    .segment {
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.85rem;
       font-weight: 500;
-    }
-    .checkbox-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 6px;
-    }
-    .checkbox-lbl, .radio-lbl {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
+      color: var(--text-secondary);
+      border-radius: 6px;
       cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
     }
-    .radio-group {
+    .segment.active {
+      background-color: #fff;
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .segment:not(.active):hover {
+      color: var(--text-primary);
+    }
+    .tabs-nav {
       display: flex;
-      gap: 16px;
-      margin-top: 6px;
+      gap: 24px;
+      border-bottom: 2px solid var(--border-color);
+      margin-top: 16px;
     }
-    .btn-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 12px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      position: relative;
     }
-    .progress-meta {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      margin-bottom: 6px;
+    .tab-btn.active {
+      color: var(--color-primary);
     }
-    .progress-bar-bg {
-      height: 10px;
-      background: #e9ecef;
-      border-radius: 5px;
-      overflow: hidden;
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: var(--color-primary);
+      border-radius: 2px 2px 0 0;
     }
-    .progress-bar {
-      height: 100%;
-      transition: width 0.2s ease-in-out;
+    .tab-btn:hover:not(.active) {
+      color: var(--text-primary);
     }
+    
     .bg-running { background-color: var(--color-primary); }
     .bg-paused { background-color: var(--color-warning); }
 
@@ -454,76 +473,71 @@ import { ApiService } from '../../services/api.service';
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(15, 23, 42, 0.45);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: flex;
-      align-items: center;
       justify-content: center;
-      z-index: 2000;
+      align-items: center;
+      z-index: 10000;
+      animation: fadeIn 0.2s ease-out;
     }
+    
     .modal-card {
-      background: #ffffff;
-      border: 1px solid var(--border-color);
+      background: var(--bg-card);
       border-radius: 12px;
-      width: 500px;
-      max-width: 90%;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      animation: modal-fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      overflow: hidden;
+      width: 90%;
+      max-width: 550px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+    
     .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border-color);
-      background-color: #f8f9fa;
     }
-    .modal-title {
-      font-weight: 600;
-      font-size: 1rem;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .btn-close {
+    
+    .modal-close {
       background: transparent;
       border: none;
       font-size: 1.2rem;
       cursor: pointer;
       color: var(--text-secondary);
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
+      line-height: 1;
+      padding: 0;
     }
-    .btn-close:hover {
-      background-color: #e9ecef;
+    
+    .modal-close:hover {
       color: var(--text-primary);
     }
+    
     .modal-body {
       padding: 24px;
+      max-height: 70vh;
+      overflow-y: auto;
     }
-    @keyframes modal-fadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.95) translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
+
     .dropdown-item {
       background-color: transparent;
       transition: background-color 0.2s ease;
     }
     .dropdown-item:hover {
       background-color: #f1f3f5;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
   `]
 })

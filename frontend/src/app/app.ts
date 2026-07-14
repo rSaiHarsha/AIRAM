@@ -20,47 +20,52 @@ import { ApiService } from './services/api.service';
     <!-- Top Navigation Header (No Sidebar) -->
     <header class="app-header">
       <div class="header-container">
-        <div class="app-logo">
-          <div class="logo-icon-container">
-            <svg class="logo-svg" width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="url(#logo-grad)" />
-              <path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M11.5 18H20.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M23 7L23.5 8.5L25 9L23.5 9.5L23 11L22.5 9.5L21 9L22.5 8.5L23 7Z" fill="#FFFBEB" />
-              <defs>
-                <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#0d6efd"/>
-                  <stop offset="100%" stop-color="#00c9ff"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div class="logo-text-container">
+        
+        <div class="header-left">
+          <div class="app-logo">
             <span class="logo-text-main">AIRAM</span>
-            <span class="logo-text-sub">AI-Assisted Requirement Analysis & Management</span>
           </div>
+          
+          <nav class="top-nav-tabs">
+            <button class="nav-tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">
+              Dashboard
+            </button>
+            <button class="nav-tab" [class.active]="activeTab === 'analysis'" (click)="setTab('analysis')">
+              Requirement Analysis
+            </button>
+            <button class="nav-tab" [class.active]="activeTab === 'rag'" (click)="setTab('rag')">
+              RAG Configuration
+            </button>
+          </nav>
         </div>
         
         <div class="header-right">
-          <nav class="top-nav-tabs">
-            <button class="nav-tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">
-              📊 Dashboard
-            </button>
-            <button class="nav-tab" [class.active]="activeTab === 'analysis'" (click)="setTab('analysis')">
-              🔍 Requirement Analysis
-            </button>
-            <button class="nav-tab" [class.active]="activeTab === 'rag'" (click)="setTab('rag')">
-              ⚙️ RAG Configuration
-            </button>
-          </nav>
-
           <!-- Backend Connection Status Indicator -->
           <div class="backend-status-badge" 
                [class.connected]="backendStatus === 'connected'" 
                [class.disconnected]="backendStatus === 'disconnected'" 
-               [class.connecting]="backendStatus === 'connecting'">
+               [class.connecting]="backendStatus === 'connecting'"
+               title="Backend: {{ backendUrl }}">
             <span class="status-indicator-dot"></span>
-            <span class="status-text">Backend: {{ backendUrl }}</span>
+            <span class="status-text">{{ backendStatus | uppercase }}</span>
+          </div>
+
+          <div class="header-icons">
+            <button class="icon-btn" aria-label="Notifications">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </button>
+            <button class="icon-btn" aria-label="Settings">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+            <div class="user-avatar">
+              <img src="https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff&rounded=true&size=32" alt="User">
+            </div>
           </div>
         </div>
       </div>
@@ -88,7 +93,6 @@ import { ApiService } from './services/api.service';
     .app-header {
       background-color: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       position: sticky;
       top: 0;
       z-index: 1000;
@@ -97,52 +101,31 @@ import { ApiService } from './services/api.service';
       max-width: 1200px;
       margin: 0 auto;
       padding: 0 24px;
-      height: 70px;
+      height: 64px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 100%;
+    }
     .app-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-    }
-    .logo-icon-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .logo-svg {
-      display: block;
-      filter: drop-shadow(0 2px 4px rgba(13, 110, 253, 0.25));
-      transition: transform 0.3s ease;
-    }
-    .app-logo:hover .logo-svg {
-      transform: scale(1.05) rotate(3deg);
-    }
-    .logo-text-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
     .logo-text-main {
-      font-size: 1.35rem;
+      font-size: 1.5rem;
       font-weight: 800;
-      color: var(--text-primary);
+      color: var(--color-primary);
       letter-spacing: 0.5px;
-      line-height: 1.1;
-    }
-    .logo-text-sub {
-      font-size: 0.62rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      letter-spacing: 0.1px;
-      line-height: 1.1;
-      margin-top: 2px;
+      line-height: 1;
     }
     .top-nav-tabs {
       display: flex;
-      gap: 8px;
+      gap: 24px;
       height: 100%;
       align-items: center;
     }
@@ -150,107 +133,122 @@ import { ApiService } from './services/api.service';
       background: transparent;
       border: none;
       color: var(--text-secondary);
-      font-size: 0.9rem;
+      font-size: 0.875rem;
       font-weight: 500;
-      padding: 10px 16px;
-      border-radius: 6px;
+      padding: 0 4px;
+      height: 100%;
       cursor: pointer;
       transition: var(--transition);
       display: flex;
       align-items: center;
-      gap: 8px;
+      position: relative;
     }
     .nav-tab:hover {
-      background-color: #f1f3f5;
       color: var(--text-primary);
     }
     .nav-tab.active {
-      background-color: #e8f0fe;
       color: var(--color-primary);
       font-weight: 600;
     }
-    .dropzone-mini {
-      border: 1px dashed #ced4da;
-      border-radius: 6px;
-      padding: 14px;
-      background-color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      transition: var(--transition);
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: var(--color-primary);
+      border-top-left-radius: 3px;
+      border-top-right-radius: 3px;
     }
-    .dropzone-mini:hover {
-      border-color: var(--color-primary);
-      background-color: #f8fafd;
-    }
-    .dropzone-mini.has-file {
-      border-color: var(--color-success);
-      color: var(--color-success);
-      font-weight: 500;
-    }
+    
     .header-right {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 24px;
     }
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      padding: 4px;
+      border-radius: 50%;
+    }
+    .icon-btn:hover {
+      color: var(--text-primary);
+      background-color: #f1f5f9;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+    }
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
     .backend-status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      border: 1px solid var(--border-color);
-      background-color: #f8f9fa;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      background-color: #f8fafc;
       color: var(--text-secondary);
       user-select: none;
-      pointer-events: none;
+      pointer-events: auto;
     }
     .backend-status-badge.connected {
-      background-color: #e6f4ea;
-      color: var(--color-success);
-      border-color: #c4ebd0;
+      background-color: #f1f5f9;
+      color: #334155;
     }
     .backend-status-badge.disconnected {
-      background-color: #fce8e6;
-      color: var(--color-danger);
-      border-color: #f9d3cf;
+      background-color: #fee2e2;
+      color: #991b1b;
     }
     .backend-status-badge.connecting {
-      background-color: #e8f0fe;
-      color: var(--color-primary);
-      border-color: #d2e3fc;
+      background-color: #dbeafe;
+      color: #1e40af;
     }
     .status-indicator-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background-color: #6c757d;
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+      background-color: #64748b;
     }
     .connected .status-indicator-dot {
       background-color: var(--color-success);
-      box-shadow: 0 0 6px var(--color-success);
-      animation: status-pulse 2s infinite;
     }
     .disconnected .status-indicator-dot {
       background-color: var(--color-danger);
-      box-shadow: 0 0 6px var(--color-danger);
     }
     .connecting .status-indicator-dot {
       background-color: var(--color-primary);
       animation: status-pulse 1.5s infinite;
     }
     @keyframes status-pulse {
-      0% { opacity: 0.4; }
-      50% { opacity: 1; }
-      100% { opacity: 0.4; }
+      0% { opacity: 0.4; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 0.4; transform: scale(0.8); }
     }
-  `]
 })
 export class App implements OnInit {
   activeTab = 'dashboard';
