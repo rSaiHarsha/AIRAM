@@ -24,7 +24,7 @@ import { ApiService } from '../../services/api.service';
           <div style="display: flex; flex-direction: column; gap: 16px;">
             <div style="display: flex; gap: 16px;">
               <div style="flex: 1;">
-                <label class="form-label">SYS 1 / HLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
+                <label class="form-label">SYS 1 / HLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
                 <div class="dropzone" (click)="swe1Input.click()" [class.has-file]="swe1File" style="height: 100px; padding: 16px;">
                   <div class="dropzone-icon" style="margin-bottom: 8px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
@@ -35,7 +35,7 @@ import { ApiService } from '../../services/api.service';
               </div>
 
               <div style="flex: 1;">
-                <label class="form-label">SYS 2 / LLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
+                <label class="form-label">SYS 2 / LLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
                 <div class="dropzone" (click)="swe2Input.click()" [class.has-file]="swe2File" style="height: 100px; padding: 16px;">
                   <div class="dropzone-icon" style="margin-bottom: 8px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
