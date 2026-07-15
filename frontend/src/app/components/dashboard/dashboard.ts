@@ -1,11 +1,12 @@
 import { Component, OnInit, EventEmitter, Output, Input, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="dashboard-container">
       <div class="grid grid-3" style="margin-bottom: 40px;">
@@ -58,7 +59,7 @@ import { ApiService } from '../../services/api.service';
       <div class="runs-history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
         <div style="display: flex; gap: 12px;">
-          <button class="btn btn-secondary">
+          <button class="btn btn-secondary" (click)="showFilterPanel = !showFilterPanel" [class.active]="showFilterPanel">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
@@ -73,17 +74,47 @@ import { ApiService } from '../../services/api.service';
         </div>
       </div>
       
+      <!-- Filter Panel -->
+      <div *ngIf="showFilterPanel" class="filter-panel" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; gap: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Status</label>
+          <select [(ngModel)]="filterStatus" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem;">
+            <option value="all">All Statuses</option>
+            <option value="completed">Completed</option>
+            <option value="running">Running / Paused</option>
+            <option value="stopped">Stopped / Failed</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Run Type</label>
+          <select [(ngModel)]="filterType" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem;">
+            <option value="all">All Types</option>
+            <option value="quality">Quality Analysis</option>
+            <option value="traceability">Traceability</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Date Filter</label>
+          <select [(ngModel)]="filterDate" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem;">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+          </select>
+        </div>
+      </div>
+      
       <div *ngIf="isLoadingHistory" class="loading-state" style="padding: 32px; text-align: center; color: var(--text-secondary);">
         <div class="spinner"></div>
         <div style="font-size: 0.9rem; font-weight: 500;">Loading data please wait...</div>
       </div>
 
-      <div *ngIf="!isLoadingHistory && history.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
-        No previous analysis execution runs found. Go to the <strong>Requirement Analysis</strong> tab to upload and evaluate requirements!
+      <div *ngIf="!isLoadingHistory && filteredHistory.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
+        No execution runs found matching the filters.
       </div>
 
-      <div *ngIf="!isLoadingHistory && history.length > 0" class="minimized-shelf">
-        <div *ngFor="let run of history" class="history-card" [class.minimized]="run.minimized === 1">
+      <div *ngIf="!isLoadingHistory && filteredHistory.length > 0" class="minimized-shelf">
+        <div *ngFor="let run of filteredHistory" class="history-card" [class.minimized]="run.minimized === 1">
           <div class="history-header">
             <div class="history-meta" style="display: flex; gap: 16px; align-items: center;">
               <span class="badge badge-blue-pill" style="font-size: 0.65rem;">{{ run.type }} RUN</span>
@@ -309,6 +340,42 @@ export class DashboardComponent implements OnInit {
   expandedResults: { [runId: string]: any[] } = {};
   currentPage: { [runId: string]: number } = {};
   isLoadingHistory: boolean = true;
+
+  // Filter State
+  showFilterPanel: boolean = false;
+  filterStatus: string = 'all';
+  filterType: string = 'all';
+  filterDate: string = 'all';
+
+  get filteredHistory(): any[] {
+    return this.history.filter(run => {
+      // 1. Status Filter
+      if (this.filterStatus !== 'all') {
+        if (this.filterStatus === 'running' && run.status !== 'running' && run.status !== 'paused') return false;
+        if (this.filterStatus === 'completed' && run.status !== 'completed') return false;
+        if (this.filterStatus === 'stopped' && run.status !== 'stopped' && run.status !== 'failed') return false;
+      }
+      
+      // 2. Type Filter
+      if (this.filterType !== 'all') {
+        if (run.type !== this.filterType) return false;
+      }
+      
+      // 3. Date Filter
+      if (this.filterDate !== 'all') {
+        const runDate = new Date(run.timestamp);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - runDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (this.filterDate === 'today' && diffDays > 1) return false;
+        if (this.filterDate === 'week' && diffDays > 7) return false;
+        if (this.filterDate === 'month' && diffDays > 30) return false;
+      }
+      
+      return true;
+    });
+  }
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
