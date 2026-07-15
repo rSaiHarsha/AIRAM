@@ -56,7 +56,10 @@ def init_pg_db():
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 type TEXT NOT NULL,
                 status TEXT NOT NULL,
-                minimized INTEGER DEFAULT 0
+                minimized INTEGER DEFAULT 0,
+                current_row INTEGER DEFAULT 0,
+                total_rows INTEGER DEFAULT 0,
+                guideline_name TEXT
             )
         """)
         
@@ -77,6 +80,12 @@ def init_pg_db():
             )
         """)
         # Safely migrate existing Postgres tables created before these columns existed
+        try:
+            cursor.execute("ALTER TABLE execution_runs ADD COLUMN IF NOT EXISTS current_row INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE execution_runs ADD COLUMN IF NOT EXISTS total_rows INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE execution_runs ADD COLUMN IF NOT EXISTS guideline_name TEXT")
+        except Exception:
+            pass
         try:
             cursor.execute("ALTER TABLE execution_results ADD COLUMN IF NOT EXISTS swe1_text TEXT")
         except Exception:
@@ -126,11 +135,11 @@ def pull_from_render_to_sqlite():
             )
             
         # 3. Execution Runs
-        cursor_pg.execute("SELECT run_id, timestamp, type, status, minimized FROM execution_runs")
+        cursor_pg.execute("SELECT run_id, timestamp, type, status, minimized, current_row, total_rows, guideline_name FROM execution_runs")
         for row in cursor_pg.fetchall():
             cursor_sl.execute(
-                "INSERT OR REPLACE INTO execution_runs (run_id, timestamp, type, status, minimized) VALUES (?, ?, ?, ?, ?)",
-                (row['run_id'], row['timestamp'], row['type'], row['status'], row['minimized'])
+                "INSERT OR REPLACE INTO execution_runs (run_id, timestamp, type, status, minimized, current_row, total_rows, guideline_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (row['run_id'], row['timestamp'], row['type'], row['status'], row['minimized'], row['current_row'], row['total_rows'], row['guideline_name'])
             )
             
         # 4. Execution Results
@@ -214,13 +223,13 @@ def sync_sqlite_to_postgres():
             """, (row['id'], row['doc_name'], row['chunk_index'], row['chunk_text'], row['token_count'], row['qdrant_id'], row['embedded_at']))
             
         # 3. Sync Execution Runs
-        cursor_sl.execute("SELECT run_id, timestamp, type, status, minimized FROM execution_runs")
+        cursor_sl.execute("SELECT run_id, timestamp, type, status, minimized, current_row, total_rows, guideline_name FROM execution_runs")
         for row in cursor_sl.fetchall():
             cursor_pg.execute("""
-                INSERT INTO execution_runs (run_id, timestamp, type, status, minimized) 
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (run_id) DO UPDATE SET status = EXCLUDED.status, minimized = EXCLUDED.minimized
-            """, (row['run_id'], row['timestamp'], row['type'], row['status'], row['minimized']))
+                INSERT INTO execution_runs (run_id, timestamp, type, status, minimized, current_row, total_rows, guideline_name) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (run_id) DO UPDATE SET status = EXCLUDED.status, minimized = EXCLUDED.minimized, current_row = EXCLUDED.current_row, total_rows = EXCLUDED.total_rows, guideline_name = EXCLUDED.guideline_name
+            """, (row['run_id'], row['timestamp'], row['type'], row['status'], row['minimized'], row['current_row'], row['total_rows'], row['guideline_name']))
             
         # 4. Sync Execution Results
         cursor_sl.execute("SELECT id, run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category FROM execution_results")
