@@ -166,6 +166,35 @@ def sync_sqlite_to_postgres():
         conn_sl.row_factory = sqlite3.Row
         cursor_sl = conn_sl.cursor()
         
+        # 0. Cleanup Postgres records no longer in SQLite
+        cursor_sl.execute("SELECT id FROM guidelines")
+        g_ids = [r['id'] for r in cursor_sl.fetchall()]
+        if g_ids:
+            cursor_pg.execute("DELETE FROM guidelines WHERE id NOT IN %s", (tuple(g_ids),))
+        else:
+            cursor_pg.execute("DELETE FROM guidelines")
+            
+        cursor_sl.execute("SELECT id FROM chunks")
+        c_ids = [r['id'] for r in cursor_sl.fetchall()]
+        if c_ids:
+            cursor_pg.execute("DELETE FROM chunks WHERE id NOT IN %s", (tuple(c_ids),))
+        else:
+            cursor_pg.execute("DELETE FROM chunks")
+            
+        cursor_sl.execute("SELECT run_id FROM execution_runs")
+        er_ids = [r['run_id'] for r in cursor_sl.fetchall()]
+        if er_ids:
+            cursor_pg.execute("DELETE FROM execution_runs WHERE run_id NOT IN %s", (tuple(er_ids),))
+        else:
+            cursor_pg.execute("DELETE FROM execution_runs")
+            
+        cursor_sl.execute("SELECT id FROM execution_results")
+        res_ids = [r['id'] for r in cursor_sl.fetchall()]
+        if res_ids:
+            cursor_pg.execute("DELETE FROM execution_results WHERE id NOT IN %s", (tuple(res_ids),))
+        else:
+            cursor_pg.execute("DELETE FROM execution_results")
+            
         # 1. Sync Guidelines
         cursor_sl.execute("SELECT id, name, content, created_at FROM guidelines")
         for row in cursor_sl.fetchall():

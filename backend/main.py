@@ -106,6 +106,7 @@ async def edit_guideline(guideline_id: str, payload: GuidelineUpdate):
 async def remove_guideline(guideline_id: str):
     """Deletes a strict guideline document."""
     delete_guideline(guideline_id)
+    trigger_render_sync()
     return {"status": "success", "id": guideline_id}
 
 @app.post("/api/rag/train")
@@ -279,6 +280,7 @@ async def minimize_run(run_id: str, minimized: bool = Form(...)):
 async def delete_run(run_id: str):
     """Deletes an execution run history and its results from the database."""
     delete_execution_run(run_id)
+    trigger_render_sync()
     return {"status": "success", "run_id": run_id}
 
 if __name__ == "__main__":
