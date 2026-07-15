@@ -180,11 +180,6 @@ import { ApiService } from '../../services/api.service';
         <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 16px;">
             <div style="font-weight: 600; font-size: 1.05rem;">📋 Analysis Matrix Results</div>
-            
-            <div class="segmented-control" *ngIf="!isTraceabilityRun" style="width: auto;">
-              <div class="segment" [class.active]="!showDashboard" (click)="showDashboard = false" style="padding: 4px 12px; font-size: 0.75rem;">Table View</div>
-              <div class="segment" [class.active]="showDashboard" (click)="showDashboard = true" style="padding: 4px 12px; font-size: 0.75rem;">Dashboard</div>
-            </div>
           </div>
           <div style="display: flex; gap: 8px;">
             <button class="btn btn-secondary btn-sm" (click)="clearResults()">🧹 Clear Results</button>
@@ -1085,95 +1080,11 @@ JSON Schema:
     return Math.min(a, b);
   }
 
-  showDashboard = false;
 
-  get dashboardStats(): any[] {
-    if (!this.results || this.results.length === 0) return [];
-    
-    // Build a master rules dictionary mapping rule_name -> category
-    const rulesMaster: any = {};
-    if (this.guidelines && this.guidelines.length > 0) {
-      // Use selected guidelines if any, otherwise fall back to all
-      const targetGuidelines = this.selectedGuidelineIds.length > 0 
-        ? this.guidelines.filter(g => this.selectedGuidelineIds.includes(g.id))
-        : this.guidelines;
-
-      targetGuidelines.forEach(g => {
-        if (g.content) {
-          try {
-            const parsed = typeof g.content === 'string' ? JSON.parse(g.content) : g.content;
-            // Merge carefully to avoid old JSON files without categories overwriting new ones
-            Object.keys(parsed).forEach(ruleId => {
-              const rule = parsed[ruleId];
-              if (!rulesMaster[ruleId] || rule.category) {
-                rulesMaster[ruleId] = rule;
-              }
-            });
-          } catch (e) {
-            console.error('Error parsing guideline content', e);
-          }
-        }
-      });
-    }
-
-    const categories: { [key: string]: { total: number, failed: number } } = {};
-
-    // Initialize categories from the master rules
-    Object.values(rulesMaster).forEach((rule: any) => {
-      if (rule.category && !categories[rule.category]) {
-        categories[rule.category] = { total: 0, failed: 0 };
-      }
-    });
-
-    // If no categories were found in rules.json, we can't show stats
-    if (Object.keys(categories).length === 0) return [];
-
-    const totalReqs = this.results.length;
-    
-    // Assign total to all categories
-    Object.keys(categories).forEach(cat => {
-      categories[cat].total = totalReqs;
-    });
-
-    // Count failures
-    this.results.forEach(row => {
-      if (row.failed_rule && row.failed_rule !== 'N/A' && row.failed_rule.trim() !== '') {
-        const failedIds = row.failed_rule.split(',').map((id: string) => id.trim());
-        const failedCategoriesForThisRow = new Set<string>();
-        
-        failedIds.forEach((id: string) => {
-          const ruleDef = rulesMaster[id];
-          if (ruleDef && ruleDef.category) {
-            failedCategoriesForThisRow.add(ruleDef.category);
-          }
-        });
-
-        failedCategoriesForThisRow.forEach(cat => {
-          if (categories[cat]) {
-            categories[cat].failed += 1;
-          }
-        });
-      }
-    });
-
-    return Object.keys(categories).map(cat => {
-      const stats = categories[cat];
-      const passed = stats.total - stats.failed;
-      const percentage = stats.total > 0 ? Math.round((passed / stats.total) * 100) : 100;
-      return {
-        name: cat,
-        passed,
-        failed: stats.failed,
-        total: stats.total,
-        percentage
-      };
-    }).sort((a, b) => b.percentage - a.percentage); // Sort by highest percentage
-  }
 
   clearResults() {
     this.results = [];
     this.activeRunId = '';
-    this.showDashboard = false;
     this.runStatus = '';
     this.isFinished = false;
     this.currentRow = 0;
