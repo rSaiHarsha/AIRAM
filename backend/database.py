@@ -140,6 +140,16 @@ def get_guideline_details(guideline_id: str):
         }
     return None
 
+def update_guideline(guideline_id: str, new_name: str, new_content: dict):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE guidelines SET name = ?, content = ? WHERE id = ?",
+        (new_name, json.dumps(new_content), guideline_id)
+    )
+    conn.commit()
+    conn.close()
+
 def delete_guideline(guideline_id: str):
     conn = get_connection()
     cursor = conn.cursor()

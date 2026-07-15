@@ -22,6 +22,7 @@ from backend.database import (
     init_db,
     save_guidelines,
     get_all_guidelines,
+    update_guideline,
     delete_guideline,
     get_previous_executions,
     get_execution_results,
@@ -31,6 +32,7 @@ from backend.database import (
     delete_execution_run,
     get_execution_run
 )
+from pydantic import BaseModel
 from backend.rag_service import train_document_stream, search_guideline_chunks
 from backend.analyzer_service import run_requirements_analysis_job, ACTIVE_JOBS
 
@@ -78,6 +80,20 @@ async def upload_guidelines(
 async def get_guidelines():
     """Lists all available strict guideline documents."""
     return get_all_guidelines()
+
+class GuidelineUpdate(BaseModel):
+    name: str
+    content: str
+
+@app.put("/api/guidelines/{guideline_id}")
+async def edit_guideline(guideline_id: str, payload: GuidelineUpdate):
+    """Updates a strict guideline document."""
+    try:
+        parsed_json = json.loads(payload.content)
+        update_guideline(guideline_id, payload.name, parsed_json)
+        return {"status": "success", "id": guideline_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON content: {str(e)}")
 
 @app.delete("/api/guidelines/{guideline_id}")
 async def remove_guideline(guideline_id: str):

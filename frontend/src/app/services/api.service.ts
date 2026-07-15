@@ -29,6 +29,10 @@ private baseUrl = window.location.hostname === 'localhost'
     return this.http.delete(`${this.baseUrl}/api/guidelines/${id}`);
   }
 
+  updateGuideline(id: string, name: string, content: string): Observable<any> {
+    return this.http.put(`${this.baseUrl}/api/guidelines/${id}`, { name, content });
+  }
+
   getGuidelines(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/api/guidelines`);
   }

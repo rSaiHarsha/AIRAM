@@ -58,49 +58,53 @@ import { ApiService } from '../../services/api.service';
 
       <div class="runs-history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
-        <div style="display: flex; gap: 12px;">
-          <button class="btn btn-secondary" (click)="showFilterPanel = !showFilterPanel" [class.active]="showFilterPanel">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-            Filter
-          </button>
+        <div style="display: flex; gap: 12px; position: relative;">
+          <!-- Filter Button & Dropdown Container -->
+          <div style="position: relative;">
+            <button class="btn btn-secondary" (click)="showFilterPanel = !showFilterPanel" [class.active]="showFilterPanel">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              Filter
+            </button>
+            
+            <!-- Filter Dropdown -->
+            <div *ngIf="showFilterPanel" class="filter-dropdown" style="position: absolute; top: calc(100% + 8px); right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; display: flex; flex-direction: column; gap: 12px;">
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Status</label>
+                <select [(ngModel)]="filterStatus" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
+                  <option value="all">All Statuses</option>
+                  <option value="completed">Completed</option>
+                  <option value="running">Running / Paused</option>
+                  <option value="stopped">Stopped / Failed</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Run Type</label>
+                <select [(ngModel)]="filterType" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
+                  <option value="all">All Types</option>
+                  <option value="quality">Quality Analysis</option>
+                  <option value="traceability">Traceability</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Date Filter</label>
+                <select [(ngModel)]="filterDate" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <button class="btn btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <polygon points="5 3 19 12 5 21 5 3"></polygon>
             </svg>
             New Execution
           </button>
-        </div>
-      </div>
-      
-      <!-- Filter Panel -->
-      <div *ngIf="showFilterPanel" class="filter-panel" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 24px; display: flex; gap: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <div style="flex: 1;">
-          <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Status</label>
-          <select [(ngModel)]="filterStatus" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem;">
-            <option value="all">All Statuses</option>
-            <option value="completed">Completed</option>
-            <option value="running">Running / Paused</option>
-            <option value="stopped">Stopped / Failed</option>
-          </select>
-        </div>
-        <div style="flex: 1;">
-          <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Run Type</label>
-          <select [(ngModel)]="filterType" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem;">
-            <option value="all">All Types</option>
-            <option value="quality">Quality Analysis</option>
-            <option value="traceability">Traceability</option>
-          </select>
-        </div>
-        <div style="flex: 1;">
-          <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase;">Date Filter</label>
-          <select [(ngModel)]="filterDate" style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem;">
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">Last 7 Days</option>
-            <option value="month">Last 30 Days</option>
-          </select>
         </div>
       </div>
       

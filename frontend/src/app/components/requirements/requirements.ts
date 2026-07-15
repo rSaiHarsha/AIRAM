@@ -289,40 +289,95 @@ import { ApiService } from '../../services/api.service';
           <button type="button" class="modal-close" (click)="closeUploadModal()">✕</button>
         </div>
         <div class="modal-body">
-          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
-            Configure strict standard documents in JSON format (e.g. INCOSE rules list, ASPICE guidelines) to enable validation.
-          </p>
-
-          <div class="form-group">
-            <label class="form-label">Standards Document Name (e.g. INCOSE Rules, ASPICE SWE.1)</label>
-            <input type="text" [(ngModel)]="newStandardName" placeholder="Enter name..." style="width: 100%;">
+          <div class="tabs-nav" style="margin-top: 0; margin-bottom: 20px;">
+            <button class="tab-btn" [class.active]="activeModalTab === 'upload'" (click)="activeModalTab = 'upload'">📤 Upload New</button>
+            <button class="tab-btn" [class.active]="activeModalTab === 'manage'" (click)="activeModalTab = 'manage'">📋 Available Rules</button>
           </div>
 
-          <div class="form-group" style="margin-top: 16px;">
-            <label class="form-label">Upload JSON Guidelines File</label>
-            <div class="dropzone" (click)="stdInput.click()" [class.has-file]="standardFile" style="height: 100px; padding: 16px;">
-              <div class="dropzone-icon" style="margin-bottom: 8px;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-              </div>
-              <div class="dropzone-text" style="font-size: 0.8rem;">{{ standardFile ? standardFile.name : 'Choose JSON Guidelines File' }}</div>
-              <input #stdInput type="file" (change)="onStandardFileSelected($event)" style="display: none;" accept=".json">
+          <ng-container *ngIf="activeModalTab === 'upload'">
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
+              Configure strict standard documents in JSON format (e.g. INCOSE rules list, ASPICE guidelines) to enable validation.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Standards Document Name (e.g. INCOSE Rules, ASPICE SWE.1)</label>
+              <input type="text" [(ngModel)]="newStandardName" placeholder="Enter name..." style="width: 100%;">
             </div>
-          </div>
 
-          <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
-            <button type="button" class="btn btn-secondary" (click)="closeUploadModal()">Cancel</button>
-            <button 
-              type="button"
-              class="btn btn-primary" 
-              [disabled]="!newStandardName || !standardFile || isUploadingStandard" 
-              (click)="uploadStandard()">
-              {{ isUploadingStandard ? 'Uploading...' : 'Upload Standards Document' }}
-            </button>
-          </div>
+            <div class="form-group" style="margin-top: 16px;">
+              <label class="form-label">Upload JSON Guidelines File</label>
+              <div class="dropzone" (click)="stdInput.click()" [class.has-file]="standardFile" style="height: 100px; padding: 16px;">
+                <div class="dropzone-icon" style="margin-bottom: 8px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                </div>
+                <div class="dropzone-text" style="font-size: 0.8rem;">{{ standardFile ? standardFile.name : 'Choose JSON Guidelines File' }}</div>
+                <input #stdInput type="file" (change)="onStandardFileSelected($event)" style="display: none;" accept=".json">
+              </div>
+            </div>
 
-          <div *ngIf="uploadedStatus" class="alert alert-success" style="margin-top: 16px; padding: 12px; background: #e6f4ea; color: var(--color-success); border-radius: 6px; font-size: 0.85rem;">
-            {{ uploadedStatus }}
-          </div>
+            <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+              <button type="button" class="btn btn-secondary" (click)="closeUploadModal()">Cancel</button>
+              <button 
+                type="button"
+                class="btn btn-primary" 
+                [disabled]="!newStandardName || !standardFile || isUploadingStandard" 
+                (click)="uploadStandard()">
+                {{ isUploadingStandard ? 'Uploading...' : 'Upload Standards Document' }}
+              </button>
+            </div>
+
+            <div *ngIf="uploadedStatus" class="alert alert-success" style="margin-top: 16px; padding: 12px; background: #e6f4ea; color: var(--color-success); border-radius: 6px; font-size: 0.85rem;">
+              {{ uploadedStatus }}
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="activeModalTab === 'manage'">
+            <div style="max-height: 450px; overflow-y: auto; padding-right: 8px;">
+              <div *ngFor="let g of guidelines" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 12px; background: #f8fafc;">
+                
+                <!-- Display Mode -->
+                <ng-container *ngIf="editingGuidelineId !== g.id">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                      <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--text-primary);">{{ g.name }}</h4>
+                      <div style="font-size: 0.75rem; color: var(--text-secondary);">ID: {{ g.id }}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                      <button class="btn btn-secondary btn-sm" (click)="downloadGuideline(g)" title="Download JSON" style="padding: 4px 8px;">
+                        ⬇️
+                      </button>
+                      <button class="btn btn-secondary btn-sm" (click)="editGuideline(g)" title="Edit" style="padding: 4px 8px;">
+                        ✏️
+                      </button>
+                      <button class="btn btn-secondary btn-sm" (click)="deleteGuideline(g.id, $event)" title="Delete" style="color: #ef4444; padding: 4px 8px;">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <!-- Edit Mode -->
+                <ng-container *ngIf="editingGuidelineId === g.id">
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-size: 0.8rem;">Rule Name</label>
+                    <input type="text" [(ngModel)]="editingGuidelineName" style="width: 100%; padding: 6px;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-size: 0.8rem;">JSON Content</label>
+                    <textarea [(ngModel)]="editingGuidelineContent" rows="12" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.8rem; resize: vertical; line-height: 1.4;"></textarea>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" (click)="cancelEdit()">Cancel</button>
+                    <button class="btn btn-primary btn-sm" (click)="saveEditedGuideline()">Save Changes</button>
+                  </div>
+                </ng-container>
+              </div>
+              
+              <div *ngIf="guidelines.length === 0" style="text-align: center; color: var(--text-secondary); padding: 24px; font-size: 0.9rem;">
+                No guidelines uploaded yet.
+              </div>
+            </div>
+          </ng-container>
         </div>
       </div>
     </div>
@@ -562,6 +617,12 @@ export class RequirementsComponent implements OnInit, OnDestroy {
   selectedGuidelineIds: string[] = [];
   showDropdown = false;
   
+  // Manage Guidelines Modal State
+  activeModalTab: 'upload' | 'manage' = 'upload';
+  editingGuidelineId: string | null = null;
+  editingGuidelineName: string = '';
+  editingGuidelineContent: string = '';
+  
   // Custom LLM Context configurations
   showCustomContextModal = false;
   activeConfigTab: 'analysis' | 'correction' = 'analysis';
@@ -746,6 +807,54 @@ JSON Schema:
         }
       });
     }
+  }
+
+  downloadGuideline(g: any) {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(g.content, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", g.name + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  editGuideline(g: any) {
+    this.editingGuidelineId = g.id;
+    this.editingGuidelineName = g.name;
+    this.editingGuidelineContent = JSON.stringify(g.content, null, 2);
+  }
+
+  cancelEdit() {
+    this.editingGuidelineId = null;
+    this.editingGuidelineName = '';
+    this.editingGuidelineContent = '';
+  }
+
+  saveEditedGuideline() {
+    if (!this.editingGuidelineId || !this.editingGuidelineName.trim() || !this.editingGuidelineContent.trim()) {
+      alert("Name and Content cannot be empty.");
+      return;
+    }
+    
+    // Validate JSON
+    try {
+      JSON.parse(this.editingGuidelineContent);
+    } catch (e) {
+      alert("Invalid JSON content. Please ensure the rules are valid JSON format.");
+      return;
+    }
+
+    this.apiService.updateGuideline(this.editingGuidelineId, this.editingGuidelineName, this.editingGuidelineContent).subscribe({
+      next: () => {
+        this.loadGuidelines();
+        this.cancelEdit();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        alert('Failed to update guideline: ' + (err.error?.detail || err.message));
+      }
+    });
   }
 
   uploadStandard() {
