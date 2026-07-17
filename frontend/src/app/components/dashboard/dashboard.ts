@@ -22,7 +22,7 @@ import { ApiService } from '../../services/api.service';
             </span>
           </div>
           <div class="metric-value">{{ overallPassRate }}% <span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">avg</span></div>
-          <div class="metric-footer">{{ hasMoreHistory ? 'Calculated from loaded history' : 'Calculated from all history' }}</div>
+          <div class="metric-footer">{{ (hasMoreHistory || isLoadingMoreHistory) ? 'Calculating (still loading)...' : 'Calculated from all history' }}</div>
         </div>
 
         <!-- Metric Card 2: Total Runs -->
@@ -36,7 +36,7 @@ import { ApiService } from '../../services/api.service';
             </span>
           </div>
           <div class="metric-value">{{ totalHistoryCount }}</div>
-          <div class="metric-footer">{{ hasMoreHistory ? 'Loaded so far — more available' : 'Total stored runs' }}</div>
+          <div class="metric-footer">{{ (hasMoreHistory || isLoadingMoreHistory) ? 'Loading full history...' : 'Total stored runs' }}</div>
         </div>
 
         <!-- Metric Card 3: RAG Guidelines Chunk count -->
@@ -60,13 +60,13 @@ import { ApiService } from '../../services/api.service';
         <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
         <div style="display: flex; gap: 12px; align-items: center; position: relative;">
 
-          <!-- NEW: Load More button — fetches the next batch (15) of runs from the backend and appends them client-side -->
-          <button class="btn btn-secondary btn-sm" *ngIf="hasMoreHistory" [disabled]="isLoadingMoreHistory" (click)="loadMoreHistory()" style="padding: 4px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Fetch the next batch of runs">
-            <span *ngIf="isLoadingMoreHistory" class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0;"></span>
-            {{ isLoadingMoreHistory ? 'Loading...' : '+ Load More' }}
-          </button>
+          <!-- History now loads all batches automatically in the background; this is just a passive indicator, not a button -->
+          <div *ngIf="isLoadingMoreHistory" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-secondary);">
+            <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0;"></span>
+            Loading more runs...
+          </div>
 
-          <!-- NEW: Prev 8 / Next 8 quick-page control, shown next to the heading -->
+          <!-- Prev 8 / Next 8 quick-page control, shown next to the heading -->
           <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
             <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous 8 runs">
               ‹ Prev 8
@@ -151,9 +151,10 @@ import { ApiService } from '../../services/api.service';
                 {{ run.status }}
               </span>
 
-              <!-- NEW: Stop button for runs still running/paused, mirrors RequirementsComponent.stopRun() -->
-              <button *ngIf="run.status === 'running' || run.status === 'paused'" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;" (click)="stopRun(run.run_id)" title="Stop this run">
-                🛑 Stop
+              <!-- Stop button for runs still running/paused, mirrors RequirementsComponent.stopRun() -->
+              <button *ngIf="run.status === 'running' || run.status === 'paused'" class="stop-run-btn" (click)="stopRun(run.run_id)" title="Stop this run">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg>
+                Stop
               </button>
 
               <button class="icon-btn-minimal" (click)="toggleMinimize(run.run_id, run.minimized === 1)">
@@ -390,6 +391,28 @@ import { ApiService } from '../../services/api.service';
     .text-danger:hover:not(:disabled) {
       background-color: #fee2e2;
     }
+    .stop-run-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #ef4444;
+      background: #fff;
+      border: 1.5px solid #ef4444;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: var(--transition);
+      line-height: 1.2;
+    }
+    .stop-run-btn:hover {
+      background-color: #ef4444;
+      color: #fff;
+    }
+    .stop-run-btn svg {
+      flex-shrink: 0;
+    }
     .no-runs {
       text-align: center;
       padding: 40px;
@@ -519,6 +542,7 @@ export class DashboardComponent implements OnInit {
   totalHistoryCount: number = 0;
   hasMoreHistory: boolean = true;
   isLoadingMoreHistory: boolean = false;
+  private isFetchingHistoryBatch: boolean = false;
 
   // Filter State
   showFilterPanel: boolean = false;
@@ -661,12 +685,14 @@ export class DashboardComponent implements OnInit {
   }
 
   // Fetches the NEXT batch of runs (offset = however many are already
-  // loaded, limit = loadBatchSize) and appends it to `history`. Called
-  // once automatically on load, and again each time "+ Load More" is
-  // clicked. `hasMoreHistory` flips false once a batch comes back shorter
-  // than the requested size, meaning we've reached the end.
+  // loaded, limit = loadBatchSize), appends it to `history`, and — instead
+  // of waiting for another click — immediately kicks off the following
+  // batch as well. This repeats until the backend returns a short batch
+  // (meaning we've reached the end), so the full history loads in one
+  // automatic pass while the list is already visible and usable.
   loadMoreHistory() {
-    if (this.isLoadingMoreHistory || !this.hasMoreHistory) return;
+    if (this.isFetchingHistoryBatch || !this.hasMoreHistory) return;
+    this.isFetchingHistoryBatch = true;
 
     const isInitialLoad = this.history.length === 0;
     if (!isInitialLoad) {
@@ -690,13 +716,21 @@ export class DashboardComponent implements OnInit {
         this.overallPassRate = total > 0 ? Math.round((passes / total) * 100) : 0;
 
         this.isLoadingHistory = false;
-        this.isLoadingMoreHistory = false;
+        this.isFetchingHistoryBatch = false;
         this.prefetchVisibleExpanded();
         this.cdr.detectChanges();
+
+        if (this.hasMoreHistory) {
+          this.loadMoreHistory();
+        } else {
+          this.isLoadingMoreHistory = false;
+          this.cdr.detectChanges();
+        }
       },
       error: () => {
         this.isLoadingHistory = false;
         this.isLoadingMoreHistory = false;
+        this.isFetchingHistoryBatch = false;
         this.cdr.detectChanges();
       }
     });
