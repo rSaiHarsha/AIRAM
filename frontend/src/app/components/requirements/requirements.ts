@@ -24,7 +24,7 @@ import { ApiService } from '../../services/api.service';
           <div style="display: flex; flex-direction: column; gap: 16px;">
             <div style="display: flex; gap: 16px;">
               <div style="flex: 1;">
-                <label class="form-label">SYS 1 / HLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
+                <label class="form-label">SWE 1 / HLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
                 <div class="dropzone" [class.has-file]="swe1File" style="height: 100px; padding: 16px; position: relative;">
                   <button *ngIf="swe1File" (click)="removeFile($event, 'swe1')" title="Remove file" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; padding: 0;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -40,7 +40,7 @@ import { ApiService } from '../../services/api.service';
               </div>
 
               <div style="flex: 1;">
-                <label class="form-label">SYS 2 / LLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
+                <label class="form-label">SWE 2 / LLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
                 <div class="dropzone" [class.has-file]="swe2File" style="height: 100px; padding: 16px; position: relative;">
                   <button *ngIf="swe2File" (click)="removeFile($event, 'swe2')" title="Remove file" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; padding: 0;">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -74,7 +74,7 @@ import { ApiService } from '../../services/api.service';
                   <input type="checkbox" [(ngModel)]="actions.correct" (ngModelChange)="onCorrectionToggle($event)"> Quality Correction
                 </label>
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.trace"> Traceability Analysis (SYS.2 to SYS.1)
+                  <input type="checkbox" [(ngModel)]="actions.trace"> Traceability Analysis (SWE.2 to SWE.1)
                 </label>
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.correctTrace"> Traceability Correction
