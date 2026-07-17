@@ -199,17 +199,16 @@ import { ApiService } from '../../services/api.service';
         
         <div style="padding: 0 24px;">
           <div class="tabs-nav">
-            <!-- Updated to show tabs based on actions selected or existing data -->
-            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="actions.analyse || actions.correct || hasCategory('sys1')">SYS 1 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="(actions.analyse && swe2File) || hasCategory('sys2')">SYS 2 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="actions.trace || actions.correctTrace || hasCategory('traceability')">Traceability</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
           </div>
         </div>
         
         <div class="table-container" style="padding: 0 24px 24px 24px; border: none; border-radius: 0;">
           <table>
             <thead>
-              <tr *ngIf="activeTab !== 'traceability'">
+              <tr *ngIf="!isTraceabilityRun">
                 <th>ID</th>
                 <th>Requirement</th>
                 <th>Status</th>
@@ -217,7 +216,7 @@ import { ApiService } from '../../services/api.service';
                 <th>Rationale / Reasoning</th>
                 <th *ngIf="hasCorrections()">Corrected Requirement</th>
               </tr>
-              <tr *ngIf="activeTab === 'traceability'">
+              <tr *ngIf="isTraceabilityRun">
                 <th>SYS.1 ID</th>
                 <th>SYS.1 Requirement</th>
                 <th>SYS.2 ID</th>
@@ -228,10 +227,8 @@ import { ApiService } from '../../services/api.service';
             </thead>
             <tbody>
               <ng-container *ngFor="let row of filteredResults | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
-                
                 <!-- Quality Analysis View -->
-                <ng-container *ngIf="activeTab !== 'traceability'">
-            
+                <ng-container *ngIf="!isTraceabilityRun">
                   <!-- Split Requirement / Corrections View -->
                   <ng-container *ngIf="hasCorrections() && splitCorrectedReq(row.corrected_req).length > 1; else singleRowView">
                     <tr *ngFor="let req of splitCorrectedReq(row.corrected_req); let i = index">
@@ -270,7 +267,7 @@ import { ApiService } from '../../services/api.service';
                 </ng-container>
                 
                 <!-- Traceability Matrix View -->
-                <ng-container *ngIf="activeTab === 'traceability'">
+                <ng-container *ngIf="isTraceabilityRun">
                   <tr *ngFor="let swe2 of row.parsed_swe2_list; let i = index">
                     <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
                     <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
@@ -961,20 +958,13 @@ JSON Schema:
     }
 
     let runType = 'quality';
-    
-    // Determine the overarching run flag
     if (this.actions.trace || this.actions.correctTrace) {
       runType = 'traceability';
       this.isTraceabilityRun = true;
+      this.activeTab = 'traceability';
     } else {
       this.isTraceabilityRun = false;
-    }
-
-    // Set the initial active tab intelligently
-    if (this.actions.analyse || this.actions.correct) {
       this.activeTab = 'sys1';
-    } else {
-      this.activeTab = 'traceability';
     }
     
     this.isRunning = true;
@@ -1094,12 +1084,22 @@ JSON Schema:
   loadResults(runId: string) {
     this.activeRunId = runId;
     const matchedRun = this.history.find(r => r.run_id === runId);
-    this.isTraceabilityRun = matchedRun?.type === 'traceability';
-    this.activeTab = this.isTraceabilityRun ? 'traceability' : 'sys1';
     this.currentPage = 1;
-    
+
     this.apiService.getRunResults(runId).subscribe({
       next: (res) => {
+        // FIX: previously this relied solely on `matchedRun` (a lookup into
+        // the locally cached, possibly incomplete/differently-paginated
+        // history array). If the run wasn't found there, isTraceabilityRun
+        // silently defaulted to false and the traceability run rendered
+        // using the quality-analysis table structure.
+        //
+        // Now we fall back to inspecting the actual row shape: traceability
+        // rows always carry a `swe1_id` key, quality rows never do.
+        const looksLikeTraceability = res.length > 0 && Object.prototype.hasOwnProperty.call(res[0], 'swe1_id');
+        this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' : looksLikeTraceability;
+        this.activeTab = this.isTraceabilityRun ? 'traceability' : 'sys1';
+
         this.results = res.map((r: any) => {
           if (this.isTraceabilityRun && !r.parsed_swe2_list) {
             r.parsed_swe2_list = this.getParsedSwe2List(r);
@@ -1110,7 +1110,7 @@ JSON Schema:
       }
     });
   }
-  
+
   getParsedSwe2List(row: any): any[] {
     if (!row.req_id || row.req_id === '-' || row.req_id.trim() === '') {
       return [{ id: '-', text: row.input_req || '-' }];
@@ -1149,17 +1149,10 @@ JSON Schema:
   }
 
   get filteredResults(): any[] {
-    return this.results.filter(r => {
-      // If the API returns a strict category, map it to the tab
-      if (r.category) {
-        return r.category === this.activeTab;
-      }
-      // Fallback: If category is null, assume based on run type
-      if (this.activeTab === 'traceability') {
-        return this.isTraceabilityRun;
-      }
-      return this.activeTab === 'sys1' && !this.isTraceabilityRun;
-    });
+    if (this.isTraceabilityRun) {
+      return this.results.filter(r => r.category === 'traceability' || r.category == null);
+    }
+    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'sys1' && r.category == null));
   }
 
   hasCategory(category: string): boolean {
