@@ -1037,8 +1037,10 @@ JSON Schema:
             this.stopPolling();
             this.loadHistory();
           } else if (status.status === 'paused') {
+            this.isRunning = true;
             this.isPaused = true;
           } else {
+            this.isRunning = true;
             this.isPaused = false;
           }
           this.cdr.detectChanges();
@@ -1074,6 +1076,7 @@ JSON Schema:
     if (!this.activeRunId) return;
     this.apiService.stopAnalysis(this.activeRunId).subscribe(() => {
       this.isRunning = false;
+      this.isPaused = false;
       this.isFinished = true;
       this.runStatus = 'stopped';
       this.stopPolling();
@@ -1081,7 +1084,18 @@ JSON Schema:
     });
   }
 
+  // UPDATED: loadResults() now also restores the progress-bar / pause /
+  // resume / stop controls when the loaded run is still running or paused
+  // on the backend (e.g. user clicked "Load Result" on an in-progress run
+  // from the Dashboard's history list). Previously this only populated the
+  // results table and left isRunning/isPaused/isFinished untouched, so a
+  // still-active run showed no controls at all until you started a brand
+  // new execution.
   loadResults(runId: string) {
+    // Stop any polling tied to a previously-active run before switching
+    // context to the one being loaded.
+    this.stopPolling();
+
     this.activeRunId = runId;
     const matchedRun = this.history.find(r => r.run_id === runId);
     this.currentPage = 1;
@@ -1106,6 +1120,29 @@ JSON Schema:
           }
           return r;
         });
+
+        // Reflect the run's real status so the progress bar and the
+        // Pause/Resume/Stop controls appear correctly for the run just
+        // loaded, not just for runs started fresh in this session.
+        const status = matchedRun?.status;
+
+        if (status === 'running' || status === 'paused') {
+          this.isRunning = true;
+          this.isPaused = status === 'paused';
+          this.isFinished = false;
+          this.runStatus = status;
+          this.totalRows = matchedRun?.total_count || this.results.length || 0;
+          this.currentRow = this.results.length;
+          // Resume live polling so the progress bar keeps advancing and the
+          // Pause/Resume/Stop buttons stay in sync with backend state.
+          this.startPolling();
+        } else {
+          this.isRunning = false;
+          this.isPaused = false;
+          this.isFinished = true;
+          this.runStatus = status || 'completed';
+        }
+
         this.cdr.detectChanges();
       }
     });
@@ -1240,9 +1277,12 @@ JSON Schema:
 
 
   clearResults() {
+    this.stopPolling();
     this.results = [];
     this.activeRunId = '';
     this.runStatus = '';
+    this.isRunning = false;
+    this.isPaused = false;
     this.isFinished = false;
     this.currentRow = 0;
     this.totalRows = 0;
