@@ -35,7 +35,10 @@ import { ApiService } from './services/api.service';
                 </linearGradient>
               </defs>
             </svg>
-            <span class="logo-text-main"> AIRAM</span>
+            <div class="logo-text-group">
+              <span class="logo-text-main">AIRAM</span>
+              <span class="logo-subtitle">AI-Assisted Requirements Analysis and Management</span>
+            </div>
           </div>
           
           <nav class="top-nav-tabs">
@@ -119,6 +122,12 @@ import { ApiService } from './services/api.service';
     .app-logo {
       display: flex;
       align-items: center;
+      gap: 10px;
+    }
+    .logo-text-group {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
     }
     .logo-text-main {
       font-size: 1.5rem;
@@ -126,6 +135,14 @@ import { ApiService } from './services/api.service';
       color: var(--color-primary);
       letter-spacing: 0.5px;
       line-height: 1;
+    }
+    .logo-subtitle {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+      margin-top: 2px;
+      white-space: nowrap;
     }
     .top-nav-tabs {
       display: flex;
