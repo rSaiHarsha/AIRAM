@@ -197,7 +197,8 @@ import { ApiService } from '../../services/api.service';
           </div>
         </div>
         
-        <div class="tabs-nav">
+        <div style="padding: 0 24px;">
+          <div class="tabs-nav">
             <!-- Updated to show tabs based on actions selected or existing data -->
             <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="actions.analyse || actions.correct || hasCategory('sys1')">SYS 1 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="(actions.analyse && swe2File) || hasCategory('sys2')">SYS 2 Quality</button>
@@ -269,7 +270,7 @@ import { ApiService } from '../../services/api.service';
                 </ng-container>
                 
                 <!-- Traceability Matrix View -->
-                <ng-container *ngIf="isTraceabilityRun">
+                <ng-container *ngIf="activeTab === 'traceability'">
                   <tr *ngFor="let swe2 of row.parsed_swe2_list; let i = index">
                     <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
                     <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
@@ -960,13 +961,20 @@ JSON Schema:
     }
 
     let runType = 'quality';
+    
+    // Determine the overarching run flag
     if (this.actions.trace || this.actions.correctTrace) {
       runType = 'traceability';
       this.isTraceabilityRun = true;
-      this.activeTab = 'traceability';
     } else {
       this.isTraceabilityRun = false;
+    }
+
+    // Set the initial active tab intelligently
+    if (this.actions.analyse || this.actions.correct) {
       this.activeTab = 'sys1';
+    } else {
+      this.activeTab = 'traceability';
     }
     
     this.isRunning = true;
@@ -1102,6 +1110,7 @@ JSON Schema:
       }
     });
   }
+  
   getParsedSwe2List(row: any): any[] {
     if (!row.req_id || row.req_id === '-' || row.req_id.trim() === '') {
       return [{ id: '-', text: row.input_req || '-' }];
@@ -1140,10 +1149,17 @@ JSON Schema:
   }
 
   get filteredResults(): any[] {
-    if (this.isTraceabilityRun) {
-      return this.results.filter(r => r.category === 'traceability' || r.category == null);
-    }
-    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'sys1' && r.category == null));
+    return this.results.filter(r => {
+      // If the API returns a strict category, map it to the tab
+      if (r.category) {
+        return r.category === this.activeTab;
+      }
+      // Fallback: If category is null, assume based on run type
+      if (this.activeTab === 'traceability') {
+        return this.isTraceabilityRun;
+      }
+      return this.activeTab === 'sys1' && !this.isTraceabilityRun;
+    });
   }
 
   hasCategory(category: string): boolean {
