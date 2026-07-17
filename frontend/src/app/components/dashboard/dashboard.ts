@@ -35,7 +35,7 @@ import { ApiService } from '../../services/api.service';
               </svg>
             </span>
           </div>
-          <div class="metric-value">{{ history.length }}</div>
+          <div class="metric-value">{{ totalHistoryCount }}</div>
           <div class="metric-footer">Total stored runs</div>
         </div>
 
@@ -61,11 +61,12 @@ import { ApiService } from '../../services/api.service';
         <div style="display: flex; gap: 12px; position: relative;">
           <!-- Filter Button & Dropdown Container -->
           <div style="position: relative;" #filterContainer>
-            <button class="btn btn-secondary" (click)="toggleFilterPanel($event)" [class.active]="showFilterPanel">
+            <button class="btn btn-secondary" (click)="toggleFilterPanel($event)" [class.active]="showFilterPanel" style="position: relative; display: inline-flex; align-items: center;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
               </svg>
               Filter
+              <span *ngIf="activeFilterCount > 0" class="filter-count-badge">{{ activeFilterCount }}</span>
             </button>
             
             <!-- Filter Dropdown -->
@@ -261,10 +262,16 @@ import { ApiService } from '../../services/api.service';
         </div>
       </div>
       
-      <!-- Load More Button -->
-      <div *ngIf="!isLoadingHistory && hasMoreHistory" style="text-align: center; margin-top: 24px; margin-bottom: 24px;">
-        <button class="btn btn-primary" (click)="loadMoreHistory()" [disabled]="isLoadingMore" style="padding: 8px 24px;">
-          {{ isLoadingMore ? 'Loading...' : 'Load More' }}
+      <!-- History Pagination (reflects the true total number of stored runs) -->
+      <div *ngIf="!isLoadingHistory && totalHistoryCount > historyPageSize" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; margin-bottom: 24px;">
+        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="goToHistoryPage(historyPage - 1)" style="padding: 4px 14px;">
+          ‹ Prev
+        </button>
+        <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">
+          Page {{ historyPage }} of {{ getHistoryTotalPages() }} <span style="color: var(--text-primary);">({{ totalHistoryCount }} total runs)</span>
+        </span>
+        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="goToHistoryPage(historyPage + 1)" style="padding: 4px 14px;">
+          Next ›
         </button>
       </div>
       
@@ -370,6 +377,21 @@ import { ApiService } from '../../services/api.service';
       flex-direction: column;
       gap: 16px;
     }
+    .filter-count-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      margin-left: 6px;
+      background-color: var(--color-primary);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      border-radius: 999px;
+      line-height: 1;
+    }
     
     .modal-overlay {
       position: fixed;
@@ -461,9 +483,13 @@ export class DashboardComponent implements OnInit {
   expandedResults: { [runId: string]: any[] } = {};
   currentPage: { [runId: string]: number } = {};
   isLoadingHistory: boolean = true;
-  currentOffset: number = 0;
-  hasMoreHistory: boolean = true;
-  isLoadingMore: boolean = false;
+
+  // True backend-style pagination for the history list. totalHistoryCount is
+  // fetched independently of whichever page is on screen, so the metric
+  // card and the pager always reflect ALL runs ever executed.
+  historyPage: number = 1;
+  historyPageSize: number = 15;
+  totalHistoryCount: number = 0;
 
   // Filter State
   showFilterPanel: boolean = false;
@@ -473,6 +499,17 @@ export class DashboardComponent implements OnInit {
   
   showTraceModal: boolean = false;
   traceModalData: any = null;
+
+  // Number of filters currently set away from their "all" default — drives
+  // the badge shown on the Filter button. Only non-zero when something is
+  // actually filtered.
+  get activeFilterCount(): number {
+    let count = 0;
+    if (this.filterStatus !== 'all') count++;
+    if (this.filterType !== 'all') count++;
+    if (this.filterDate !== 'all') count++;
+    return count;
+  }
 
   openTraceDetails(row: any) {
     this.traceModalData = row;
@@ -564,16 +601,45 @@ export class DashboardComponent implements OnInit {
   }
 
   loadData() {
+    this.historyPage = 1;
+    this.loadFullHistoryStats();
+    this.fetchHistoryPage();
+
+    this.apiService.getRagMetrics().subscribe({
+      next: (res) => {
+        this.ragMetrics = res;
+      }
+    });
+  }
+
+  // Fetches the complete, unpaginated history once so the metric cards
+  // (total runs, overall pass rate) and the pager reflect ALL runs ever
+  // executed, not just whichever page is currently rendered.
+  loadFullHistoryStats() {
+    this.apiService.getHistory().subscribe({
+      next: (all: any[]) => {
+        this.totalHistoryCount = all.length;
+        let total = 0;
+        let passes = 0;
+        all.forEach(run => {
+          total += run.total_count;
+          passes += run.pass_count;
+        });
+        this.overallPassRate = total > 0 ? Math.round((passes / total) * 100) : 0;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Fetches only the page of runs that needs to be rendered.
+  fetchHistoryPage() {
     this.isLoadingHistory = true;
-    this.currentOffset = 0;
-    this.hasMoreHistory = true;
-    this.apiService.getHistory(15, 0).subscribe({
+    const offset = (this.historyPage - 1) * this.historyPageSize;
+    this.apiService.getHistory(this.historyPageSize, offset).subscribe({
       next: (res) => {
         this.history = res;
         this.isLoadingHistory = false;
-        if (res.length < 15) this.hasMoreHistory = false;
-        this.calculatePassRate();
-        
+
         // Pre-fetch results for any already expanded cards
         this.history.forEach(run => {
           if (run.minimized !== 1) {
@@ -593,54 +659,17 @@ export class DashboardComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
-
-    this.apiService.getRagMetrics().subscribe({
-      next: (res) => {
-        this.ragMetrics = res;
-      }
-    });
   }
 
-  loadMoreHistory() {
-    if (this.isLoadingMore || !this.hasMoreHistory) return;
-    this.isLoadingMore = true;
-    this.currentOffset += 15;
-    this.apiService.getHistory(15, this.currentOffset).subscribe({
-      next: (res) => {
-        this.history = [...this.history, ...res];
-        this.isLoadingMore = false;
-        if (res.length < 15) this.hasMoreHistory = false;
-        this.calculatePassRate();
-        
-        // Pre-fetch results for any already expanded cards
-        res.forEach(run => {
-          if (run.minimized !== 1) {
-            this.apiService.getRunResults(run.run_id).subscribe(details => {
-              if (run.type === 'traceability') {
-                details.forEach((r: any) => r.parsed_swe2_list = this.getParsedSwe2List(r));
-              }
-              this.expandedResults[run.run_id] = details;
-              this.cdr.detectChanges();
-            });
-          }
-        });
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.isLoadingMore = false;
-        this.cdr.detectChanges();
-      }
-    });
+  getHistoryTotalPages(): number {
+    return Math.ceil(this.totalHistoryCount / this.historyPageSize) || 1;
   }
 
-  calculatePassRate() {
-    let total = 0;
-    let passes = 0;
-    this.history.forEach(run => {
-      total += run.total_count;
-      passes += run.pass_count;
-    });
-    this.overallPassRate = total > 0 ? Math.round((passes / total) * 100) : 0;
+  goToHistoryPage(page: number) {
+    const totalPages = this.getHistoryTotalPages();
+    if (page < 1 || page > totalPages || page === this.historyPage) return;
+    this.historyPage = page;
+    this.fetchHistoryPage();
   }
 
   getPercentage(count: number, total: number): number {
