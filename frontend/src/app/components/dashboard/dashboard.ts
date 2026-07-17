@@ -22,7 +22,7 @@ import { ApiService } from '../../services/api.service';
             </span>
           </div>
           <div class="metric-value">{{ overallPassRate }}% <span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">avg</span></div>
-          <div class="metric-footer">Calculated from all history</div>
+          <div class="metric-footer">{{ hasMoreHistory ? 'Calculated from loaded history' : 'Calculated from all history' }}</div>
         </div>
 
         <!-- Metric Card 2: Total Runs -->
@@ -36,7 +36,7 @@ import { ApiService } from '../../services/api.service';
             </span>
           </div>
           <div class="metric-value">{{ totalHistoryCount }}</div>
-          <div class="metric-footer">Total stored runs</div>
+          <div class="metric-footer">{{ hasMoreHistory ? 'Loaded so far — more available' : 'Total stored runs' }}</div>
         </div>
 
         <!-- Metric Card 3: RAG Guidelines Chunk count -->
@@ -60,13 +60,19 @@ import { ApiService } from '../../services/api.service';
         <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
         <div style="display: flex; gap: 12px; align-items: center; position: relative;">
 
+          <!-- NEW: Load More button — fetches the next batch (15) of runs from the backend and appends them client-side -->
+          <button class="btn btn-secondary btn-sm" *ngIf="hasMoreHistory" [disabled]="isLoadingMoreHistory" (click)="loadMoreHistory()" style="padding: 4px 12px; display: inline-flex; align-items: center; gap: 6px;" title="Fetch the next batch of runs">
+            <span *ngIf="isLoadingMoreHistory" class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0;"></span>
+            {{ isLoadingMoreHistory ? 'Loading...' : '+ Load More' }}
+          </button>
+
           <!-- NEW: Prev 8 / Next 8 quick-page control, shown next to the heading -->
           <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
             <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous 8 runs">
               ‹ Prev 8
             </button>
             <span style="font-weight: 500; color: var(--text-primary);">{{ historyPage }} / {{ getHistoryTotalPages() }}</span>
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next 8 runs">
+            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages() && !hasMoreHistory" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next 8 runs">
               Next 8 ›
             </button>
           </div>
@@ -501,13 +507,18 @@ export class DashboardComponent implements OnInit {
   currentPage: { [runId: string]: number } = {};
   isLoadingHistory: boolean = true;
 
-  // Client-side pagination over the FULL history list. All records are now
-  // loaded once (see loadAllHistory) and the "Prev 8 / Next 8" controls
-  // (both in the heading and at the bottom) just slice the already-loaded,
-  // already-filtered array — no extra network round-trips when paging.
+  // Client-side pagination over whatever has been LOADED so far. The
+  // backend caps a bare getHistory() call at its own default limit (15),
+  // so we fetch explicitly in batches of `loadBatchSize` and append each
+  // batch to `history` via the "+ Load More" button. The "Prev 8 / Next 8"
+  // controls then just slice that growing, already-filtered array — no
+  // network round-trip needed just to page through what's already loaded.
   historyPage: number = 1;
   historyPageSize: number = 8;
+  loadBatchSize: number = 15;
   totalHistoryCount: number = 0;
+  hasMoreHistory: boolean = true;
+  isLoadingMoreHistory: boolean = false;
 
   // Filter State
   showFilterPanel: boolean = false;
@@ -635,7 +646,12 @@ export class DashboardComponent implements OnInit {
 
   loadData() {
     this.historyPage = 1;
-    this.loadAllHistory();
+    this.history = [];
+    this.hasMoreHistory = true;
+    this.totalHistoryCount = 0;
+    this.overallPassRate = 0;
+    this.isLoadingHistory = true;
+    this.loadMoreHistory();
 
     this.apiService.getRagMetrics().subscribe({
       next: (res) => {
@@ -644,30 +660,43 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // Loads the COMPLETE, unpaginated history in one request. Metric cards
-  // (total runs, overall pass rate) and the 8-per-page Prev/Next controls
-  // all now operate on this single fully-loaded array on the client side.
-  loadAllHistory() {
-    this.isLoadingHistory = true;
-    this.apiService.getHistory().subscribe({
-      next: (all: any[]) => {
-        this.history = all;
-        this.totalHistoryCount = all.length;
+  // Fetches the NEXT batch of runs (offset = however many are already
+  // loaded, limit = loadBatchSize) and appends it to `history`. Called
+  // once automatically on load, and again each time "+ Load More" is
+  // clicked. `hasMoreHistory` flips false once a batch comes back shorter
+  // than the requested size, meaning we've reached the end.
+  loadMoreHistory() {
+    if (this.isLoadingMoreHistory || !this.hasMoreHistory) return;
 
+    const isInitialLoad = this.history.length === 0;
+    if (!isInitialLoad) {
+      this.isLoadingMoreHistory = true;
+    }
+
+    const offset = this.history.length;
+    this.apiService.getHistory(this.loadBatchSize, offset).subscribe({
+      next: (batch: any[]) => {
+        this.history = this.history.concat(batch);
+        this.totalHistoryCount = this.history.length;
+        this.hasMoreHistory = batch.length === this.loadBatchSize;
+
+        // Recompute the pass-rate metric across everything loaded so far.
         let total = 0;
         let passes = 0;
-        all.forEach(run => {
+        this.history.forEach(run => {
           total += run.total_count;
           passes += run.pass_count;
         });
         this.overallPassRate = total > 0 ? Math.round((passes / total) * 100) : 0;
 
         this.isLoadingHistory = false;
+        this.isLoadingMoreHistory = false;
         this.prefetchVisibleExpanded();
         this.cdr.detectChanges();
       },
       error: () => {
         this.isLoadingHistory = false;
+        this.isLoadingMoreHistory = false;
         this.cdr.detectChanges();
       }
     });
@@ -703,8 +732,17 @@ export class DashboardComponent implements OnInit {
 
   // NEW: convenience wrappers used by both the heading control and the
   // bottom pager so "Next 8" / "Prev 8" always move exactly one page
-  // (historyPageSize = 8 records) in either direction.
+  // (historyPageSize = 8 records) in either direction. If the user pages
+  // past the end of what's currently loaded and more is available on the
+  // backend, this fetches the next batch automatically instead of just
+  // sitting disabled.
   nextHistoryPage() {
+    const totalPages = this.getHistoryTotalPages();
+    if (this.historyPage >= totalPages && this.hasMoreHistory) {
+      this.historyPage++;
+      this.loadMoreHistory();
+      return;
+    }
     this.goToHistoryPage(this.historyPage + 1);
   }
 
