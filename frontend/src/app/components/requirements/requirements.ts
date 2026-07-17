@@ -1,416 +1,556 @@
-import { Component, OnInit, EventEmitter, Output, Input, ChangeDetectorRef, ElementRef, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, HostListener, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'app-requirements',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="dashboard-container">
-      <div class="grid grid-3" style="margin-bottom: 40px;">
-        <!-- Metric Card 1: Pass Rate -->
-        <div class="card metric-card" style="margin-bottom: 0;">
-          <div class="metric-header">
-            <span class="metric-title">REQUIREMENTS PASS RATE</span>
-            <span class="metric-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="7" y1="17" x2="17" y2="7"></line>
-                <polyline points="7 7 17 7 17 17"></polyline>
-              </svg>
-            </span>
-          </div>
-          <div class="metric-value">{{ overallPassRate }}% <span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">avg</span></div>
-          <div class="metric-footer">Calculated from all history</div>
-        </div>
-
-        <!-- Metric Card 2: Total Runs -->
-        <div class="card metric-card" style="margin-bottom: 0;">
-          <div class="metric-header">
-            <span class="metric-title">TOTAL EXECUTIONS</span>
-            <span class="metric-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-8.27l5.25 4.7"></path>
-              </svg>
-            </span>
-          </div>
-          <div class="metric-value">{{ totalHistoryCount }}</div>
-          <div class="metric-footer">Total stored runs</div>
-        </div>
-
-        <!-- Metric Card 3: RAG Guidelines Chunk count -->
-        <div class="card metric-card" style="margin-bottom: 0;">
-          <div class="metric-header">
-            <span class="metric-title">ACTIVE RAG CHUNKS</span>
-            <span class="metric-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                <line x1="12" y1="11" x2="12" y2="17"></line>
-                <line x1="9" y1="14" x2="15" y2="14"></line>
-              </svg>
-            </span>
-          </div>
-          <div class="metric-value">{{ ragMetrics.total_chunks || 0 | number }}</div>
-          <div class="metric-footer">Qdrant vector chunks</div>
-        </div>
+    <div class="req-container">
+      <div style="margin-bottom: 24px;">
+        <h2 class="section-title" style="margin-bottom: 4px;">Requirement Evaluation Workspace</h2>
+        <p class="section-desc">Upload requirements and evaluate them against standards.</p>
       </div>
 
-      <div class="runs-history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
-        <div style="display: flex; gap: 12px; align-items: center; position: relative;">
-
-          <!-- NEW: Prev 8 / Next 8 quick-page control, shown next to the heading -->
-          <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous 8 runs">
-              ‹ Prev 8
-            </button>
-            <span style="font-weight: 500; color: var(--text-primary);">{{ historyPage }} / {{ getHistoryTotalPages() }}</span>
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next 8 runs">
-              Next 8 ›
-            </button>
-          </div>
-
-          <!-- Filter Button & Dropdown Container -->
-          <div style="position: relative;" #filterContainer>
-            <button class="btn btn-secondary" (click)="toggleFilterPanel($event)" [class.active]="showFilterPanel" style="position: relative; display: inline-flex; align-items: center;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-              </svg>
-              Filter
-              <span *ngIf="activeFilterCount > 0" class="filter-count-badge">{{ activeFilterCount }}</span>
-            </button>
-            
-            <!-- Filter Dropdown -->
-            <div *ngIf="showFilterPanel" class="filter-dropdown" style="position: absolute; top: calc(100% + 8px); right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; display: flex; flex-direction: column; gap: 12px;">
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Status</label>
-                <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Statuses</option>
-                  <option value="completed">Completed</option>
-                  <option value="running">Running / Paused</option>
-                  <option value="stopped">Stopped / Failed</option>
-                </select>
-              </div>
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Run Type</label>
-                <select [(ngModel)]="filterType" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Types</option>
-                  <option value="quality">Quality Analysis</option>
-                  <option value="traceability">Traceability</option>
-                </select>
-              </div>
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Date Filter</label>
-                <select [(ngModel)]="filterDate" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">Last 7 Days</option>
-                  <option value="month">Last 30 Days</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <button class="btn btn-primary" (click)="newExecution.emit()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            New Execution
-          </button>
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 20px;">
+          Workspace Setup
         </div>
-      </div>
-      
-      <div *ngIf="isLoadingHistory" class="loading-state" style="padding: 32px; text-align: center; color: var(--text-secondary);">
-        <div class="spinner"></div>
-        <div style="font-size: 0.9rem; font-weight: 500;">Loading data please wait...</div>
-      </div>
-
-      <div *ngIf="!isLoadingHistory && filteredHistory.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
-        No execution runs found matching the filters.
-      </div>
-
-      <div *ngIf="!isLoadingHistory && filteredHistory.length > 0" class="minimized-shelf">
-        <div *ngFor="let run of pagedHistory" class="history-card" [class.minimized]="run.minimized === 1">
-          <div class="history-header">
-            <div class="history-meta" style="display: flex; gap: 16px; align-items: center;">
-              <span class="badge badge-blue-pill" style="font-size: 0.65rem;">{{ run.type }} RUN</span>
-              <div>
-                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ run.type === 'quality' ? 'Requirement Validation Suite' : 'Traceability Mapping Audit' }}</div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">{{ run.timestamp | date:'medium' }}</div>
-              </div>
-            </div>
-            <div class="history-actions" style="display: flex; align-items: center; gap: 16px;">
-              <span class="badge" [class.badge-pass]="run.status === 'completed'" [class.badge-fail]="run.status === 'stopped'" [class.badge-running]="run.status === 'running' || run.status === 'paused'" style="margin-right: 8px;">
-                {{ run.status }}
-              </span>
-
-              <!-- NEW: Stop button for runs still running/paused, mirrors RequirementsComponent.stopRun() -->
-              <button *ngIf="run.status === 'running' || run.status === 'paused'" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;" (click)="stopRun(run.run_id)" title="Stop this run">
-                🛑 Stop
-              </button>
-
-              <button class="icon-btn-minimal" (click)="toggleMinimize(run.run_id, run.minimized === 1)">
-                <svg *ngIf="run.minimized === 1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                <svg *ngIf="run.minimized !== 1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-              </button>
-              
-              <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.8rem; border-radius: 4px;" (click)="viewRun.emit(run.run_id)" >
-                Load Result
-              </button>
-              
-              <button class="icon-btn-minimal text-danger" (click)="deleteRun(run.run_id)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-              </button>
-            </div>
-          </div>
-          
-          <!-- Expanded content -->
-          <div class="history-body" *ngIf="run.minimized !== 1">
-            <div style="display: flex; gap: 24px;">
-              
-              <!-- Left Column: Summary Metrics -->
-              <div class="summary-col" style="flex: 0 0 320px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                  <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">Summary Metrics</span>
-                  <button *ngIf="expandedResults[run.run_id] && expandedResults[run.run_id].length > 0" (click)="exportRun(run.run_id)" style="background: none; border: none; color: var(--color-primary); font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    Export CSV
+        
+        <div class="grid grid-2" style="align-items: stretch; gap: 24px;">
+          <!-- Left Configuration: Upload fields -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1;">
+                <label class="form-label">SYS 1 / HLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
+                <div class="dropzone" [class.has-file]="swe1File" style="height: 100px; padding: 16px; position: relative;">
+                  <button *ngIf="swe1File" (click)="removeFile($event, 'swe1')" title="Remove file" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; padding: 0;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   </button>
-                </div>
-                
-                <div *ngIf="run.type === 'quality'" style="margin-bottom: 16px; font-size: 0.8rem; color: var(--text-secondary); background: #f1f5f9; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color);">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  <span><strong style="color: var(--text-primary);">Rules File:</strong> {{ run.guideline_name || 'None' }}</span>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                  <div style="flex: 1; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
-                    <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Pass</div>
-                    <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-success);">{{ run.pass_count }}</div>
+                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" (click)="swe1Input.click()">
+                    <div class="dropzone-icon" style="margin-bottom: 8px;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    </div>
+                    <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all;">{{ swe1File ? swe1File.name : 'Click to upload CSV/XLSX' }}</div>
                   </div>
-                  <div style="flex: 1; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
-                    <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Review</div>
-                    <div style="font-size: 1.8rem; font-weight: 700; color: #d97706;">{{ run.review_count + run.fail_count }}</div>
-                  </div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Overall Progress</span>
-                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">{{ getPercentage(run.pass_count, run.total_count) | number:'1.0-0' }}% Success</span>
-                </div>
-                <div class="run-bar" style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; background-color: #e2e8f0; width: 100%;">
-                  <div class="bar-segment bar-pass" [style.width.%]="getPercentage(run.pass_count, run.total_count)" title="Pass" style="background-color: var(--color-success); height: 100%;"></div>
-                  <div class="bar-segment bar-review" [style.width.%]="getPercentage(run.review_count + run.fail_count, run.total_count)" title="Review" style="background-color: #d97706; height: 100%;"></div>
+                  <input #swe1Input type="file" (change)="onFileSelected($event, 'swe1')" style="display: none;" accept=".csv,.xlsx">
                 </div>
               </div>
 
-              <!-- Right Column: Mini table -->
-              <div class="table-col" style="flex: 1; min-width: 0;" *ngIf="expandedResults[run.run_id] && expandedResults[run.run_id].length > 0">
-                <div class="table-container" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-                  <!-- Quality Table -->
-                  <table *ngIf="run.type !== 'traceability'" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
-                    <thead>
-                      <tr style="background-color: #f8fafc;">
-                        <th style="padding: 12px 16px; width: 80px;">ID</th>
-                        <th style="padding: 12px 16px;">Requirement</th>
-                        <th style="padding: 12px 16px; width: 100px;">Status</th>
-                        <th style="padding: 12px 16px;">Rationale</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 3:getCurrentPage(run.run_id) * 3" style="border-top: 1px solid var(--border-color);">
-                        <td style="padding: 16px; font-weight: 600; color: var(--color-primary); white-space: nowrap; vertical-align: top;">{{ row.req_id }}</td>
-                        <td style="padding: 16px; color: var(--text-primary); vertical-align: top;">{{ row.input_req }}</td>
-                        <td style="padding: 16px; vertical-align: top; font-weight: 700;" [ngStyle]="{'color': row.status === 'PASS' ? 'var(--color-success)' : (row.status === 'FAIL' || row.status === 'REVIEW' ? '#d97706' : 'var(--text-primary)')}">
-                          {{ row.status === 'FAIL' ? 'REVIEW' : row.status }}
-                        </td>
-                        <td style="padding: 16px; color: var(--text-secondary); vertical-align: top;">
-                          {{ row.rationale || 'N/A' }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <!-- Traceability Table -->
-                  <table *ngIf="run.type === 'traceability'" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
-                    <thead>
-                      <tr style="background-color: #f8fafc;">
-                        <th style="padding: 12px 16px; width: 40%;">SYS.1 ID</th>
-                        <th style="padding: 12px 16px; width: 60%;">SYS.2 IDs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 3:getCurrentPage(run.run_id) * 3" style="border-top: 1px solid var(--border-color);">
-                        <td style="padding: 16px; vertical-align: top;">
-                          <a href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: var(--color-primary); text-decoration: underline;">
-                            {{ row.swe1_id || '-' }}
-                          </a>
-                        </td>
-                        <td style="padding: 16px; vertical-align: top;">
-                          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <a *ngFor="let swe2 of row.parsed_swe2_list" href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: #0f766e; text-decoration: underline;">
-                              {{ swe2.id || '-' }}
-                            </a>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <!-- Pagination Footer -->
-                  <div class="pagination-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border-color); background: #f8fafc; font-size: 0.75rem; color: var(--text-secondary);">
-                    <div>
-                      Showing {{ (getCurrentPage(run.run_id) - 1) * 3 + 1 }}-{{ getMin((getCurrentPage(run.run_id) * 3), expandedResults[run.run_id].length) }} of {{ expandedResults[run.run_id].length }} items
+              <div style="flex: 1;">
+                <label class="form-label">SYS 2 / LLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
+                <div class="dropzone" [class.has-file]="swe2File" style="height: 100px; padding: 16px; position: relative;">
+                  <button *ngIf="swe2File" (click)="removeFile($event, 'swe2')" title="Remove file" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; padding: 0;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" (click)="swe2Input.click()">
+                    <div class="dropzone-icon" style="margin-bottom: 8px;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                      <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === 1" (click)="setPage(run.run_id, getCurrentPage(run.run_id) - 1)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all;">{{ swe2File ? swe2File.name : 'Click to upload CSV/XLSX' }}</div>
+                  </div>
+                  <input #swe2Input type="file" (change)="onFileSelected($event, 'swe2')" style="display: none;" accept=".csv,.xlsx">
+                </div>
+              </div>
+            </div>
+
+            <!-- Analysis Model selector -->
+            <div class="form-group">
+              <label class="form-label">Analysis Model</label>
+              <select [(ngModel)]="selectedAnalysisModel" style="width: 100%;">
+                <option value="nvidia/llama-3.3-nemotron-super-49b-v1.5">Llama 3.3 Nemotron 49B (NVIDIA)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Select Analysis Actions</label>
+              <div class="checkbox-group" style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <label class="checkbox-lbl">
+                  <input type="checkbox" [(ngModel)]="actions.analyse" [disabled]="actions.correct"> Quality Analysis
+                </label>
+                <label class="checkbox-lbl">
+                  <input type="checkbox" [(ngModel)]="actions.correct" (ngModelChange)="onCorrectionToggle($event)"> Quality Correction
+                </label>
+                <label class="checkbox-lbl">
+                  <input type="checkbox" [(ngModel)]="actions.trace"> Traceability Analysis (SYS.2 to SYS.1)
+                </label>
+                <label class="checkbox-lbl">
+                  <input type="checkbox" [(ngModel)]="actions.correctTrace"> Traceability Correction
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Configuration: Actions & Settings -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label">Mode</label>
+              <div class="segmented-control">
+                <div class="segment" [class.active]="rulesMode === 'strict'" (click)="rulesMode = 'strict'">Strict Rules</div>
+                <div class="segment" [class.active]="rulesMode === 'rag'" (click)="rulesMode = 'rag'">RAG Engine</div>
+                <div class="segment" [class.active]="rulesMode === 'custom'" (click)="rulesMode = 'custom'">Custom LLM</div>
+              </div>
+            </div>
+
+            <div *ngIf="rulesMode === 'custom'" style="margin-top: -8px; margin-bottom: 8px;">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="openCustomContextModal()" style="width: 100%;">
+                ⚙️ Configure Custom Context
+              </button>
+            </div>
+
+            <!-- Guidelines File Selector if strict is chosen -->
+            <div class="form-group" *ngIf="rulesMode === 'strict'">
+              <label class="form-label">Strict Guidelines Reference</label>
+              <div style="display: flex; gap: 8px; align-items: stretch; position: relative;">
+                
+                <!-- Custom Multi-select Dropdown -->
+                <div class="custom-dropdown" style="flex: 1; position: relative;">
+                  <!-- Dropdown Toggle Button -->
+                  <div class="dropdown-toggle" (click)="toggleDropdown()" style="display: flex; justify-content: space-between; align-items: center; min-height: 38px; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                    <span>{{ getSelectedCountText() }}</span>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">▼</span>
+                  </div>
+                  
+                  <!-- Dropdown Options List -->
+                  <div class="dropdown-menu-panel" *ngIf="showDropdown" style="position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #fff; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1500; max-height: 200px; overflow-y: auto; padding: 6px 0; display: flex; flex-direction: column;">
+                    
+                    <!-- Select All Option -->
+                    <label class="dropdown-item" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                      <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()">
+                      <span style="font-weight: 600;">Select All</span>
+                    </label>
+                    <div style="border-bottom: 1px solid var(--border-color); margin: 4px 0;"></div>
+                    
+                    <!-- Individual Guidelines -->
+                    <label *ngFor="let g of guidelines" class="dropdown-item" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                      <input type="checkbox" [checked]="isSelectedGuideline(g.id)" (change)="toggleGuideline(g.id)">
+                      <span style="flex: 1;">{{ g.name }}</span>
+                      <button type="button" (click)="deleteGuideline(g.id, $event)" style="background: none; border: none; cursor: pointer; padding: 4px; color: #ef4444; opacity: 0.7; font-size: 1rem; transition: all 0.2s; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.opacity=1; this.style.transform='scale(1.1)';" onmouseout="this.style.opacity=0.7; this.style.transform='scale(1)';" title="Delete Guideline">
+                        ✕
                       </button>
-                      <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === getTotalPages(run.run_id)" (click)="setPage(run.run_id, getCurrentPage(run.run_id) + 1)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                      </button>
+                    </label>
+                    
+                    <div *ngIf="guidelines.length === 0" style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.85rem;">
+                      No guidelines uploaded yet.
                     </div>
                   </div>
+                </div>
+
+                <button type="button" class="btn btn-secondary" (click)="openUploadModal()" style="padding: 0 14px; font-size: 0.85rem; height: 38px; display: inline-flex; align-items: center; gap: 4px;">
+                  🔧 Manage
+                </button>
+              </div>
+            </div>
+
+            <!-- Embedding Model selector (Visible only if RAG search is chosen) -->
+            <div class="form-group" *ngIf="rulesMode === 'rag'">
+              <label class="form-label">RAG Embedding Model</label>
+              <select [(ngModel)]="selectedEmbedModel" style="width: 100%;">
+                <option value="nvidia/embeddings-nv-embed-qa-4">nv-embed-qa-4 (NVIDIA)</option>
+              </select>
+            </div>
+            
+            <div style="flex-grow: 1;"></div>
+            
+            <div class="execution-controls" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+              <div class="btn-group" style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!swe1File && !swe2File" style="flex: 1;">
+                  🚀 Start Execution
+                </button>
+                <button class="btn btn-warning" (click)="pauseRun()" *ngIf="isRunning && !isPaused" style="flex: 1;">
+                  ⏸️ Pause
+                </button>
+                <button class="btn btn-success" (click)="resumeRun()" *ngIf="isRunning && isPaused" style="flex: 1;">
+                  ▶️ Resume
+                </button>
+                <button class="btn btn-danger" (click)="stopRun()" *ngIf="isRunning" style="flex: 1;">
+                  🛑 Stop
+                </button>
+              </div>
+
+              <div *ngIf="isRunning || isFinished" class="progress-bar-container" style="margin-top: 16px;">
+                <div class="progress-meta" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px;">
+                  <span>Run ID: <code style="color: var(--text-primary);">{{ activeRunId }}</code></span>
+                  <span *ngIf="isRunning">Processing Row: {{ currentRow }}/{{ totalRows }}</span>
+                  <span *ngIf="isFinished">Run Status: <strong style="color: var(--text-primary);">{{ runStatus | uppercase }}</strong></span>
+                </div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                  <div [class.bg-running]="runStatus === 'running'" [class.bg-paused]="runStatus === 'paused'" [style.width.%]="getProgressPercent()" style="height: 100%; transition: width 0.2s ease-in-out;"></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-      <!-- History Pagination (client-side, 8 per page, kept in sync with the header control) -->
-      <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; margin-bottom: 24px;">
-        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 14px;">
-          ‹ Prev
-        </button>
-        <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">
-          Page {{ historyPage }} of {{ getHistoryTotalPages() }} <span style="color: var(--text-primary);">({{ filteredHistory.length }} matching runs)</span>
-        </span>
-        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="nextHistoryPage()" style="padding: 4px 14px;">
-          Next ›
-        </button>
-      </div>
-      
-      <!-- Traceability Details Modal -->
-      <div class="modal-overlay" *ngIf="showTraceModal" (click)="closeTraceDetails()">
-        <div class="modal-content" style="max-width: 600px; padding: 24px;" (click)="$event.stopPropagation()">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Traceability Links</h3>
-            <button class="icon-btn-minimal" (click)="closeTraceDetails()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+
+      <!-- Main Results Datatable -->
+      <div class="card" *ngIf="results.length > 0" style="padding: 0;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="font-weight: 600; font-size: 1.05rem;">📋 Analysis Matrix Results</div>
           </div>
-          
-          <div *ngIf="traceModalData" style="display: flex; flex-direction: column; gap: 20px; max-height: 60vh; overflow-y: auto;">
-            <div>
-              <div style="font-weight: 700; color: #0369a1; margin-bottom: 8px; font-size: 0.9rem;">SYS.1: {{ traceModalData.swe1_id || '-' }}</div>
-              
-              <div *ngIf="traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-primary);">
-                {{ traceModalData.swe1_text || '-' }}
-              </div>
-              <div *ngIf="!traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: #94a3b8; font-style: italic;">
-                No requirement found (Orphaned in SYS.2)
-              </div>
-            </div>
-            
-            <div>
-              <div style="font-weight: 700; color: #0f766e; margin-bottom: 8px; font-size: 0.9rem;">Linked SYS.2 Requirements</div>
-              <div style="display: flex; flex-direction: column; gap: 12px;">
-                <ng-container *ngIf="traceModalData.req_id">
-                  <div *ngFor="let swe2 of traceModalData.parsed_swe2_list" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
-                    <div style="font-weight: 600; color: #0f766e; font-size: 0.8rem; margin-bottom: 4px;">{{ swe2.id || '-' }}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-primary);">{{ swe2.text || '-' }}</div>
-                  </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" (click)="clearResults()">🧹 Clear Results</button>
+            <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
+          </div>
+        </div>
+        
+        <div style="padding: 0 24px;">
+          <div class="tabs-nav">
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
+          </div>
+        </div>
+        
+        <div class="table-container" style="padding: 0 24px 24px 24px; border: none; border-radius: 0;">
+          <table>
+            <thead>
+              <tr *ngIf="!isTraceabilityRun">
+                <th>ID</th>
+                <th>Requirement</th>
+                <th>Status</th>
+                <th>Violated Rule</th>
+                <th>Rationale / Reasoning</th>
+                <th *ngIf="hasCorrections()">Corrected Requirement</th>
+              </tr>
+              <tr *ngIf="isTraceabilityRun">
+                <th>SYS.1 ID</th>
+                <th>SYS.1 Requirement</th>
+                <th>SYS.2 ID</th>
+                <th>SYS.2 Requirement</th>
+                <th>Status</th>
+                <th>Rationale / Reasoning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let row of filteredResults | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
+                <!-- Quality Analysis View -->
+                <ng-container *ngIf="!isTraceabilityRun">
+                  <!-- Split Requirement / Corrections View -->
+                  <ng-container *ngIf="hasCorrections() && splitCorrectedReq(row.corrected_req).length > 1; else singleRowView">
+                    <tr *ngFor="let req of splitCorrectedReq(row.corrected_req); let i = index">
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; white-space: nowrap; vertical-align: top;">{{ row.req_id }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="max-width: 300px; vertical-align: top;">{{ row.input_req }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="vertical-align: top;">
+                        <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
+                          {{ row.status === 'FAIL' ? 'REVIEW' : row.status }}
+                        </span>
+                      </td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 500; font-family: monospace; vertical-align: top;">{{ row.failed_rule || 'N/A' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="color: var(--text-secondary); font-size: 0.8rem; vertical-align: top;">{{ row.rationale }}</td>
+                      <td style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-bottom: 1px solid #e2e8f0; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px; vertical-align: middle;">
+                        <span style="color: var(--color-primary); font-weight: 600; margin-right: 6px;">{{i + 1}}.</span>{{ req }}
+                      </td>
+                    </tr>
+                  </ng-container>
+
+                  <!-- Standard Single Row view -->
+                  <ng-template #singleRowView>
+                    <tr>
+                      <td style="font-weight: 600; white-space: nowrap;">{{ row.req_id }}</td>
+                      <td style="max-width: 300px;">{{ row.input_req }}</td>
+                      <td>
+                        <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
+                          {{ row.status === 'FAIL' ? 'REVIEW' : row.status }}
+                        </span>
+                      </td>
+                      <td style="font-weight: 500; font-family: monospace;">{{ row.failed_rule || 'N/A' }}</td>
+                      <td style="color: var(--text-secondary); font-size: 0.8rem;">{{ row.rationale }}</td>
+                      <td *ngIf="hasCorrections()" style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px;">
+                        {{ row.corrected_req || '-' }}
+                      </td>
+                    </tr>
+                  </ng-template>
                 </ng-container>
                 
-                <div *ngIf="!traceModalData.req_id" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
-                  <span style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">No requirement found (Orphaned in SYS.1)</span>
+                <!-- Traceability Matrix View -->
+                <ng-container *ngIf="isTraceabilityRun">
+                  <tr *ngFor="let swe2 of row.parsed_swe2_list; let i = index">
+                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
+                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
+                    <td style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color);">{{ swe2.id }}</td>
+                    <td style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color);">{{ swe2.text }}</td>
+                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                      <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
+                        {{ row.status }}
+                      </span>
+                    </td>
+                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="color: var(--text-secondary); font-size: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.rationale }}</td>
+                  </tr>
+                </ng-container>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination Footer -->
+        <div *ngIf="filteredResults.length > pageSize" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background-color: #f8fafc; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-secondary); border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+          <div>
+            Showing <strong style="color: var(--text-primary);">{{ (currentPage - 1) * pageSize + 1 }}</strong> - <strong style="color: var(--text-primary);">{{ getMin(currentPage * pageSize, filteredResults.length) }}</strong> of <strong style="color: var(--text-primary);">{{ filteredResults.length }}</strong> requirements
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="btn btn-secondary btn-sm" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)" style="padding: 4px 12px;">
+              ‹ Prev
+            </button>
+            <span style="font-weight: 500; color: var(--text-primary);">Page {{ currentPage }} of {{ getTotalPages() }}</span>
+            <button class="btn btn-secondary btn-sm" [disabled]="currentPage === getTotalPages()" (click)="setPage(currentPage + 1)" style="padding: 4px 12px;">
+              Next ›
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Standards Setup Upload Modal -->
+    <div class="modal-backdrop" *ngIf="showUploadModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">🔧 Manage & Upload Standards Guidelines</h3>
+          <button type="button" class="modal-close" (click)="closeUploadModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="tabs-nav" style="margin-top: 0; margin-bottom: 20px;">
+            <button class="tab-btn" [class.active]="activeModalTab === 'upload'" (click)="activeModalTab = 'upload'">📤 Upload New</button>
+            <button class="tab-btn" [class.active]="activeModalTab === 'manage'" (click)="activeModalTab = 'manage'">📋 Available Rules</button>
+          </div>
+
+          <ng-container *ngIf="activeModalTab === 'upload'">
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
+              Configure strict standard documents in JSON format (e.g. INCOSE rules list, ASPICE guidelines) to enable validation.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Standards Document Name (e.g. INCOSE Rules, ASPICE SWE.1)</label>
+              <input type="text" [(ngModel)]="newStandardName" placeholder="Enter name..." style="width: 100%;">
+            </div>
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label class="form-label">Upload JSON Guidelines File</label>
+              <div class="dropzone" (click)="stdInput.click()" [class.has-file]="standardFile" style="height: 100px; padding: 16px;">
+                <div class="dropzone-icon" style="margin-bottom: 8px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                 </div>
+                <div class="dropzone-text" style="font-size: 0.8rem;">{{ standardFile ? standardFile.name : 'Choose JSON Guidelines File' }}</div>
+                <input #stdInput type="file" (change)="onStandardFileSelected($event)" style="display: none;" accept=".json">
               </div>
             </div>
+
+            <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: flex-end;">
+              <button type="button" class="btn btn-secondary" (click)="closeUploadModal()">Cancel</button>
+              <button 
+                type="button"
+                class="btn btn-primary" 
+                [disabled]="!newStandardName || !standardFile || isUploadingStandard" 
+                (click)="uploadStandard()">
+                {{ isUploadingStandard ? 'Uploading...' : 'Upload Standards Document' }}
+              </button>
+            </div>
+
+            <div *ngIf="uploadedStatus" class="alert alert-success" style="margin-top: 16px; padding: 12px; background: #e6f4ea; color: var(--color-success); border-radius: 6px; font-size: 0.85rem;">
+              {{ uploadedStatus }}
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="activeModalTab === 'manage'">
+            <div style="max-height: 450px; overflow-y: auto; padding-right: 8px;">
+              <div *ngFor="let g of guidelines" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 12px; background: #f8fafc;">
+                
+                <!-- Display Mode -->
+                <ng-container *ngIf="editingGuidelineId !== g.id">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                      <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--text-primary);">{{ g.name }}</h4>
+                      <div style="font-size: 0.75rem; color: var(--text-secondary);">ID: {{ g.id }}</div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                      <button class="btn btn-secondary btn-sm" (click)="downloadGuideline(g)" title="Download JSON" style="padding: 4px 8px;">
+                        ⬇️
+                      </button>
+                      <button class="btn btn-secondary btn-sm" (click)="editGuideline(g)" title="Edit" style="padding: 4px 8px;">
+                        ✏️
+                      </button>
+                      <button class="btn btn-secondary btn-sm" (click)="deleteGuideline(g.id, $event)" title="Delete" style="color: #ef4444; padding: 4px 8px;">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <!-- Edit Mode -->
+                <ng-container *ngIf="editingGuidelineId === g.id">
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-size: 0.8rem;">Rule Name</label>
+                    <input type="text" [(ngModel)]="editingGuidelineName" style="width: 100%; padding: 6px;">
+                  </div>
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-size: 0.8rem;">JSON Content</label>
+                    <textarea [(ngModel)]="editingGuidelineContent" rows="12" style="width: 100%; border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.8rem; resize: vertical; line-height: 1.4;"></textarea>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" (click)="cancelEdit()">Cancel</button>
+                    <button class="btn btn-primary btn-sm" (click)="saveEditedGuideline()">Save Changes</button>
+                  </div>
+                </ng-container>
+              </div>
+              
+              <div *ngIf="guidelines.length === 0" style="text-align: center; color: var(--text-secondary); padding: 24px; font-size: 0.9rem;">
+                No guidelines uploaded yet.
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom LLM Context Setup Modal -->
+    <div class="modal-backdrop" *ngIf="showCustomContextModal">
+      <div class="modal-card" style="width: 650px; max-width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-header" style="flex-shrink: 0;">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">⚙️ Configure Custom LLM Context</h3>
+          <button type="button" class="modal-close" (click)="closeCustomContextModal()">✕</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px; padding: 24px; overflow-y: auto; flex: 1;">
+          
+          <!-- Simple Tab Switcher (Only visible if Quality Correction is enabled) -->
+          <div *ngIf="actions.correct" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 8px;">
+            <button type="button" (click)="activeConfigTab = 'analysis'" [style.border-bottom]="activeConfigTab === 'analysis' ? '2px solid var(--color-primary)' : 'none'" [style.color]="activeConfigTab === 'analysis' ? 'var(--color-primary)' : 'var(--text-secondary)'" style="background: none; border: none; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.9rem; outline: none;">🔍 Auditor Config</button>
+            <button type="button" (click)="activeConfigTab = 'correction'" [style.border-bottom]="activeConfigTab === 'correction' ? '2px solid var(--color-primary)' : 'none'" [style.color]="activeConfigTab === 'correction' ? 'var(--text-secondary)' : 'var(--text-secondary)'" style="background: none; border: none; padding: 8px 16px; font-weight: 600; cursor: pointer; font-size: 0.9rem; outline: none;">🛠️ Corrector Config</button>
+          </div>
+
+          <!-- Tab 1: Analysis Auditor Config -->
+          <ng-container *ngIf="activeConfigTab === 'analysis'">
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; margin-top: 0;">
+              Define your custom validation rules. This block is injected into the LLM system prompt for the Quality Auditor.
+            </p>
+
+            <!-- 1. Header (Read-only) -->
+            <div class="form-group" style="margin-top: 4px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">System Persona (Read-only Header)</label>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptHeader }}</div>
+            </div>
+
+            <!-- 2. Custom Criteria (Editable) -->
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; color: var(--color-primary);">Custom Audit Rules (Editable Context)</label>
+              <textarea [(ngModel)]="customContextText" rows="4" placeholder="Write your custom validation rules here..." style="width: 100%; border: 1px solid var(--color-primary); border-radius: 6px; padding: 12px; font-size: 0.85rem; font-family: inherit; resize: vertical; outline: none; box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.1);"></textarea>
+            </div>
+
+            <!-- 3. Footer (Read-only) -->
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">Output Format Constraint (Read-only Footer)</label>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptFooter }}</div>
+            </div>
+          </ng-container>
+
+          <!-- Tab 2: Correction Corrector Config -->
+          <ng-container *ngIf="activeConfigTab === 'correction' && actions.correct">
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; margin-top: 0;">
+              Define your custom instructions for rewriting requirements. This block is injected into the LLM system prompt for the Quality Corrector.
+            </p>
+
+            <!-- 1. Header (Read-only) -->
+            <div class="form-group" style="margin-top: 4px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">Corrector Persona (Read-only Header)</label>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptHeaderCorrection }}</div>
+            </div>
+
+            <!-- 2. Custom Criteria (Editable) -->
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; color: var(--color-primary);">Custom Correction Rules (Editable Context)</label>
+              <textarea [(ngModel)]="customContextCorrectionText" rows="4" placeholder="Write your custom rewriting/correction guidelines here..." style="width: 100%; border: 1px solid var(--color-primary); border-radius: 6px; padding: 12px; font-size: 0.85rem; font-family: inherit; resize: vertical; outline: none; box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.1);"></textarea>
+            </div>
+
+            <!-- 3. Footer (Read-only) -->
+            <div class="form-group" style="margin-top: 8px;">
+              <label class="form-label" style="font-weight: 600; font-size: 0.75rem;">Output Format Constraint (Read-only Footer)</label>
+              <div style="background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-size: 0.75rem; color: #64748b; max-height: 80px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.4;">{{ fixedPromptFooterCorrection }}</div>
+            </div>
+          </ng-container>
+
+          <div style="display: flex; gap: 12px; margin-top: 16px; flex-shrink: 0; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" (click)="closeCustomContextModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveCustomContext()">Save Configurations</button>
           </div>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .metric-card {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      border-left: 4px solid var(--color-primary);
-    }
-    .metric-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--text-secondary);
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .metric-value {
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      margin: 16px 0;
-      line-height: 1;
-    }
-    .metric-footer {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-    }
-    .icon-btn-minimal {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-      padding: 4px;
-      border-radius: 4px;
-    }
-    .icon-btn-minimal:hover:not(:disabled) {
-      color: var(--text-primary);
-      background-color: #f1f5f9;
-    }
-    .icon-btn-minimal:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-    .text-danger:hover:not(:disabled) {
-      background-color: #fee2e2;
-    }
-    .no-runs {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-secondary);
-    }
-    .minimized-shelf {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .filter-count-badge {
+    .checkbox-lbl {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      min-width: 16px;
-      height: 16px;
-      padding: 0 4px;
-      margin-left: 6px;
+      gap: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+    .segmented-control {
+      display: flex;
+      background-color: #f1f5f9;
+      padding: 4px;
+      border-radius: 8px;
+      width: 100%;
+    }
+    .segment {
+      flex: 1;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+    }
+    .segment.active {
+      background-color: #fff;
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .segment:not(.active):hover {
+      color: var(--text-primary);
+    }
+    .tabs-nav {
+      display: flex;
+      gap: 24px;
+      border-bottom: 2px solid var(--border-color);
+      margin-top: 16px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 12px 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      position: relative;
+    }
+    .tab-btn.active {
+      color: var(--color-primary);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
       background-color: var(--color-primary);
-      color: #fff;
-      font-size: 0.65rem;
-      font-weight: 700;
-      border-radius: 999px;
-      line-height: 1;
+      border-radius: 2px 2px 0 0;
+    }
+    .tab-btn:hover:not(.active) {
+      color: var(--text-primary);
     }
     
-    .modal-overlay {
+    .bg-running { background-color: var(--color-primary); }
+    .bg-paused { background-color: var(--color-warning); }
+
+    .modal-backdrop {
       position: fixed;
       top: 0;
       left: 0;
@@ -426,117 +566,549 @@ import { ApiService } from '../../services/api.service';
       animation: fadeIn 0.2s ease-out;
     }
     
-    .modal-content {
+    .modal-card {
       background: var(--bg-card);
       border-radius: 12px;
       width: 90%;
-      max-width: 600px;
+      max-width: 550px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
       animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .history-card {
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 20px;
-      background-color: var(--bg-card);
-      transition: var(--transition);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-    }
-    .history-card.minimized {
-      padding: 16px 20px;
-    }
-    .history-header {
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .history-body {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border-color);
+    
+    .modal-close {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      line-height: 1;
+      padding: 0;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    
+    .modal-close:hover {
+      color: var(--text-primary);
     }
-    .spinner {
-      display: inline-block;
-      width: 28px;
-      height: 28px;
-      border: 3px solid rgba(0, 82, 204, 0.2);
-      border-radius: 50%;
-      border-top-color: var(--color-primary);
-      animation: spin 1s linear infinite;
-      margin-bottom: 12px;
+    
+    .modal-body {
+      padding: 24px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .dropdown-item {
+      background-color: transparent;
+      transition: background-color 0.2s ease;
+    }
+    .dropdown-item:hover {
+      background-color: #f1f3f5;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
   `]
 })
-export class DashboardComponent implements OnInit {
-  @Output() viewRun = new EventEmitter<string>();
-  @Output() newExecution = new EventEmitter<void>();
+export class RequirementsComponent implements OnInit, OnDestroy {
+  swe1File: File | null = null;
+  swe2File: File | null = null;
   
-  @Input() set active(val: boolean) {
-    if (val) {
-      this.loadData();
-    } else {
-      this.expandedResults = {};
+  actions = {
+    analyse: true,
+    correct: false,
+    trace: false,
+    correctTrace: false
+  };
+
+  rulesMode: 'strict' | 'rag' | 'custom' = 'strict';
+  guidelines: any[] = [];
+  selectedGuidelineIds: string[] = [];
+  showDropdown = false;
+  
+  // Manage Guidelines Modal State
+  activeModalTab: 'upload' | 'manage' = 'upload';
+  editingGuidelineId: string | null = null;
+  editingGuidelineName: string = '';
+  editingGuidelineContent: string = '';
+  
+  // Custom LLM Context configurations
+  showCustomContextModal = false;
+  activeConfigTab: 'analysis' | 'correction' = 'analysis';
+  customContextText = '1. The requirement must be written clearly.\n2. Do not use complex compound sentences.\n3. The statement must explicitly define an automotive subsystem name.';
+  customContextCorrectionText = '1. Rewrite requirement to be clear and single-focused.\n2. Maintain EARS syntax pattern.\n3. Ensure all numbers use explicitly defined metric units.';
+  
+  fixedPromptHeader = `You are a strict, deterministic Systems Engineering Requirements Auditor.
+Your task is to analyze an engineering requirement using INCOSE guidelines and EARS syntax.
+You MUST:
+- Identify structural components (trigger, condition, system response)
+- Evaluate compliance against INCOSE guidelines, EARS syntax`;
+
+  fixedPromptFooter = `Rules for Output:
+1. Return ONLY valid JSON exactly matching the schema below.
+2. Do NOT include any explanation or markdown formatting outside the JSON.
+3. Do NOT invent information. Output must be perfectly reproducible.
+
+JSON Schema:
+{
+  "status": "Passed" or "Review",
+  "failed_rules": ["Rule name 1", "Rule name 2", ...] or [],
+  "rationale": "Concise structured explanation"
+}`;
+
+  fixedPromptHeaderCorrection = `You are a strict, deterministic Senior Systems Engineer and Requirements Expert.
+Your task is to analyze and correct engineering requirements using INCOSE guidelines and EARS syntax.
+You MUST:
+- Split the requirement if it contains multiple actions
+- Clean up any grammatical or structural issues`;
+
+  fixedPromptFooterCorrection = `Rules for Output:
+1. Return ONLY valid JSON exactly matching the schema below.
+2. Do NOT include any explanation or markdown formatting outside the JSON.
+3. Do NOT invent information. Output must be perfectly reproducible.
+
+JSON Schema:
+{
+  "split_required": boolean,
+  "corrected_requirements": [string]
+}`;
+  
+  // Modal Upload bindings
+  showUploadModal = false;
+  newStandardName = '';
+  standardFile: File | null = null;
+  isUploadingStandard = false;
+  uploadedStatus = '';
+  
+  selectedEmbedModel = 'nvidia/embeddings-nv-embed-qa-4';
+  selectedAnalysisModel = 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
+
+  isRunning = false;
+  isPaused = false;
+  isFinished = false;
+  
+  activeRunId = '';
+  currentRow = 0;
+  totalRows = 0;
+  runStatus = '';
+  
+  results: any[] = [];
+  history: any[] = [];
+  
+  // Pagination
+  currentPage = 1;
+  pageSize = 15;
+  
+  isTraceabilityRun = false;
+  
+  // Tab state for output table
+  activeTab: 'sys1' | 'sys2' | 'traceability' = 'sys1';
+  
+  private timerSubscription: any;
+
+  constructor(private apiService: ApiService, private elementRef: ElementRef, private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+    this.loadGuidelines();
+    this.loadHistory();
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: MouseEvent) {
+    if (!this.elementRef.nativeElement.querySelector('.custom-dropdown')?.contains(event.target)) {
+      this.showDropdown = false;
     }
   }
 
-  history: any[] = [];
-  ragMetrics: any = {};
-  overallPassRate: number = 0;
-  expandedResults: { [runId: string]: any[] } = {};
-  currentPage: { [runId: string]: number } = {};
-  isLoadingHistory: boolean = true;
-
-  // Client-side pagination over the FULL history list. All records are now
-  // loaded once (see loadAllHistory) and the "Prev 8 / Next 8" controls
-  // (both in the heading and at the bottom) just slice the already-loaded,
-  // already-filtered array — no extra network round-trips when paging.
-  historyPage: number = 1;
-  historyPageSize: number = 8;
-  totalHistoryCount: number = 0;
-
-  // Filter State
-  showFilterPanel: boolean = false;
-  filterStatus: string = 'all';
-  filterType: string = 'all';
-  filterDate: string = 'all';
-  
-  showTraceModal: boolean = false;
-  traceModalData: any = null;
-
-  // Number of filters currently set away from their "all" default — drives
-  // the badge shown on the Filter button. Only non-zero when something is
-  // actually filtered.
-  get activeFilterCount(): number {
-    let count = 0;
-    if (this.filterStatus !== 'all') count++;
-    if (this.filterType !== 'all') count++;
-    if (this.filterDate !== 'all') count++;
-    return count;
+  toggleDropdown() {
+    this.showDropdown = !this.showDropdown;
   }
 
-  openTraceDetails(row: any) {
-    this.traceModalData = row;
-    this.showTraceModal = true;
+  getSelectedCountText(): string {
+    if (this.selectedGuidelineIds.length === 0) {
+      return '-- Select Guidelines --';
+    }
+    if (this.selectedGuidelineIds.length === this.guidelines.length && this.guidelines.length > 0) {
+      return 'All Guidelines Selected';
+    }
+    return `${this.selectedGuidelineIds.length} Guideline(s) Selected`;
   }
 
-  closeTraceDetails() {
-    this.showTraceModal = false;
-    this.traceModalData = null;
+  isAllSelected(): boolean {
+    return this.guidelines.length > 0 && this.selectedGuidelineIds.length === this.guidelines.length;
+  }
+
+  toggleSelectAll() {
+    if (this.isAllSelected()) {
+      this.selectedGuidelineIds = [];
+    } else {
+      this.selectedGuidelineIds = this.guidelines.map(g => g.id);
+    }
+  }
+
+  isSelectedGuideline(id: string): boolean {
+    return this.selectedGuidelineIds.includes(id);
+  }
+
+  toggleGuideline(id: string) {
+    const idx = this.selectedGuidelineIds.indexOf(id);
+    if (idx > -1) {
+      this.selectedGuidelineIds.splice(idx, 1);
+    } else {
+      this.selectedGuidelineIds.push(id);
+    }
+  }
+
+  openUploadModal() {
+    this.showUploadModal = true;
+    this.uploadedStatus = '';
+    this.newStandardName = '';
+    this.standardFile = null;
+  }
+
+  closeUploadModal() {
+    this.showUploadModal = false;
+    this.loadGuidelines();
+  }
+
+  onStandardFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.standardFile = file;
+      // Auto-populate the name field from filename (without extension)
+      if (!this.newStandardName || this.newStandardName.trim() === '') {
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        this.newStandardName = nameWithoutExt;
+      }
+    }
+  }
+
+  openCustomContextModal() {
+    this.showCustomContextModal = true;
+    if (!this.actions.correct) {
+      this.activeConfigTab = 'analysis';
+    }
+  }
+
+  closeCustomContextModal() {
+    this.showCustomContextModal = false;
+  }
+
+  saveCustomContext() {
+    this.showCustomContextModal = false;
+    this.cdr.detectChanges();
+  }
+
+  deleteGuideline(id: string, event: Event) {
+    event.stopPropagation();
+    if (confirm('Are you sure you want to delete this strict guideline file?')) {
+      this.apiService.deleteGuideline(id).subscribe({
+        next: () => {
+          this.selectedGuidelineIds = this.selectedGuidelineIds.filter(gId => gId !== id);
+          this.loadGuidelines();
+        },
+        error: (err) => {
+          alert('Failed to delete guideline: ' + (err.error?.detail || err.message));
+        }
+      });
+    }
+  }
+
+  downloadGuideline(g: any) {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(g.content, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", g.name + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  editGuideline(g: any) {
+    this.editingGuidelineId = g.id;
+    this.editingGuidelineName = g.name;
+    this.editingGuidelineContent = JSON.stringify(g.content, null, 2);
+  }
+
+  cancelEdit() {
+    this.editingGuidelineId = null;
+    this.editingGuidelineName = '';
+    this.editingGuidelineContent = '';
+  }
+
+  saveEditedGuideline() {
+    if (!this.editingGuidelineId || !this.editingGuidelineName.trim() || !this.editingGuidelineContent.trim()) {
+      alert("Name and Content cannot be empty.");
+      return;
+    }
+    
+    // Validate JSON
+    try {
+      JSON.parse(this.editingGuidelineContent);
+    } catch (e) {
+      alert("Invalid JSON content. Please ensure the rules are valid JSON format.");
+      return;
+    }
+
+    this.apiService.updateGuideline(this.editingGuidelineId, this.editingGuidelineName, this.editingGuidelineContent).subscribe({
+      next: () => {
+        this.loadGuidelines();
+        this.cancelEdit();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        alert('Failed to update guideline: ' + (err.error?.detail || err.message));
+      }
+    });
+  }
+
+  uploadStandard() {
+    if (!this.standardFile || !this.newStandardName) return;
+    this.isUploadingStandard = true;
+    this.uploadedStatus = '';
+
+    this.apiService.uploadGuideline(this.newStandardName, this.standardFile).subscribe({
+      next: (res) => {
+        this.isUploadingStandard = false;
+        this.uploadedStatus = `Successfully uploaded guideline '${res.name}'!`;
+        this.newStandardName = '';
+        this.standardFile = null;
+        this.loadGuidelines();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isUploadingStandard = false;
+        this.cdr.detectChanges();
+        alert('Failed to upload guidelines: ' + (err.error?.detail || err.message));
+      }
+    });
+  }
+
+  loadGuidelines() {
+    this.apiService.getGuidelines().subscribe({
+      next: (res) => {
+        this.guidelines = res;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadHistory() {
+    this.apiService.getHistory().subscribe({
+      next: (res) => {
+        this.history = res;
+      }
+    });
+  }
+
+  removeFile(event: Event, type: 'swe1' | 'swe2') {
+    event.stopPropagation();
+    if (type === 'swe1') {
+      this.swe1File = null;
+    } else {
+      this.swe2File = null;
+    }
+  }
+
+  onFileSelected(event: any, type: string) {
+    const file = event.target.files[0];
+    if (file) {
+      if (type === 'swe1') {
+        this.swe1File = file;
+      } else {
+        this.swe2File = file;
+      }
+    }
+  }
+
+  onCorrectionToggle(checked: boolean) {
+    if (checked) {
+      // Correction requires analysis — auto-enable it
+      this.actions.analyse = true;
+    }
+  }
+
+  startRun() {
+    if ((this.actions.analyse || this.actions.correct) && this.rulesMode === 'strict' && this.selectedGuidelineIds.length === 0) {
+      alert('⚠️ Please select at least one strict guideline document from the dropdown before starting execution.');
+      return;
+    }
+
+    if ((this.actions.trace || this.actions.correctTrace) && (!this.swe1File || !this.swe2File)) {
+      alert('⚠️ Both SYS 1 and SYS 2 documents must be uploaded for traceability analysis.');
+      return;
+    }
+
+    let runType = 'quality';
+    if (this.actions.trace || this.actions.correctTrace) {
+      runType = 'traceability';
+      this.isTraceabilityRun = true;
+      this.activeTab = 'traceability';
+    } else {
+      this.isTraceabilityRun = false;
+      this.activeTab = 'sys1';
+    }
+    
+    this.isRunning = true;
+    this.isPaused = false;
+    this.isFinished = false;
+    this.runStatus = 'running';
+    this.results = [];
+    this.currentPage = 1;
+    this.currentRow = 0;
+    this.totalRows = 0;
+    this.activeRunId = 'Initializing...';
+ 
+    const useRagBool = this.rulesMode === 'rag';
+    const customPromptVal = this.rulesMode === 'custom' ? this.customContextText : undefined;
+    const customPromptCorrectionVal = this.rulesMode === 'custom' ? this.customContextCorrectionText : undefined;
+
+    this.apiService.startAnalysis(
+      runType,
+      this.rulesMode === 'strict' ? (this.selectedGuidelineIds.join(',') || null) : null,
+      useRagBool,
+      this.selectedAnalysisModel,
+      this.swe1File || undefined,
+      this.swe2File || undefined,
+      this.actions.correct,
+      this.actions.correctTrace,
+      customPromptVal,
+      customPromptCorrectionVal
+    ).subscribe({
+      next: (res) => {
+        this.activeRunId = res.run_id;
+        this.startPolling();
+      },
+      error: (err) => {
+        alert('Failed to start run: ' + (err.error?.detail || err.message));
+        this.isRunning = false;
+      }
+    });
+  }
+
+  startPolling() {
+    this.stopPolling();
+    this.timerSubscription = setInterval(() => {
+      this.apiService.getAnalysisStatus(this.activeRunId).subscribe({
+        next: (status) => {
+          this.currentRow = status.current_row;
+          this.totalRows = status.total_rows;
+          this.runStatus = status.status;
+
+          // Fetch intermediate results periodically so user sees requirements committing in real time
+          this.apiService.getRunResults(this.activeRunId).subscribe({
+            next: (res) => {
+              this.results = res.map((r: any) => {
+                if (this.isTraceabilityRun && !r.parsed_swe2_list) {
+                  r.parsed_swe2_list = this.getParsedSwe2List(r);
+                }
+                return r;
+              });
+              this.cdr.detectChanges();
+            }
+          });
+
+          if (status.status === 'completed') {
+            this.isFinished = true;
+            this.isRunning = false;
+            this.stopPolling();
+            this.loadHistory();
+          } else if (status.status === 'stopped') {
+            this.isFinished = true;
+            this.isRunning = false;
+            this.stopPolling();
+            this.loadHistory();
+          } else if (status.status === 'paused') {
+            this.isPaused = true;
+          } else {
+            this.isPaused = false;
+          }
+          this.cdr.detectChanges();
+        }
+      });
+    }, 1000);
+  }
+
+  stopPolling() {
+    if (this.timerSubscription) {
+      clearInterval(this.timerSubscription);
+      this.timerSubscription = null;
+    }
+  }
+
+  pauseRun() {
+    if (!this.activeRunId) return;
+    this.apiService.pauseAnalysis(this.activeRunId).subscribe(() => {
+      this.isPaused = true;
+      this.runStatus = 'paused';
+    });
+  }
+
+  resumeRun() {
+    if (!this.activeRunId) return;
+    this.apiService.resumeAnalysis(this.activeRunId).subscribe(() => {
+      this.isPaused = false;
+      this.runStatus = 'running';
+    });
+  }
+
+  stopRun() {
+    if (!this.activeRunId) return;
+    this.apiService.stopAnalysis(this.activeRunId).subscribe(() => {
+      this.isRunning = false;
+      this.isFinished = true;
+      this.runStatus = 'stopped';
+      this.stopPolling();
+      this.loadHistory();
+    });
+  }
+
+  loadResults(runId: string) {
+    this.activeRunId = runId;
+    const matchedRun = this.history.find(r => r.run_id === runId);
+    this.currentPage = 1;
+
+    this.apiService.getRunResults(runId).subscribe({
+      next: (res) => {
+        // FIX: previously this relied solely on `matchedRun` (a lookup into
+        // the locally cached, possibly incomplete/differently-paginated
+        // history array). If the run wasn't found there, isTraceabilityRun
+        // silently defaulted to false and the traceability run rendered
+        // using the quality-analysis table structure.
+        //
+        // Now we fall back to inspecting the actual row shape: traceability
+        // rows always carry a `swe1_id` key, quality rows never do.
+        const looksLikeTraceability = res.length > 0 && Object.prototype.hasOwnProperty.call(res[0], 'swe1_id');
+        this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' : looksLikeTraceability;
+        this.activeTab = this.isTraceabilityRun ? 'traceability' : 'sys1';
+
+        this.results = res.map((r: any) => {
+          if (this.isTraceabilityRun && !r.parsed_swe2_list) {
+            r.parsed_swe2_list = this.getParsedSwe2List(r);
+          }
+          return r;
+        });
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   getParsedSwe2List(row: any): any[] {
@@ -545,6 +1117,8 @@ export class DashboardComponent implements OnInit {
     }
     
     const ids = row.req_id.split(',').map((id: string) => id.trim());
+    
+    // Attempt to parse input_req based on "• ID: text" format
     const texts = row.input_req ? row.input_req.split('\n').map((t: string) => t.trim()) : [];
     
     const parsedList = [];
@@ -552,11 +1126,13 @@ export class DashboardComponent implements OnInit {
       const id = ids[i];
       let text = '-';
       
+      // Try to find the matching text block by ID
       const prefix = `• ${id}:`;
       const match = texts.find((t: string) => t.startsWith(prefix));
       if (match) {
         text = match.substring(prefix.length).trim();
       } else if (texts[i]) {
+        // Fallback: just use the line corresponding to the index
         text = texts[i].replace(/^•\s*[A-Za-z0-9_\-\.]+:\s*/, '').trim();
       }
       
@@ -566,217 +1142,94 @@ export class DashboardComponent implements OnInit {
     return parsedList.length > 0 ? parsedList : [{ id: '-', text: row.input_req || '-' }];
   }
 
-  get filteredHistory(): any[] {
-    return this.history.filter(run => {
-      // 1. Status Filter
-      if (this.filterStatus !== 'all') {
-        if (this.filterStatus === 'running' && run.status !== 'running' && run.status !== 'paused') return false;
-        if (this.filterStatus === 'completed' && run.status !== 'completed') return false;
-        if (this.filterStatus === 'stopped' && run.status !== 'stopped' && run.status !== 'failed') return false;
-      }
-      
-      // 2. Type Filter
-      if (this.filterType !== 'all') {
-        if (run.type !== this.filterType) return false;
-      }
-      
-      // 3. Date Filter
-      if (this.filterDate !== 'all') {
-        const runDate = new Date(run.timestamp);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - runDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (this.filterDate === 'today' && diffDays > 1) return false;
-        if (this.filterDate === 'week' && diffDays > 7) return false;
-        if (this.filterDate === 'month' && diffDays > 30) return false;
-      }
-      
-      return true;
-    });
+
+
+  getProgressPercent(): number {
+    return this.totalRows > 0 ? (this.currentRow / this.totalRows) * 100 : 0;
   }
 
-  // NEW: slice of filteredHistory shown on the current 8-item page. This is
-  // what the *ngFor in the template iterates over now instead of the full
-  // filteredHistory array.
-  get pagedHistory(): any[] {
-    const start = (this.historyPage - 1) * this.historyPageSize;
-    return this.filteredHistory.slice(start, start + this.historyPageSize);
-  }
-
-  constructor(private apiService: ApiService, private cdr: ChangeDetectorRef, private eRef: ElementRef) {}
-
-  @HostListener('document:click', ['$event'])
-  clickout(event: Event) {
-    if (this.showFilterPanel) {
-      const clickedInside = this.eRef.nativeElement.querySelector('.runs-history-header')?.contains(event.target);
-      if (!clickedInside) {
-        this.showFilterPanel = false;
-        this.cdr.detectChanges();
-      }
+  get filteredResults(): any[] {
+    if (this.isTraceabilityRun) {
+      return this.results.filter(r => r.category === 'traceability' || r.category == null);
     }
+    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'sys1' && r.category == null));
   }
 
-  toggleFilterPanel(event: Event) {
-    this.showFilterPanel = !this.showFilterPanel;
-    event.stopPropagation();
-  }
-
-  // NEW: whenever a filter changes, jump back to page 1 and re-run the
-  // expanded-results prefetch for whatever is now visible.
-  onFilterChange() {
-    this.historyPage = 1;
-    this.prefetchVisibleExpanded();
-  }
-
-  ngOnInit(): void {
-    this.loadData();
-  }
-
-  loadData() {
-    this.historyPage = 1;
-    this.loadAllHistory();
-
-    this.apiService.getRagMetrics().subscribe({
-      next: (res) => {
-        this.ragMetrics = res;
-      }
-    });
-  }
-
-  // Loads the COMPLETE, unpaginated history in one request. Metric cards
-  // (total runs, overall pass rate) and the 8-per-page Prev/Next controls
-  // all now operate on this single fully-loaded array on the client side.
-  loadAllHistory() {
-    this.isLoadingHistory = true;
-    this.apiService.getHistory().subscribe({
-      next: (all: any[]) => {
-        this.history = all;
-        this.totalHistoryCount = all.length;
-
-        let total = 0;
-        let passes = 0;
-        all.forEach(run => {
-          total += run.total_count;
-          passes += run.pass_count;
-        });
-        this.overallPassRate = total > 0 ? Math.round((passes / total) * 100) : 0;
-
-        this.isLoadingHistory = false;
-        this.prefetchVisibleExpanded();
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.isLoadingHistory = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  // Pre-fetches result details for any non-minimized run that is currently
-  // visible on the active 8-item page (equivalent of the old per-page
-  // prefetch loop, just driven off pagedHistory instead of the server page).
-  prefetchVisibleExpanded() {
-    this.pagedHistory.forEach(run => {
-      if (run.minimized !== 1 && !this.expandedResults[run.run_id]) {
-        this.apiService.getRunResults(run.run_id).subscribe(details => {
-          if (run.type === 'traceability') {
-            details.forEach((r: any) => r.parsed_swe2_list = this.getParsedSwe2List(r));
-          }
-          this.expandedResults[run.run_id] = details;
-          this.cdr.detectChanges();
-        });
-      }
-    });
-  }
-
-  getHistoryTotalPages(): number {
-    return Math.ceil(this.filteredHistory.length / this.historyPageSize) || 1;
-  }
-
-  goToHistoryPage(page: number) {
-    const totalPages = this.getHistoryTotalPages();
-    if (page < 1 || page > totalPages || page === this.historyPage) return;
-    this.historyPage = page;
-    this.prefetchVisibleExpanded();
-  }
-
-  // NEW: convenience wrappers used by both the heading control and the
-  // bottom pager so "Next 8" / "Prev 8" always move exactly one page
-  // (historyPageSize = 8 records) in either direction.
-  nextHistoryPage() {
-    this.goToHistoryPage(this.historyPage + 1);
-  }
-
-  prevHistoryPage() {
-    this.goToHistoryPage(this.historyPage - 1);
-  }
-
-  getPercentage(count: number, total: number): number {
-    return total > 0 ? (count / total) * 100 : 0;
-  }
-
-  toggleMinimize(runId: string, currentlyMinimized: boolean) {
-    const run = this.history.find(r => r.run_id === runId);
-    if (run) {
-      run.minimized = currentlyMinimized ? 0 : 1;
+  hasCategory(category: string): boolean {
+    if (category === 'sys1' && !this.isTraceabilityRun) {
+      return this.results.some(r => r.category === category || r.category == null);
     }
+    return this.results.some(r => r.category === category);
+  }
 
-    this.apiService.minimizeRun(runId, !currentlyMinimized).subscribe(() => {
-      if (currentlyMinimized) { // was minimized, now expanding
-        this.apiService.getRunResults(runId).subscribe(res => {
-          const runType = this.history.find(r => r.run_id === runId)?.type;
-          if (runType === 'traceability') {
-            res.forEach((r: any) => r.parsed_swe2_list = this.getParsedSwe2List(r));
-          }
-          this.expandedResults[runId] = res;
-          this.currentPage[runId] = 1;
-          this.cdr.detectChanges();
+  exportResults() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "ID,Input Requirement,Status,Rule/Trace Target,Rationale,Corrected Requirement\n";
+    
+    this.results.forEach(row => {
+      const correctedReqs = this.splitCorrectedReq(row.corrected_req);
+      
+      if (correctedReqs.length > 1) {
+        // If split, create multiple rows
+        correctedReqs.forEach((reqText: string, idx: number) => {
+          const splitId = `${row.req_id || ''}.${idx + 1}`;
+          const inputReq = idx === 0 ? `"${(row.input_req || '').replace(/"/g, '""')}"` : '""';
+          const status = idx === 0 ? row.status || '' : '""';
+          const rule = idx === 0 ? row.failed_rule || 'N/A' : '""';
+          const rationale = idx === 0 ? `"${(row.rationale || '').replace(/"/g, '""')}"` : '""';
+          
+          const line = [
+            splitId,
+            inputReq,
+            status,
+            rule,
+            rationale,
+            `"${reqText.replace(/"/g, '""')}"`
+          ].join(",");
+          csvContent += line + "\n";
         });
+      } else {
+        // Single row
+        const line = [
+          row.req_id || '',
+          `"${(row.input_req || '').replace(/"/g, '""')}"`,
+          row.status || '',
+          row.failed_rule || 'N/A',
+          `"${(row.rationale || '').replace(/"/g, '""')}"`,
+          `"${(row.corrected_req || '').replace(/"/g, '""')}"`
+        ].join(",");
+        csvContent += line + "\n";
       }
     });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `AIRAM_Run_${this.activeRunId.substring(0,8)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
-  deleteRun(runId: string) {
-    if (confirm('Are you sure you want to permanently delete this execution run history?')) {
-      this.apiService.deleteRun(runId).subscribe(() => {
-        this.loadData();
-      });
-    }
+  hasCorrections(): boolean {
+    if (!this.filteredResults || this.filteredResults.length === 0) return false;
+    return this.filteredResults.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
   }
 
-  // NEW: Stop a still-running/paused run directly from the history card.
-  // Mirrors RequirementsComponent.stopRun() — same API call, same intent —
-  // but updates the row in place instead of relying on an active polling
-  // loop, since the Dashboard doesn't poll individual runs.
-  stopRun(runId: string) {
-    this.apiService.stopAnalysis(runId).subscribe({
-      next: () => {
-        const run = this.history.find(r => r.run_id === runId);
-        if (run) {
-          run.status = 'stopped';
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        alert('Failed to stop run: ' + (err.error?.detail || err.message));
-      }
-    });
+  splitCorrectedReq(text: string): string[] {
+    if (!text || text === '-') return [];
+    return text.split('\n').map(t => t.trim()).filter(t => t.length > 0);
   }
 
-  getCurrentPage(runId: string): number {
-    return this.currentPage[runId] || 1;
+  // Pagination & Reset Methods
+  getTotalPages(): number {
+    return Math.ceil(this.filteredResults.length / this.pageSize) || 1;
   }
 
-  getTotalPages(runId: string): number {
-    const total = this.expandedResults[runId]?.length || 0;
-    return Math.ceil(total / 3) || 1;
-  }
-
-  setPage(runId: string, page: number) {
-    const totalPages = this.getTotalPages(runId);
-    if (page >= 1 && page <= totalPages) {
-      this.currentPage[runId] = page;
+  setPage(page: number) {
+    if (page >= 1 && page <= this.getTotalPages()) {
+      this.currentPage = page;
+      this.cdr.detectChanges();
     }
   }
 
@@ -784,35 +1237,16 @@ export class DashboardComponent implements OnInit {
     return Math.min(a, b);
   }
 
-  hasCorrections(rows: any[]): boolean {
-    if (!rows || rows.length === 0) return false;
-    return rows.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
-  }
 
-  exportRun(runId: string) {
-    const results = this.expandedResults[runId];
-    if (!results || results.length === 0) return;
 
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "ID,Input Requirement,Status,Rule/Trace Target,Rationale,Corrected Requirement\n";
-    results.forEach(row => {
-      const line = [
-        row.req_id || '',
-        `"${(row.input_req || '').replace(/"/g, '""')}"`,
-        row.status || '',
-        row.failed_rule || 'N/A',
-        `"${(row.rationale || '').replace(/"/g, '""')}"`,
-        `"${(row.corrected_req || '').replace(/"/g, '""')}"`
-      ].join(",");
-      csvContent += line + "\n";
-    });
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `AIRAM_Run_${runId.substring(0,8)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  clearResults() {
+    this.results = [];
+    this.activeRunId = '';
+    this.runStatus = '';
+    this.isFinished = false;
+    this.currentRow = 0;
+    this.totalRows = 0;
+    this.currentPage = 1;
+    this.cdr.detectChanges();
   }
 }
