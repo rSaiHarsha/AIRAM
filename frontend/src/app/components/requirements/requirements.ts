@@ -197,18 +197,18 @@ import { ApiService } from '../../services/api.service';
           </div>
         </div>
         
-        <div style="padding: 0 24px;">
-          <div class="tabs-nav">
-            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
+        <div class="tabs-nav">
+            <!-- Updated to show tabs based on actions selected or existing data -->
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="actions.analyse || actions.correct || hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="(actions.analyse && swe2File) || hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="actions.trace || actions.correctTrace || hasCategory('traceability')">Traceability</button>
           </div>
         </div>
         
         <div class="table-container" style="padding: 0 24px 24px 24px; border: none; border-radius: 0;">
           <table>
             <thead>
-              <tr *ngIf="!isTraceabilityRun">
+              <tr *ngIf="activeTab !== 'traceability'">
                 <th>ID</th>
                 <th>Requirement</th>
                 <th>Status</th>
@@ -216,7 +216,7 @@ import { ApiService } from '../../services/api.service';
                 <th>Rationale / Reasoning</th>
                 <th *ngIf="hasCorrections()">Corrected Requirement</th>
               </tr>
-              <tr *ngIf="isTraceabilityRun">
+              <tr *ngIf="activeTab === 'traceability'">
                 <th>SYS.1 ID</th>
                 <th>SYS.1 Requirement</th>
                 <th>SYS.2 ID</th>
@@ -227,9 +227,10 @@ import { ApiService } from '../../services/api.service';
             </thead>
             <tbody>
               <ng-container *ngFor="let row of filteredResults | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
+                
                 <!-- Quality Analysis View -->
-                <!-- Quality Analysis View -->
-                <ng-container *ngIf="!isTraceabilityRun">
+                <ng-container *ngIf="activeTab !== 'traceability'">
+            
                   <!-- Split Requirement / Corrections View -->
                   <ng-container *ngIf="hasCorrections() && splitCorrectedReq(row.corrected_req).length > 1; else singleRowView">
                     <tr *ngFor="let req of splitCorrectedReq(row.corrected_req); let i = index">
