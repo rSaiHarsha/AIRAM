@@ -58,7 +58,19 @@ import { ApiService } from '../../services/api.service';
 
       <div class="runs-history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
-        <div style="display: flex; gap: 12px; position: relative;">
+        <div style="display: flex; gap: 12px; align-items: center; position: relative;">
+
+          <!-- NEW: Prev 8 / Next 8 quick-page control, shown next to the heading -->
+          <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
+            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous 8 runs">
+              ‹ Prev 8
+            </button>
+            <span style="font-weight: 500; color: var(--text-primary);">{{ historyPage }} / {{ getHistoryTotalPages() }}</span>
+            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next 8 runs">
+              Next 8 ›
+            </button>
+          </div>
+
           <!-- Filter Button & Dropdown Container -->
           <div style="position: relative;" #filterContainer>
             <button class="btn btn-secondary" (click)="toggleFilterPanel($event)" [class.active]="showFilterPanel" style="position: relative; display: inline-flex; align-items: center;">
@@ -73,7 +85,7 @@ import { ApiService } from '../../services/api.service';
             <div *ngIf="showFilterPanel" class="filter-dropdown" style="position: absolute; top: calc(100% + 8px); right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; display: flex; flex-direction: column; gap: 12px;">
               <div>
                 <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Status</label>
-                <select [(ngModel)]="filterStatus" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
+                <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
                   <option value="all">All Statuses</option>
                   <option value="completed">Completed</option>
                   <option value="running">Running / Paused</option>
@@ -82,7 +94,7 @@ import { ApiService } from '../../services/api.service';
               </div>
               <div>
                 <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Run Type</label>
-                <select [(ngModel)]="filterType" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
+                <select [(ngModel)]="filterType" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
                   <option value="all">All Types</option>
                   <option value="quality">Quality Analysis</option>
                   <option value="traceability">Traceability</option>
@@ -90,7 +102,7 @@ import { ApiService } from '../../services/api.service';
               </div>
               <div>
                 <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Date Filter</label>
-                <select [(ngModel)]="filterDate" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
+                <select [(ngModel)]="filterDate" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
                   <option value="week">Last 7 Days</option>
@@ -119,7 +131,7 @@ import { ApiService } from '../../services/api.service';
       </div>
 
       <div *ngIf="!isLoadingHistory && filteredHistory.length > 0" class="minimized-shelf">
-        <div *ngFor="let run of filteredHistory" class="history-card" [class.minimized]="run.minimized === 1">
+        <div *ngFor="let run of pagedHistory" class="history-card" [class.minimized]="run.minimized === 1">
           <div class="history-header">
             <div class="history-meta" style="display: flex; gap: 16px; align-items: center;">
               <span class="badge badge-blue-pill" style="font-size: 0.65rem;">{{ run.type }} RUN</span>
@@ -132,7 +144,12 @@ import { ApiService } from '../../services/api.service';
               <span class="badge" [class.badge-pass]="run.status === 'completed'" [class.badge-fail]="run.status === 'stopped'" [class.badge-running]="run.status === 'running' || run.status === 'paused'" style="margin-right: 8px;">
                 {{ run.status }}
               </span>
-              
+
+              <!-- NEW: Stop button for runs still running/paused, mirrors RequirementsComponent.stopRun() -->
+              <button *ngIf="run.status === 'running' || run.status === 'paused'" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.75rem; border-radius: 4px;" (click)="stopRun(run.run_id)" title="Stop this run">
+                🛑 Stop
+              </button>
+
               <button class="icon-btn-minimal" (click)="toggleMinimize(run.run_id, run.minimized === 1)">
                 <svg *ngIf="run.minimized === 1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                 <svg *ngIf="run.minimized !== 1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
@@ -262,15 +279,15 @@ import { ApiService } from '../../services/api.service';
         </div>
       </div>
       
-      <!-- History Pagination (reflects the true total number of stored runs) -->
-      <div *ngIf="!isLoadingHistory && totalHistoryCount > historyPageSize" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; margin-bottom: 24px;">
-        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="goToHistoryPage(historyPage - 1)" style="padding: 4px 14px;">
+      <!-- History Pagination (client-side, 8 per page, kept in sync with the header control) -->
+      <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; margin-bottom: 24px;">
+        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 14px;">
           ‹ Prev
         </button>
         <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">
-          Page {{ historyPage }} of {{ getHistoryTotalPages() }} <span style="color: var(--text-primary);">({{ totalHistoryCount }} total runs)</span>
+          Page {{ historyPage }} of {{ getHistoryTotalPages() }} <span style="color: var(--text-primary);">({{ filteredHistory.length }} matching runs)</span>
         </span>
-        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="goToHistoryPage(historyPage + 1)" style="padding: 4px 14px;">
+        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="nextHistoryPage()" style="padding: 4px 14px;">
           Next ›
         </button>
       </div>
@@ -484,11 +501,12 @@ export class DashboardComponent implements OnInit {
   currentPage: { [runId: string]: number } = {};
   isLoadingHistory: boolean = true;
 
-  // True backend-style pagination for the history list. totalHistoryCount is
-  // fetched independently of whichever page is on screen, so the metric
-  // card and the pager always reflect ALL runs ever executed.
+  // Client-side pagination over the FULL history list. All records are now
+  // loaded once (see loadAllHistory) and the "Prev 8 / Next 8" controls
+  // (both in the heading and at the bottom) just slice the already-loaded,
+  // already-filtered array — no extra network round-trips when paging.
   historyPage: number = 1;
-  historyPageSize: number = 15;
+  historyPageSize: number = 8;
   totalHistoryCount: number = 0;
 
   // Filter State
@@ -578,6 +596,14 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  // NEW: slice of filteredHistory shown on the current 8-item page. This is
+  // what the *ngFor in the template iterates over now instead of the full
+  // filteredHistory array.
+  get pagedHistory(): any[] {
+    const start = (this.historyPage - 1) * this.historyPageSize;
+    return this.filteredHistory.slice(start, start + this.historyPageSize);
+  }
+
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef, private eRef: ElementRef) {}
 
   @HostListener('document:click', ['$event'])
@@ -596,14 +622,20 @@ export class DashboardComponent implements OnInit {
     event.stopPropagation();
   }
 
+  // NEW: whenever a filter changes, jump back to page 1 and re-run the
+  // expanded-results prefetch for whatever is now visible.
+  onFilterChange() {
+    this.historyPage = 1;
+    this.prefetchVisibleExpanded();
+  }
+
   ngOnInit(): void {
     this.loadData();
   }
 
   loadData() {
     this.historyPage = 1;
-    this.loadFullHistoryStats();
-    this.fetchHistoryPage();
+    this.loadAllHistory();
 
     this.apiService.getRagMetrics().subscribe({
       next: (res) => {
@@ -612,13 +644,16 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // Fetches the complete, unpaginated history once so the metric cards
-  // (total runs, overall pass rate) and the pager reflect ALL runs ever
-  // executed, not just whichever page is currently rendered.
-  loadFullHistoryStats() {
+  // Loads the COMPLETE, unpaginated history in one request. Metric cards
+  // (total runs, overall pass rate) and the 8-per-page Prev/Next controls
+  // all now operate on this single fully-loaded array on the client side.
+  loadAllHistory() {
+    this.isLoadingHistory = true;
     this.apiService.getHistory().subscribe({
       next: (all: any[]) => {
+        this.history = all;
         this.totalHistoryCount = all.length;
+
         let total = 0;
         let passes = 0;
         all.forEach(run => {
@@ -626,32 +661,9 @@ export class DashboardComponent implements OnInit {
           passes += run.pass_count;
         });
         this.overallPassRate = total > 0 ? Math.round((passes / total) * 100) : 0;
-        this.cdr.detectChanges();
-      }
-    });
-  }
 
-  // Fetches only the page of runs that needs to be rendered.
-  fetchHistoryPage() {
-    this.isLoadingHistory = true;
-    const offset = (this.historyPage - 1) * this.historyPageSize;
-    this.apiService.getHistory(this.historyPageSize, offset).subscribe({
-      next: (res) => {
-        this.history = res;
         this.isLoadingHistory = false;
-
-        // Pre-fetch results for any already expanded cards
-        this.history.forEach(run => {
-          if (run.minimized !== 1) {
-            this.apiService.getRunResults(run.run_id).subscribe(details => {
-              if (run.type === 'traceability') {
-                details.forEach((r: any) => r.parsed_swe2_list = this.getParsedSwe2List(r));
-              }
-              this.expandedResults[run.run_id] = details;
-              this.cdr.detectChanges();
-            });
-          }
-        });
+        this.prefetchVisibleExpanded();
         this.cdr.detectChanges();
       },
       error: () => {
@@ -661,15 +673,43 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  // Pre-fetches result details for any non-minimized run that is currently
+  // visible on the active 8-item page (equivalent of the old per-page
+  // prefetch loop, just driven off pagedHistory instead of the server page).
+  prefetchVisibleExpanded() {
+    this.pagedHistory.forEach(run => {
+      if (run.minimized !== 1 && !this.expandedResults[run.run_id]) {
+        this.apiService.getRunResults(run.run_id).subscribe(details => {
+          if (run.type === 'traceability') {
+            details.forEach((r: any) => r.parsed_swe2_list = this.getParsedSwe2List(r));
+          }
+          this.expandedResults[run.run_id] = details;
+          this.cdr.detectChanges();
+        });
+      }
+    });
+  }
+
   getHistoryTotalPages(): number {
-    return Math.ceil(this.totalHistoryCount / this.historyPageSize) || 1;
+    return Math.ceil(this.filteredHistory.length / this.historyPageSize) || 1;
   }
 
   goToHistoryPage(page: number) {
     const totalPages = this.getHistoryTotalPages();
     if (page < 1 || page > totalPages || page === this.historyPage) return;
     this.historyPage = page;
-    this.fetchHistoryPage();
+    this.prefetchVisibleExpanded();
+  }
+
+  // NEW: convenience wrappers used by both the heading control and the
+  // bottom pager so "Next 8" / "Prev 8" always move exactly one page
+  // (historyPageSize = 8 records) in either direction.
+  nextHistoryPage() {
+    this.goToHistoryPage(this.historyPage + 1);
+  }
+
+  prevHistoryPage() {
+    this.goToHistoryPage(this.historyPage - 1);
   }
 
   getPercentage(count: number, total: number): number {
@@ -703,6 +743,25 @@ export class DashboardComponent implements OnInit {
         this.loadData();
       });
     }
+  }
+
+  // NEW: Stop a still-running/paused run directly from the history card.
+  // Mirrors RequirementsComponent.stopRun() — same API call, same intent —
+  // but updates the row in place instead of relying on an active polling
+  // loop, since the Dashboard doesn't poll individual runs.
+  stopRun(runId: string) {
+    this.apiService.stopAnalysis(runId).subscribe({
+      next: () => {
+        const run = this.history.find(r => r.run_id === runId);
+        if (run) {
+          run.status = 'stopped';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        alert('Failed to stop run: ' + (err.error?.detail || err.message));
+      }
+    });
   }
 
   getCurrentPage(runId: string): number {
