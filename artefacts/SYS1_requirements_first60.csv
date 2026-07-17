@@ -1,0 +1,61 @@
+ID,Requirement Text
+203.7.1,The RSU shall provide evidence of tampering (e.g. opening of the case) through tamper-evident seals on media ports (e.g. USB) and screw holes.
+203.7.2,The ASD shall provide evidence to detect tampering (e.g. opening of the case) through tamper-evident seals on all media ports and screw holes.
+203.22.1,Connected Vehicle equipment mounted externally to the vehicle shall be contained within the envelope defined by the ASD vendor specification.
+203.7.3,The RSU size dimensions shall not exceed 13” h x 13” w x 4” d exclusive of mounting hardware.
+203.4.1,The ASD shall operate on the voltage supplied by the host vehicle.
+203.16.1,The current drawn by the ASD shall not exceed with the maximum allowable amperage specified by the ASD vendor.
+203.16.2,"The RSU shall not overload the power supplies provided by the RSU vendor based on maximum allowable power consumption. (During operation, turn off, turn on, etc. per NEMA TS2 environmental testing.)"
+203.17.2,All connections to the RSU shall be protected from lightening and power surges on the Ethernet.
+203.18.1,The ASDs shall withstand electromagnetic interference (EMI) from external sources and electrical distribution.
+203.18.2,The ASD shall withstand electrostatic discharge (ESD) from external sources and electrical distribution.
+203.18.3,The RSU shall withstand electrostatic discharge (ESD) from external sources and electrical distribution. (Provide ESD definitions/specifications.)
+203.19.1,The ASD design shall prevent battery drain.
+402.2.2,The RSU shall be able to resume normal function within 2 minutes of restoration of power.
+203.31.1,Back office servers shall have their power source augmented by an Uninterruptable Power Supply (UPS).
+203.1.1,"The NYC CVPD maintenance personnel shall replace the ASD damaged by improper maintenance, tampering, or mishap."
+203.1.2,"The NYC CVPD maintenance personnel shall replace the RSU damaged by improper maintenance, tampering, or mishap."
+203.2.1,The NYC CVPD maintenance personnel shall be able to reboot the ASD after a disruptive software glitch.
+203.2.2,The NYC CVPD maintenance personnel shall be able to reboot the RSU after a disruptive software glitch.
+202.2.1,The NYC CVPD applications shall have modifiable algorithms and software parameters for tuning the system’s operation.
+202.3.1,The ASD shall have upgradable hardware components for improving the device performance upon expansion of the NYC CVPD system.
+202.3.2,The RSU shall have upgradable hardware components for improving the device performance upon expansion of the NYC CVPD system.
+204.3.1,The audible message volume in the ASD shall be distinguishable from other sounds.
+204.3.2,The audible message volume in the ASD shall be developed and tested in a real traffic environment.
+203.17.1,"The RSU shall be designed to operate properly in the outdoor environment. (e.g. temperature, humidity, rain, fog, sun, snow, shock, vibration, etc.) {Ref augmented NEMA TS2-20XX}"
+110.2.3,All NYC CVPD ASDs shall utilize the same GPS time source and common accuracy configuration as the NYC CVPD Infrastructure.
+201.5.1,The ASD shall provide the alerts to the driver without ambiguity.
+202.7.1,The ASD shall process all radio messages at a minimum rate of 10 Hz.
+110.2.2,The ASD shall broadcast the BSM of host vehicles per SAE standards J2945/1 and J2735.
+110.2.3,All NYC CVPD ASDs shall utilize the same GPS time source and common accuracy configuration as the NYC CVPD Infrastructure.
+202.4.2,"The Vehicle Performance Monitoring application shall collect/log vehicle operational data (e.g. hard break, steering turns, accelerations based on accelerometers)."
+202.4.3,The fleet manager shall be able to solicit and collect feedback from the anonymous vehicle operators on the operation of the system.
+202.8.1,"The ASD shall monitor the delivery of the audio alert and any audio instructions to the driver. (Clarification: the monitoring system [internal to the ASD] shall confirm that the actual audio information [sound] was produced in the vehicle and that the audio information matches what the alert was intended to deliver. The purpose of this requirement is detect faulty speaker wiring and damaged speakers that prevent the alert from being delivered to the driver. It is not intended to be an accurate voice to text conversion system, but sufficient to determine that an alert message was delivered.) By way of example, a microphone located at or near the speaker can verify that the specific audio word(s) or tone was presented to the driver; contrarily, simply measuring the voltage output sent to the speaker is not sufficient since the speaker could be damaged or sabotaged."
+202.9.1,The ASD shall include an accelerometer for each of the three axes.
+203.26.1,"The ASD shall be able to process (and authenticate and/or encrypt) the DSRC messages at a minimum rate of 10 Hz. This includes all messages on all channels: BSM, TIM, MAP, SPaT, etc. in addition to IP communications traffic for management applications."
+204.5.1,The Host Vehicle ASD shall begin aural alerts within 250 milliseconds of being triggered by the application.
+401.1.2,The ASD shall have sufficient computing power to authenticate messages on the Safety Applications defined in Table C-1 in time for the individual Safety Applications to meet their individual performance requirements.
+401.12.1,"The RSU shall interface with signal controllers, NYCWiN, and DSRC messages from vehicles and pedestrians. (Note: this will be expanded into multiple requirements for each interface.)"
+510.2.1,"The NYC CVPD performance monitoring subsystem shall normalize, obfuscate, aggregate, and analyze the performance measurement data specified in the Task 5 Performance Measurement Plan."
+510.5.2,The NYC CVPD performance monitoring subsystem shall utilize the post-processed data and transmit it to the RDE.
+510.6.1,The NYC CVPD performance monitoring subsystem shall collect and post-process the volume counts from temporary automatic traffic recording (ATR) machines.
+510.7.1,The NYC CVPD performance monitoring subsystem shall compare and post-process the travel time from MiM RFID tag readers.
+510.7.3,The NYC CVPD performance monitoring subsystem shall compare and post-process the travel time from MTA bus GPS datasets.
+510.8.1,"The NYC CVPD performance monitoring subsystem shall generate system performance reports on the number of active, inactive, and offline ASDs and RSUs in the field by time of day."
+510.8.2,The NYC CVPD performance monitoring subsystem shall generate system performance reports on the number of CV applications in operation and warnings produced by time of day.
+510.8.3,The NYC CVPD performance monitoring subsystem shall generate system performance reports on the network-wide system safety and mobility measurements. (Note: the reports shall include the crash frequencies and average speeds by peak period.)
+510.9.1,The NYC CVPD performance monitoring subsystem shall provide obfuscated datasets without PII to the USDOT Independent Evaluator for additional evaluation.
+510.10.2,The ASD shall have the capability of operating in active mode and recording normal driver behaviors and reactions while notifying the user of the perceived warnings.
+501.2.1,The ASD shall include a general purpose event recording application.
+501.2.1.1,The ASD shall include a rotating 5 minute log of the raw data listed in Table G-4.
+501.2.1.2,"Once the log has accumulated 5 minutes of data, it shall replace the oldest data with new data such that it always keeps the most recent 5 minutes of data to a 100 ms accuracy."
+501.2.1.3,Each log entry shall include a UTC time stamp accurate to 10 milliseconds.
+501.2.1.4,Each log entry shall include the BSM data for the host vehicle regardless of whether the data has changed.
+501.2.1.5,"Each log entry shall include the peak accelerometer values since last entry. Clarification: accelerometer entries are added to the log whenever the value changes or at 1 second intervals whichever is shorter but not more rapidly than 10 times per second. Thus, the accelerometer entries show the times at which the value changed with a time stamp but no values are lost to the resolution of 1 second."
+501.2.1.6,Each log entry shall include the BSM data for all vehicles that are within a configurable distance (VDIS) from the host vehicle. (Clarification: typical values are expected to be 0-50 meters.)
+501.2.1.7,A log entry shall be made for each SPaT and MAP message received from two nearest RSUs.
+501.2.2,The ASD shall continuously monitor the location of the host vehicle as described in SAE J2945/1.
+501.3.1,The ASD shall collect log entries into an event record to describe vehicle actions surrounding a CV application event.
+501.3.2,The ASD shall log the SAE J2735 BSMs received at 100 millisecond interval before and after an event.
+501.3.3,"The ASD shall log the information 5-300 seconds (configurable by type of event, time period, and resolution) before and 20-50 after the event."
+501.3.4,The ASD shall collect less detailed CV probe data for mobility data collection. (See ASD Demonstration Procurement Specification Version 2.2 Appendix L Mobility Data Section b for clarification.)
