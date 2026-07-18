@@ -100,6 +100,10 @@ def init_db():
         cursor.execute("ALTER TABLE execution_results ADD COLUMN category TEXT")
     except Exception:
         pass
+        
+    # Migrate old categories
+    cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
+    cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category = 'sys2'")
     
     conn.commit()
     conn.close()

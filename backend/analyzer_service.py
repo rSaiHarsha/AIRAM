@@ -426,7 +426,7 @@ async def run_requirements_analysis_job(
                 rationale=item.get("rationale", item.get("Rationale", "")),
                 covers=item.get("covers", item.get("Mapped_SWE1_ID", item.get("mapped_swe1_id", "")))
             ))
-            swe1_reqs[-1].category = "sys1"
+            swe1_reqs[-1].category = "swe1"
             
         swe2_reqs = []
         for idx, item in enumerate(swe2_reqs_raw):
@@ -438,7 +438,7 @@ async def run_requirements_analysis_job(
                 rationale=item.get("rationale", item.get("Rationale", "")),
                 covers=item.get("covers", item.get("Covers", item.get("Mapped_SWE1_ID", item.get("mapped_swe1_id", ""))))
             ))
-            swe2_reqs[-1].category = "sys2"
+            swe2_reqs[-1].category = "swe2"
         
         print(f"[TRACE] Built {len(swe1_reqs)} SWE1 Requirement objects, {len(swe2_reqs)} SWE2 Requirement objects", flush=True)
         if swe2_reqs:

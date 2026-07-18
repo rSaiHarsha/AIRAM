@@ -94,6 +94,12 @@ def init_pg_db():
             cursor.execute("ALTER TABLE execution_results ADD COLUMN IF NOT EXISTS category TEXT")
         except Exception:
             pass
+            
+        try:
+            cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
+            cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category = 'sys2'")
+        except Exception:
+            pass
         
         conn.commit()
         cursor.close()

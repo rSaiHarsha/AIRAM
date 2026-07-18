@@ -199,8 +199,8 @@ import { ApiService } from '../../services/api.service';
         
         <div style="padding: 0 24px;">
           <div class="tabs-nav">
-            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe1')">SWE 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe2')">SWE 2 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
           </div>
         </div>
@@ -716,7 +716,7 @@ JSON Schema:
   isTraceabilityRun = false;
   
   // Tab state for output table
-  activeTab: 'sys1' | 'sys2' | 'traceability' = 'sys1';
+  activeTab: 'swe1' | 'swe2' | 'traceability' = 'swe1';
   
   private timerSubscription: any;
 
@@ -964,7 +964,7 @@ JSON Schema:
       this.activeTab = 'traceability';
     } else {
       this.isTraceabilityRun = false;
-      this.activeTab = 'sys1';
+      this.activeTab = 'swe1';
     }
     
     this.isRunning = true;
@@ -1109,10 +1109,10 @@ JSON Schema:
         // using the quality-analysis table structure.
         //
         // Now we fall back to inspecting the actual row shape: traceability
-        // rows always carry a `swe1_id` key, quality rows never do.
-        const looksLikeTraceability = res.length > 0 && Object.prototype.hasOwnProperty.call(res[0], 'swe1_id');
+        // rows always carry category='traceability'
+        const looksLikeTraceability = res.length > 0 && res.some((r: any) => r.category === 'traceability');
         this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' : looksLikeTraceability;
-        this.activeTab = this.isTraceabilityRun ? 'traceability' : 'sys1';
+        this.activeTab = this.isTraceabilityRun ? 'traceability' : 'swe1';
 
         this.results = res.map((r: any) => {
           if (this.isTraceabilityRun && !r.parsed_swe2_list) {
@@ -1189,11 +1189,11 @@ JSON Schema:
     if (this.isTraceabilityRun) {
       return this.results.filter(r => r.category === 'traceability' || r.category == null);
     }
-    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'sys1' && r.category == null));
+    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'swe1' && r.category == null));
   }
 
   hasCategory(category: string): boolean {
-    if (category === 'sys1' && !this.isTraceabilityRun) {
+    if (category === 'swe1' && !this.isTraceabilityRun) {
       return this.results.some(r => r.category === category || r.category == null);
     }
     return this.results.some(r => r.category === category);
