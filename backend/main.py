@@ -30,21 +30,15 @@ from backend.database import (
     update_execution_status,
     get_chunking_metrics,
     delete_execution_run,
-    trigger_render_sync,
     get_execution_run
 )
 from pydantic import BaseModel
-from backend.database_render import pull_from_render_to_sqlite
 from backend.rag_service import train_document_stream, search_guideline_chunks
 from backend.analyzer_service import run_requirements_analysis_job, ACTIVE_JOBS
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    try:
-        pull_from_render_to_sqlite()
-    except Exception as e:
-        print(f"[main] Failed to restore database from Render: {e}", flush=True)
     yield
 
 app = FastAPI(title="AIRAM Backend", lifespan=lifespan)
@@ -78,7 +72,6 @@ async def upload_guidelines(
         parsed_json = json.loads(content.decode("utf-8-sig"))
         guideline_id = str(uuid.uuid4())
         save_guidelines(guideline_id, name, parsed_json)
-        trigger_render_sync()
         return {"status": "success", "id": guideline_id, "name": name}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid file structure: {str(e)}")
@@ -106,7 +99,6 @@ async def edit_guideline(guideline_id: str, payload: GuidelineUpdate):
 async def remove_guideline(guideline_id: str):
     """Deletes a strict guideline document."""
     delete_guideline(guideline_id)
-    trigger_render_sync()
     return {"status": "success", "id": guideline_id}
 
 @app.post("/api/rag/train")
@@ -139,7 +131,6 @@ async def train_rag(
             yield f"data: {json.dumps(state)}\n\n"
             await asyncio.sleep(0.01) # Yield thread
         # Sync to Render after chunking finishes
-        trigger_render_sync()
             
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
@@ -225,7 +216,6 @@ async def pause_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "paused"
         update_execution_status(run_id, "paused")
-        trigger_render_sync()
         return {"status": "paused", "run_id": run_id}
     raise HTTPException(status_code=404, detail="Execution run not found or inactive")
 
@@ -234,7 +224,6 @@ async def resume_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "running"
         update_execution_status(run_id, "running")
-        trigger_render_sync()
         return {"status": "running", "run_id": run_id}
     raise HTTPException(status_code=404, detail="Execution run not found or inactive")
 
@@ -243,7 +232,6 @@ async def stop_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "stopped"
         update_execution_status(run_id, "stopped")
-        trigger_render_sync()
         return {"status": "stopped", "run_id": run_id}
     raise HTTPException(status_code=404, detail="Execution run not found or inactive")
 
@@ -280,7 +268,6 @@ async def minimize_run(run_id: str, minimized: bool = Form(...)):
 async def delete_run(run_id: str):
     """Deletes an execution run history and its results from the database."""
     delete_execution_run(run_id)
-    trigger_render_sync()
     return {"status": "success", "run_id": run_id}
 
 if __name__ == "__main__":

@@ -23,7 +23,6 @@ from backend.database import (
     update_execution_progress,
     get_execution_run,
     get_execution_status,
-    trigger_render_sync
 )
 from backend.rag_service import rag_engine
 from Analysis.traceability_analyser import analyze_traceability_from_swe1_with_llm
@@ -494,7 +493,6 @@ async def run_requirements_analysis_job(
                 if status_db == "stopped":
                     update_execution_status(run_id, "stopped")
                     qa_mod.CURRENT_RULES = None
-                    trigger_render_sync()
                     print(f"[TRACE] Job {run_id} stopped by user at row {idx+1}", flush=True)
                     return
                 if status_db == "paused":
@@ -612,7 +610,6 @@ async def run_requirements_analysis_job(
             ACTIVE_JOBS[run_id]["current_row"] = total_rows
         # Reset rules state
         qa_mod.CURRENT_RULES = None
-        trigger_render_sync()
         print(f"[TRACE] Job {run_id} COMPLETED successfully.", flush=True)
     except Exception as e:
         import traceback
