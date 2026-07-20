@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AIRAM - Engineering Copilot</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#141d23",
+                        "background": "#faf8ff",
+                        "outline": "#727787",
+                        "primary-container": "#0d6efd",
+                        "inverse-primary": "#b1c5ff",
+                        "inverse-surface": "#2d3039",
+                        "surface-variant": "#e1e2ee",
+                        "tertiary-fixed": "#ffdbce",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#424655",
+                        "inverse-on-surface": "#eff0fc",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ffffff",
+                        "secondary-fixed-dim": "#bfc8d0",
+                        "surface-container-highest": "#e1e2ee",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#370e00",
+                        "surface-tint": "#0057ce",
+                        "outline-variant": "#c2c6d8",
+                        "surface-container": "#ecedf9",
+                        "secondary": "#575f67",
+                        "secondary-container": "#d8e1ea",
+                        "secondary-fixed": "#dbe4ed",
+                        "surface-dim": "#d8d9e5",
+                        "on-secondary-fixed-variant": "#3f484f",
+                        "on-secondary-container": "#5b646b",
+                        "on-primary-fixed": "#001946",
+                        "on-surface": "#191b24",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "surface-container-high": "#e6e7f3",
+                        "primary-fixed": "#dae2ff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#faf8ff",
+                        "on-secondary": "#ffffff",
+                        "primary": "#0057cd",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "surface-container-low": "#f2f3ff",
+                        "surface": "#faf8ff",
+                        "primary-fixed-dim": "#b1c5ff",
+                        "on-background": "#191b24",
+                        "on-tertiary-container": "#ffffff",
+                        "tertiary": "#a63b00",
+                        "on-primary-fixed-variant": "#00419e",
+                        "tertiary-container": "#cf4b00",
+                        "on-tertiary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "container-padding": "24px",
+                        "unit": "4px",
+                        "stack-sm": "8px",
+                        "gutter": "16px",
+                        "stack-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "technical-id": ["JetBrains Mono"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "metric-lg": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "technical-id": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "metric-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #c2c6d8;
+            border-radius: 20px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen overflow-hidden flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm fixed top-0 w-full z-50 flex justify-between items-center px-container-padding h-16">
+<div class="flex items-center gap-stack-lg">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed tracking-tight">Argus Core</span>
+<!-- Desktop Navigation -->
+<nav class="hidden md:flex gap-stack-md ml-stack-lg">
+<a class="text-on-surface-variant dark:text-on-secondary-container hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-sm text-label-sm py-2" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-on-secondary-container hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-sm text-label-sm py-2" href="#">Analysis</a>
+<a class="text-on-surface-variant dark:text-on-secondary-container hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-sm text-label-sm py-2" href="#">RAG</a>
+<a class="text-on-surface-variant dark:text-on-secondary-container hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-sm text-label-sm py-2" href="#">AI Orchestrator</a>
+<a class="text-on-surface-variant dark:text-on-secondary-container hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-sm text-label-sm py-2" href="#">Impact</a>
+</nav>
+</div>
+<div class="flex items-center gap-stack-md">
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container transition-all duration-200 active:scale-95 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container transition-all duration-200 active:scale-95 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container transition-all duration-200 active:scale-95 text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-sm ml-2 overflow-hidden border border-outline-variant">
+<img alt="Engineer Profile" class="w-full h-full object-cover" data-alt="A close-up, professional headshot of a female software engineer with glasses, looking focused in a brightly lit modern office setting with a light-mode architectural aesthetic, subtle cool blue and white tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWfBc8GE_WVjEBsYQ0DlJ3AYoS0gP0XCdjXLofQr9Yxoq371nFux4UGxOjMkGbZhd9SukfuqN5o7Jt8BZcE7Gpl5igrwxmGqHBejlVjnatbdgx6M5LLLLWJRc4onBJLixwdp32qbXZSnAePdiX-3qN6S5wK04zmf0rrvQDQk1G2ppbG7P6nyQMW8DKU0YLU8efkI5VA25Imx5fYzQPpCR3Wk-kh_099rtpwVId16cT4njbv-toLZ1GQ9Y6gSKBz_yEPp9SHAixfQ8"/>
+</div>
+</div>
+</header>
+<!-- Main Workspace Layout -->
+<div class="flex flex-1 pt-16 h-full w-full">
+<!-- Center Chat Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-surface-bright relative">
+<!-- Chat History -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-container-padding pb-32">
+<div class="max-w-4xl mx-auto flex flex-col gap-stack-lg">
+<!-- Date Divider -->
+<div class="flex items-center justify-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">Today</span>
+</div>
+<!-- User Message 1 -->
+<div class="flex justify-end">
+<div class="bg-primary-container text-on-primary-container p-stack-md rounded-lg rounded-tr-none max-w-[80%] shadow-sm">
+<p class="font-body-md text-body-md">Which SWE.2 requirements cover the lane-departure trigger logic?</p>
+</div>
+</div>
+<!-- AI Response 1 -->
+<div class="flex justify-start">
+<div class="flex gap-stack-sm max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0 mt-1">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="robot_2">robot_2</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-stack-md rounded-lg rounded-tl-none shadow-sm space-y-stack-md w-full">
+<p class="font-body-md text-body-md text-on-surface">Based on the current baseline (v1.0.4), the lane-departure trigger logic is primarily covered by the following SWE.2 architectural requirements:</p>
+<!-- Requirement Rich Card -->
+<div class="border border-outline-variant rounded-lg p-stack-md bg-surface hover:shadow-md transition-shadow duration-200 group cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+<div class="flex justify-between items-start mb-stack-sm ml-2">
+<div class="flex items-center gap-2">
+<span class="font-technical-id text-technical-id text-on-surface bg-surface-container-high px-2 py-1 rounded">REQ-LDW-042</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">SWE.2</span>
+</div>
+<div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-on-surface">Active</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface ml-2 mb-2">The system shall trigger a lane departure warning when the ego vehicle crosses a detected lane boundary with a lateral velocity exceeding 0.2 m/s without an active turn signal.</p>
+<div class="flex justify-between items-center ml-2 pt-2 border-t border-surface-variant">
+<div class="flex gap-4">
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="link">link</span> Traces: 3 Downstream
+                                            </div>
+<div class="flex items-center gap-1 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span> Status: Verified
+                                            </div>
+</div>
+<span class="font-technical-id text-[11px] text-primary bg-primary-fixed px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">Similarity: 94%</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface">Additionally, consider reviewing <span class="font-technical-id text-technical-id text-primary cursor-pointer hover:underline">REQ-LDW-045</span> (Haptic Feedback Trigger) which is closely coupled to this logic.</p>
+</div>
+</div>
+</div>
+<!-- User Message 2 -->
+<div class="flex justify-end mt-stack-md">
+<div class="bg-primary-container text-on-primary-container p-stack-md rounded-lg rounded-tr-none max-w-[80%] shadow-sm">
+<p class="font-body-md text-body-md">Show me all high-risk impact nodes from the last baseline change.</p>
+</div>
+</div>
+<!-- AI Response 2 -->
+<div class="flex justify-start mb-stack-lg">
+<div class="flex gap-stack-sm max-w-[90%] w-full">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center flex-shrink-0 mt-1">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="robot_2">robot_2</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant p-stack-md rounded-lg rounded-tl-none shadow-sm space-y-stack-md w-full">
+<p class="font-body-md text-body-md text-on-surface">Analyzing impact from transition <strong>v1.0.3 → v1.0.4</strong>. Found 3 high-risk nodes affecting functional safety (ASIL C/D).</p>
+<!-- Impact Table/Grid -->
+<div class="border border-outline-variant rounded-lg overflow-hidden">
+<div class="grid grid-cols-12 bg-surface-container-low border-b border-outline-variant p-2 font-label-sm text-label-sm text-on-surface-variant">
+<div class="col-span-3">Node ID</div>
+<div class="col-span-6">Change Description</div>
+<div class="col-span-3 text-right">Risk Score</div>
+</div>
+<div class="grid grid-cols-12 p-2 border-b border-outline-variant hover:bg-surface-container-lowest transition-colors items-center">
+<div class="col-span-3 font-technical-id text-technical-id text-primary cursor-pointer">SYS-BRK-112</div>
+<div class="col-span-6 font-body-md text-body-md text-on-surface truncate">Updated latency tolerance for AEB activation signal from 50ms to 40ms.</div>
+<div class="col-span-3 flex justify-end">
+<span class="bg-error-container text-on-error-container font-label-sm text-label-sm px-2 py-1 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="warning">warning</span> Critical
+                                            </span>
+</div>
+</div>
+<div class="grid grid-cols-12 p-2 bg-surface hover:bg-surface-container-lowest transition-colors items-center">
+<div class="col-span-3 font-technical-id text-technical-id text-primary cursor-pointer">SW-CTL-088</div>
+<div class="col-span-6 font-body-md text-body-md text-on-surface truncate">Modified redundant torque request validation logic.</div>
+<div class="col-span-3 flex justify-end">
+<span class="bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm px-2 py-1 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="error">error</span> High
+                                            </span>
+</div>
+</div>
+</div>
+<div class="flex gap-2 mt-2">
+<button class="border border-outline-variant text-on-surface hover:bg-surface-container font-label-sm text-label-sm px-4 py-2 rounded transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="account_tree">account_tree</span> Open in Impact Graph
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Loading Indicator (Simulated active state) -->
+<div class="flex justify-start opacity-0 animate-[fadeIn_0.5s_ease-in-out_forwards] delay-1000 hidden">
+<div class="flex gap-stack-sm">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[20px] animate-spin" data-icon="progress_activity">progress_activity</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Input Area (Glassmorphism) -->
+<div class="absolute bottom-0 w-full glass-card border-t border-outline-variant p-container-padding pb-6 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+<div class="max-w-4xl mx-auto flex flex-col gap-stack-sm">
+<!-- Quick Action Chips -->
+<div class="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
+<button class="whitespace-nowrap font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low hover:bg-surface-container border border-outline-variant px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="search">search</span> Find Orphans
+                        </button>
+<button class="whitespace-nowrap font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low hover:bg-surface-container border border-outline-variant px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="timeline">timeline</span> Traceability Gap Analysis
+                        </button>
+<button class="whitespace-nowrap font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low hover:bg-surface-container border border-outline-variant px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="summarize">summarize</span> Summarize SWE.1
+                        </button>
+</div>
+<!-- Input Box -->
+<div class="relative bg-surface-container-lowest rounded-lg border border-outline-variant focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-fixed transition-all duration-200 shadow-sm flex items-end">
+<textarea class="w-full bg-transparent border-none focus:ring-0 resize-none p-4 font-body-md text-body-md text-on-surface placeholder-on-surface-variant custom-scrollbar" placeholder="Ask Copilot about requirements, traceability, or impact analysis..." rows="2"></textarea>
+<div class="p-2 flex gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="attach_file">attach_file</span>
+</button>
+<button class="p-2 bg-primary text-on-primary rounded-lg hover:bg-surface-tint transition-colors shadow-sm active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Right Sidebar: Context & Knowledge (SideNavBar Shell structure adaptation) -->
+<aside class="hidden xl:flex flex-col w-80 bg-surface-container-lowest border-l border-outline-variant shadow-sm h-full z-40">
+<div class="p-container-padding border-b border-outline-variant">
+<h2 class="font-headline-md text-[18px] font-semibold text-on-surface mb-1">Context &amp; Knowledge</h2>
+<p class="font-body-md text-[13px] text-on-surface-variant">Manage active data sources</p>
+</div>
+<div class="flex-1 overflow-y-auto p-stack-md custom-scrollbar gap-stack-lg flex flex-col">
+<!-- Active Baseline Module -->
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-md shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Active Baseline</h3>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="tune">tune</span>
+</div>
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary" data-icon="commit">commit</span>
+<span class="font-technical-id text-technical-id font-bold text-on-surface">v1.0.4</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-3">ASPICE Level 2 Readiness Review Candidate</p>
+<div class="w-full bg-surface-container-high rounded-full h-1.5 mb-1">
+<div class="bg-primary h-1.5 rounded-full" style="width: 100%"></div>
+</div>
+<div class="flex justify-between font-label-sm text-[11px] text-on-surface-variant">
+<span>Indexed</span>
+<span>42,104 Nodes</span>
+</div>
+</div>
+<!-- Loaded requirement sets -->
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-stack-sm pl-2">Loaded Collections</h3>
+<div class="space-y-2">
+<!-- Nav item style -->
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container-low cursor-pointer border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="folder_managed">folder_managed</span>
+<span class="font-body-md text-body-md text-on-surface">System Requirements (SYS)</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-green-500"></span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant cursor-pointer transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="integration_instructions">integration_instructions</span>
+<span class="font-body-md text-body-md text-primary font-medium">Software Requirements (SWE)</span>
+</div>
+<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container-low cursor-pointer border border-transparent hover:border-outline-variant transition-all opacity-60">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="hardware">hardware</span>
+<span class="font-body-md text-body-md text-on-surface">Hardware Requirements (HW)</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant" data-icon="cloud_off">cloud_off</span>
+</div>
+</div>
+</div>
+<!-- RAG Status -->
+<div class="mt-auto pt-stack-md border-t border-outline-variant">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="memory">memory</span>
+<span class="font-label-sm text-label-sm text-on-surface">RAG Engine Active</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant">Using embedding model: text-embedding-ada-002</p>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

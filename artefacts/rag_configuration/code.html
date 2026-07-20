@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AIRAM | RAG Configuration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#faf8ff",
+                        "secondary": "#575f67",
+                        "surface-bright": "#faf8ff",
+                        "on-surface": "#191b24",
+                        "on-secondary-fixed": "#141d23",
+                        "inverse-primary": "#b1c5ff",
+                        "surface-tint": "#0057ce",
+                        "outline": "#727787",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#cf4b00",
+                        "surface-dim": "#d8d9e5",
+                        "tertiary-fixed": "#ffdbce",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e1e2ee",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#ffffff",
+                        "surface-container-high": "#e6e7f3",
+                        "inverse-on-surface": "#eff0fc",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "tertiary": "#a63b00",
+                        "on-background": "#191b24",
+                        "secondary-fixed": "#dbe4ed",
+                        "primary-fixed-dim": "#b1c5ff",
+                        "surface-variant": "#e1e2ee",
+                        "primary-fixed": "#dae2ff",
+                        "on-primary-fixed-variant": "#00419e",
+                        "on-primary-fixed": "#001946",
+                        "on-surface-variant": "#424655",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#d8e1ea",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#bfc8d0",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#3f484f",
+                        "inverse-surface": "#2d3039",
+                        "on-error": "#ffffff",
+                        "primary-container": "#0d6efd",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#370e00",
+                        "primary": "#0057cd",
+                        "on-secondary-container": "#5b646b",
+                        "surface-container-low": "#f2f3ff",
+                        "outline-variant": "#c2c6d8",
+                        "surface-container": "#ecedf9",
+                        "on-tertiary-container": "#ffffff",
+                        "background": "#faf8ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "gutter": "16px",
+                        "container-padding": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "technical-id": ["JetBrains Mono"],
+                        "metric-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "technical-id": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "metric-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+        
+        @keyframes stream-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .log-entry { animation: stream-in 0.3s ease-out forwards; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid #ced4da;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface selection:bg-primary/20">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 w-full bg-surface border-b border-outline-variant shadow-sm">
+<div class="flex items-center justify-between px-container-padding py-4 max-w-[1200px] mx-auto">
+<div class="flex items-center gap-stack-lg">
+<span class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">AIRAM</span>
+<nav class="hidden md:flex items-center gap-gutter">
+<a class="text-secondary hover:text-primary transition-colors pb-1" href="#">Dashboard</a>
+<a class="text-secondary hover:text-primary transition-colors pb-1" href="#">Requirement Analysis</a>
+<a class="text-primary border-b-2 border-primary font-bold pb-1" href="#">RAG Configuration</a>
+</nav>
+</div>
+<div class="flex items-center gap-stack-md">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full">
+<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="font-label-sm text-label-sm text-secondary">Connected</span>
+</div>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface">settings</span>
+</button>
+<button class="p-2 hover:bg-surface-container-low rounded-full transition-colors relative">
+<span class="material-symbols-outlined text-on-surface">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional user profile portrait of a technician in a modern, clean engineering environment. Soft cinematic lighting with blue and white tones, focusing on a neutral expression. High resolution digital photography with shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVV1SxtacOR0eHvjVE5-ADL_jTnrL_x-dF-4Bes7_8tnvbVxJIt-M3r38UJOC_0cHwdwPbTLax6fweZJGHM9HO4FS38VlI3rllQg89Rlwuc8EW2gMGnVNrK4dJ5cCUBnxd8aHnq3lOIQ50T0AYd7nDirV0iAmnp39MXOoS_RL86CMMe-1tImtlnCcsTS6GumsbGITKwQEMLS1AY_dRoUVhF8o14MJMvNuVyps1y9pOh6S4W6nYs3opKzk-hZJGaNg41CBJzdbymKA"/>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto px-container-padding py-stack-lg min-h-[calc(100vh-140px)]">
+<div class="flex flex-col gap-stack-md mb-stack-lg">
+<h1 class="font-headline-md text-headline-md">Knowledge Engine Configuration</h1>
+<p class="text-secondary font-body-md max-w-2xl">Initialize and evaluate Retrieval-Augmented Generation (RAG) datasets for technical automotive compliance and requirement analysis.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left Column: Document Ingestion -->
+<div class="lg:col-span-7 flex flex-col gap-gutter">
+<section class="bg-white rounded-lg border border-outline-variant shadow-sm p-stack-lg">
+<div class="flex items-center justify-between mb-stack-md">
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest">Document Ingestion</h2>
+<span class="font-technical-id text-technical-id text-primary bg-primary/5 px-2 py-1 rounded">ING-204-DELTA</span>
+</div>
+<div class="border-2 border-dashed border-outline-variant hover:border-primary rounded-xl p-12 transition-all group flex flex-col items-center justify-center cursor-pointer bg-surface-container-lowest">
+<div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-stack-md group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-4xl">upload_file</span>
+</div>
+<p class="font-headline-md text-lg text-on-surface mb-2">Drop Technical Specifications</p>
+<p class="text-secondary text-center mb-stack-lg">Support for .PDF, .JSON, and .MD files up to 256MB</p>
+<button class="bg-primary text-on-primary px-6 py-2 rounded font-label-sm transition-all hover:shadow-lg active:scale-95">Select Files</button>
+</div>
+<div class="mt-stack-lg flex items-center justify-between p-stack-md bg-surface-container-low rounded-lg border border-outline-variant/30">
+<div class="flex items-center gap-stack-md">
+<span class="material-symbols-outlined text-tertiary">description</span>
+<div>
+<p class="font-label-sm text-on-surface">ISO_26262_Safety_Standard.pdf</p>
+<p class="text-[10px] text-secondary">14.2 MB • Processing...</p>
+</div>
+</div>
+<button class="text-secondary hover:text-error transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+</section>
+<!-- Progressive Training Log -->
+<section class="bg-inverse-surface rounded-lg border border-outline p-stack-lg flex flex-col gap-stack-md overflow-hidden min-h-[300px]">
+<div class="flex items-center justify-between">
+<h2 class="font-label-sm text-label-sm text-surface-dim uppercase tracking-widest">Training Progress Log</h2>
+<div class="flex items-center gap-2">
+<span class="text-xs font-technical-id text-inverse-primary animate-pulse">SYSTEM ACTIVE</span>
+</div>
+</div>
+<div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary transition-all duration-500" id="progress-bar" style="width: 64%"></div>
+</div>
+<div class="flex-1 bg-black/30 rounded border border-white/5 p-stack-md font-technical-id text-technical-id text-surface-dim custom-scrollbar overflow-y-auto max-h-[200px]">
+<div class="log-entry flex gap-4 py-1">
+<span class="text-secondary">[14:20:01]</span>
+<span class="text-inverse-primary">INITIALIZING</span>
+<span>Vector database session established: "AV_CORE_INDEX_01"</span>
+</div>
+<div class="log-entry flex gap-4 py-1">
+<span class="text-secondary">[14:20:05]</span>
+<span class="text-tertiary-fixed-dim">LOAD</span>
+<span>Parsing ISO_26262_Safety_Standard.pdf... 1,240 pages detected.</span>
+</div>
+<div class="log-entry flex gap-4 py-1">
+<span class="text-secondary">[14:20:12]</span>
+<span class="text-primary-fixed-dim">CHUNK</span>
+<span>Semantic splitting active. Overlap: 10%. Method: RecursiveCharacter.</span>
+</div>
+<div class="log-entry flex gap-4 py-1">
+<span class="text-secondary">[14:20:30]</span>
+<span class="text-green-400">EMBED</span>
+<span>Batch 14/150 processed. (Current: 8.4k tokens).</span>
+</div>
+<div class="log-entry flex gap-4 py-1 opacity-60">
+<span class="text-secondary">[14:21:05]</span>
+<span class="text-yellow-400">INDEX</span>
+<span>Updating HNSW graph for real-time retrieval... 64% complete.</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Metrics & Evaluation -->
+<div class="lg:col-span-5 flex flex-col gap-gutter">
+<!-- Chunking Metrics -->
+<section class="bg-white rounded-lg border border-outline-variant shadow-sm p-stack-lg">
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest mb-stack-lg">Chunking Metrics</h2>
+<div class="grid grid-cols-2 gap-stack-lg">
+<div class="flex flex-col gap-1">
+<p class="text-secondary text-xs uppercase">Total Chunks</p>
+<p class="font-metric-lg text-metric-lg text-on-surface">3,842</p>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-secondary text-xs uppercase">Avg Chunk Size</p>
+<div class="flex items-baseline gap-1">
+<span class="font-metric-lg text-metric-lg text-on-surface">512</span>
+<span class="text-secondary font-label-sm">tokens</span>
+</div>
+</div>
+<div class="col-span-2 flex flex-col gap-1 p-stack-md bg-surface-container rounded-lg">
+<p class="text-secondary text-xs uppercase">Total Tokens Processed</p>
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">1,967,104</span>
+<span class="material-symbols-outlined text-primary">analytics</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Manual Retrieval Evaluation -->
+<section class="bg-white rounded-lg border border-outline-variant shadow-sm p-stack-lg flex-1 flex flex-col">
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest mb-stack-md">Manual Retrieval Evaluation</h2>
+<div class="flex flex-col gap-stack-md">
+<div class="relative">
+<label class="absolute -top-2 left-3 px-1 bg-white text-[10px] text-secondary font-bold">COLLECTION SELECTOR</label>
+<select class="w-full bg-surface-container border border-outline-variant rounded px-3 py-2 text-on-surface focus:ring-2 focus:ring-primary/20 transition-all appearance-none outline-none">
+<option>Automotive Safety Standards (HNSW)</option>
+<option>Legal &amp; Compliance 2024</option>
+<option>Internal Technical Specs v4.2</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 pointer-events-none text-secondary">expand_more</span>
+</div>
+<div class="relative">
+<input class="w-full pl-10 pr-4 py-2 bg-white border border-outline-variant rounded focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all" placeholder="Enter query to test retrieval logic..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-secondary">search</span>
+</div>
+<div class="flex flex-col gap-stack-md mt-2 custom-scrollbar overflow-y-auto max-h-[400px] pr-2">
+<!-- Result Card -->
+<div class="p-stack-md border border-outline-variant rounded-lg hover:border-primary transition-colors cursor-default group">
+<div class="flex items-center justify-between mb-2">
+<span class="font-technical-id text-[11px] text-primary bg-primary/5 px-2 py-0.5 rounded">ISO_26262_Sec_4.pdf</span>
+<span class="font-bold text-on-surface">0.942 Similarity</span>
+</div>
+<p class="text-body-md text-on-surface-variant italic leading-relaxed">
+                                    "Safety goals shall be determined for each hazardous event identified in the hazard analysis and risk assessment..."
+                                </p>
+</div>
+<!-- Result Card -->
+<div class="p-stack-md border border-outline-variant rounded-lg hover:border-primary transition-colors cursor-default group">
+<div class="flex items-center justify-between mb-2">
+<span class="font-technical-id text-[11px] text-primary bg-primary/5 px-2 py-0.5 rounded">ASIL_Guidance.json</span>
+<span class="font-bold text-on-surface">0.887 Similarity</span>
+</div>
+<p class="text-body-md text-on-surface-variant italic leading-relaxed">
+                                    "Determination of the Automotive Safety Integrity Level (ASIL) based on severity, probability of exposure, and controllability..."
+                                </p>
+</div>
+<!-- Result Card -->
+<div class="p-stack-md border border-outline-variant rounded-lg opacity-60">
+<div class="flex items-center justify-between mb-2">
+<span class="font-technical-id text-[11px] text-secondary bg-surface-container px-2 py-0.5 rounded">Legacy_Spec_v1.pdf</span>
+<span class="font-bold text-secondary">0.712 Similarity</span>
+</div>
+<p class="text-body-md text-secondary italic leading-relaxed">
+                                    "Previous architectural requirements for low-level sensor fusion modules in autonomous parking..."
+                                </p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="mt-stack-lg border-t border-outline-variant bg-surface">
+<div class="max-w-[1200px] mx-auto px-container-padding py-stack-md flex flex-col md:flex-row justify-between items-center gap-gutter">
+<p class="font-body-md text-secondary">© 2024 AIRAM Automotive Systems. All rights reserved.</p>
+<div class="flex gap-stack-lg">
+<a class="text-secondary hover:text-on-surface hover:underline transition-all" href="#">Documentation</a>
+<a class="text-secondary hover:text-on-surface hover:underline transition-all" href="#">Support</a>
+<a class="text-secondary hover:text-on-surface hover:underline transition-all" href="#">Privacy Policy</a>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interaction for Progress Bar simulation
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+            let width = 64;
+            setInterval(() => {
+                if (width < 98) {
+                    width += Math.random() * 0.5;
+                    progressBar.style.width = width + '%';
+                }
+            }, 3000);
+        }
+
+        // Dropzone interaction
+        const dropzone = document.querySelector('.border-dashed');
+        if (dropzone) {
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-primary', 'bg-primary/5');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-primary', 'bg-primary/5');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-primary', 'bg-primary/5');
+                alert('File ingestion sequence initiated.');
+            });
+        }
+    </script>
+</body></html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Team Notifications &amp; Collaboration - AIRAM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e6e7f3",
+                        "on-primary-fixed": "#001946",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b1c5ff",
+                        "inverse-on-surface": "#eff0fc",
+                        "primary": "#0057cd",
+                        "inverse-surface": "#2d3039",
+                        "on-secondary-fixed": "#141d23",
+                        "surface-bright": "#faf8ff",
+                        "on-surface-variant": "#424655",
+                        "on-primary-fixed-variant": "#00419e",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#bfc8d0",
+                        "on-surface": "#191b24",
+                        "on-secondary-container": "#5b646b",
+                        "surface-tint": "#0057ce",
+                        "on-tertiary-container": "#ffffff",
+                        "tertiary-container": "#cf4b00",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "surface-container-low": "#f2f3ff",
+                        "surface-container-highest": "#e1e2ee",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#a63b00",
+                        "secondary-fixed": "#dbe4ed",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c2c6d8",
+                        "tertiary-fixed": "#ffdbce",
+                        "on-tertiary-fixed": "#370e00",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#3f484f",
+                        "secondary": "#575f67",
+                        "primary-container": "#0d6efd",
+                        "inverse-primary": "#b1c5ff",
+                        "outline": "#727787",
+                        "on-primary-container": "#ffffff",
+                        "secondary-container": "#d8e1ea",
+                        "background": "#faf8ff",
+                        "primary-fixed": "#dae2ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#ecedf9",
+                        "surface": "#faf8ff",
+                        "surface-variant": "#e1e2ee",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "surface-dim": "#d8d9e5",
+                        "on-background": "#191b24"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "container-padding": "24px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "stack-md": "16px",
+                        "gutter": "16px",
+                        "unit": "4px"
+                    },
+                    fontFamily: {
+                        "metric-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "technical-id": ["JetBrains Mono"]
+                    },
+                    fontSize: {
+                        "metric-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "technical-id": ["13px", { "lineHeight": "18px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .technical-id-font { font-family: 'JetBrains Mono', monospace; }
+        .level-1-card { background-color: #ffffff; border: 1px solid #c2c6d8; box-shadow: 0px 2px 4px rgba(0,0,0,0.05); }
+        .level-1-card:hover { transform: scale(1.01); box-shadow: 0px 8px 16px rgba(0,0,0,0.08); transition: all 0.2s ease; }
+        .interactive-row:hover { background-color: #f2f3ff; transition: background-color 0.2s; }
+        .status-badge-bg { background-color: rgba(13, 110, 253, 0.1); }
+        .toggle-checkbox:checked { right: 0; border-color: #0d6efd; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #0d6efd; }
+        .toggle-checkbox:checked + .toggle-label:after { transform: translateX(100%); border-color: white; }
+        
+        /* Custom Toggle Switch CSS */
+        .toggle-label {
+            width: 40px;
+            height: 20px;
+            background-color: #c2c6d8;
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle-label::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        input:checked + .toggle-label {
+            background-color: #0d6efd;
+        }
+        input:checked + .toggle-label::after {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex flex-col min-h-screen">
+<!-- TopNavBar (Copied from SCREEN_4 logic/Shared Components) -->
+<header class="sticky top-0 z-50 flex items-center justify-between px-container-padding w-full max-w-[1200px] mx-auto bg-surface border-b border-outline-variant shadow-sm py-4">
+<div class="flex items-center gap-6">
+<span class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">AIRAM</span>
+<nav class="hidden md:flex items-center gap-6 mt-1">
+<a class="text-secondary hover:text-primary transition-colors duration-200 font-body-md text-body-md pb-4 border-b-2 border-transparent" href="#">Dashboard</a>
+<a class="text-secondary hover:text-primary transition-colors duration-200 font-body-md text-body-md pb-4 border-b-2 border-transparent" href="#">Requirement Analysis</a>
+<a class="text-primary border-b-2 border-primary font-bold pb-4 transition-colors duration-200 font-body-md text-body-md" href="#">Team Notifications</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-secondary font-label-sm text-label-sm bg-surface-container-low px-2 py-1 rounded">Connected</span>
+<button class="text-secondary hover:bg-surface-container-low p-2 rounded transition-colors duration-200"><span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 0;">settings</span></button>
+<button class="text-secondary hover:bg-surface-container-low p-2 rounded transition-colors duration-200 relative">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 0;">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="object-cover w-full h-full" data-alt="A professional headshot of an engineer in a clean, modern high-tech laboratory setting. Bright, corporate lighting. The engineer looks focused and professional. Soft focus background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5Zzt-LNuyvDgXcYlc4rIuo1aboNbRdkTsrSVxyQc_NzThNt1zynr-TwC2-fEVUlMNMzxN3pcJK3YkkHOMcgfpRHjxmLa1K94l2m25MoUeDdGwyH1bXqPagDGxagKirfHWWlIWjHXjQf04oBf1CIGQlRot_aBykNIFitI1Y0vwm4DM_OXz41m08MSE-pzbLrTRvhRhzCt7EUx1g23XC2TgjLyVOawVDbu5C80E-b0rhy7LDRLC9g4p8LdIGgyCuslgVEww10ZuC0o"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-container-padding py-stack-lg flex flex-col gap-stack-lg">
+<div class="flex justify-between items-end border-b border-outline-variant pb-stack-sm">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Team Notifications &amp; Collaboration</h1>
+<p class="font-body-md text-body-md text-secondary mt-1">Manage automated alerts, stakeholder routing, and workspace integrations.</p>
+</div>
+<button class="bg-primary-container text-on-primary-container px-4 py-2 rounded font-label-sm text-label-sm hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                Save Configuration
+            </button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-stack-lg">
+<!-- Left Column: Settings & Integrations -->
+<div class="flex flex-col gap-stack-lg lg:col-span-1">
+<!-- Integration Settings -->
+<section class="level-1-card rounded-lg p-container-padding flex flex-col gap-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-outline-variant pb-2">Workspace Integrations</h2>
+<div class="flex items-center justify-between p-3 border border-outline-variant rounded bg-surface-container-lowest">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#E01E5A]">forum</span>
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface">Slack Workspace</h3>
+<p class="font-body-md text-body-md text-secondary text-[12px]">Connected: airam-eng.slack.com</p>
+</div>
+</div>
+<button class="text-error font-label-sm text-label-sm hover:underline">Disconnect</button>
+</div>
+<div class="flex items-center justify-between p-3 border border-outline-variant rounded bg-surface-container-lowest">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#6264A7]">groups</span>
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface">Microsoft Teams</h3>
+<p class="font-body-md text-body-md text-secondary text-[12px]">Not Connected</p>
+</div>
+</div>
+<button class="text-primary font-label-sm text-label-sm hover:underline">Connect</button>
+</div>
+<div class="flex items-center justify-between p-3 border border-outline-variant rounded bg-surface-container-lowest">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#0052CC]">api</span>
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface">Jira Software</h3>
+<p class="font-body-md text-body-md text-secondary text-[12px]">Connected: PRJ-AIRAM</p>
+</div>
+</div>
+<button class="text-secondary font-label-sm text-label-sm hover:underline">Configure</button>
+</div>
+</section>
+<!-- Notification Triggers -->
+<section class="level-1-card rounded-lg p-container-padding flex flex-col gap-stack-md">
+<h2 class="font-headline-md text-headline-md text-on-surface border-b border-outline-variant pb-2">Global Triggers</h2>
+<div class="flex items-center justify-between">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface">Alert Owner on Status: REVIEW</p>
+<p class="font-body-md text-[12px] text-secondary">Automatically ping the requirement owner when status changes.</p>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="hidden" id="toggle1" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-outline-variant cursor-pointer" for="toggle1"></label>
+</div>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface">Conflict Detected Alert</p>
+<p class="font-body-md text-[12px] text-secondary">Notify engineering channel on ASIL conflicts.</p>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="hidden" id="toggle2" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-outline-variant cursor-pointer" for="toggle2"></label>
+</div>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface">Weekly Traceability Digest</p>
+<p class="font-body-md text-[12px] text-secondary">Send summary report to management channels.</p>
+</div>
+<div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="hidden" id="toggle3" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-outline-variant cursor-pointer" for="toggle3"></label>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Routing & Logs -->
+<div class="flex flex-col gap-stack-lg lg:col-span-2">
+<!-- Channel Mapping -->
+<section class="level-1-card rounded-lg flex flex-col overflow-hidden">
+<div class="p-container-padding pb-stack-sm border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-surface">Category Routing</h2>
+<button class="text-primary font-label-sm text-label-sm flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-[16px]">add</span> Add Rule
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="p-3 font-label-sm text-label-sm text-secondary">Requirement Category</th>
+<th class="p-3 font-label-sm text-label-sm text-secondary">Platform</th>
+<th class="p-3 font-label-sm text-label-sm text-secondary">Target Channel</th>
+<th class="p-3 font-label-sm text-label-sm text-secondary text-right">Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant interactive-row">
+<td class="p-3 font-body-md text-body-md text-on-surface font-medium flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#E01E5A]"></span> Safety Critical (ASIL-D)
+                                    </td>
+<td class="p-3 font-body-md text-body-md text-secondary">Slack</td>
+<td class="p-3 font-technical-id text-technical-id text-on-surface bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 inline-block mt-2">#eng-safety-alerts</td>
+<td class="p-3 text-right">
+<button class="text-secondary hover:text-primary"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant interactive-row">
+<td class="p-3 font-body-md text-body-md text-on-surface font-medium flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#0052CC]"></span> Security (ISO 21434)
+                                    </td>
+<td class="p-3 font-body-md text-body-md text-secondary">Slack</td>
+<td class="p-3 font-technical-id text-technical-id text-on-surface bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 inline-block mt-2">#sec-ops</td>
+<td class="p-3 text-right">
+<button class="text-secondary hover:text-primary"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+</td>
+</tr>
+<tr class="interactive-row">
+<td class="p-3 font-body-md text-body-md text-on-surface font-medium flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> General Powertrain
+                                    </td>
+<td class="p-3 font-body-md text-body-md text-secondary">Email</td>
+<td class="p-3 font-technical-id text-technical-id text-on-surface bg-surface-container-lowest border border-outline-variant rounded px-2 py-1 inline-block mt-2">pt-leads@airam.com</td>
+<td class="p-3 text-right">
+<button class="text-secondary hover:text-primary"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Active Alerts Log -->
+<section class="level-1-card rounded-lg flex flex-col overflow-hidden">
+<div class="p-container-padding pb-stack-sm border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-surface">Recent Notification Log</h2>
+<span class="font-label-sm text-label-sm text-secondary">Last 24 Hours</span>
+</div>
+<div class="p-container-padding flex flex-col gap-stack-sm">
+<!-- Log Entry -->
+<div class="flex items-start gap-4 p-3 border border-outline-variant rounded bg-surface-container-lowest">
+<div class="mt-1">
+<span class="material-symbols-outlined text-primary">mark_email_read</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<span class="font-technical-id text-technical-id text-on-surface font-bold">REQ-BMS-042</span>
+<span class="font-body-md text-[12px] text-secondary">10:42 AM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-1">Status changed to <span class="status-badge-bg text-primary px-1 rounded text-[12px] font-bold">REVIEW</span>.</p>
+<p class="font-body-md text-[12px] text-secondary mt-1">Sent to: J. Smith (Slack DM) · <span class="text-[#0D6EFD]">Delivered</span></p>
+</div>
+</div>
+<!-- Log Entry -->
+<div class="flex items-start gap-4 p-3 border border-error-container rounded bg-[#fffafa]">
+<div class="mt-1">
+<span class="material-symbols-outlined text-error">warning</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<span class="font-technical-id text-technical-id text-on-surface font-bold">SYS-TRC-991</span>
+<span class="font-body-md text-[12px] text-secondary">09:15 AM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-1">Traceability link broken during import.</p>
+<p class="font-body-md text-[12px] text-secondary mt-1">Sent to: #eng-safety-alerts · <span class="text-error">Delivery Failed (Webhook Timeout)</span></p>
+</div>
+</div>
+<!-- Log Entry -->
+<div class="flex items-start gap-4 p-3 border border-outline-variant rounded bg-surface-container-lowest">
+<div class="mt-1">
+<span class="material-symbols-outlined text-secondary">done_all</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between">
+<span class="font-technical-id text-technical-id text-on-surface font-bold">REQ-INV-110</span>
+<span class="font-body-md text-[12px] text-secondary">Yesterday</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-1">New comment added by Systems Team.</p>
+<p class="font-body-md text-[12px] text-secondary mt-1">Sent to: A. Chen (Email) · <span class="text-secondary">Read</span></p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer (Copied from Shared Components) -->
+<footer class="mt-auto border-t border-outline-variant mt-stack-lg bg-transparent py-stack-md px-container-padding flex justify-between items-center w-full max-w-[1200px] mx-auto">
+<span class="font-body-md text-body-md text-secondary">© 2024 AIRAM Automotive Systems. All rights reserved.</span>
+<div class="flex gap-4">
+<a class="font-body-md text-body-md text-secondary hover:underline hover:text-on-surface transition-colors" href="#">Documentation</a>
+<a class="font-body-md text-body-md text-secondary hover:underline hover:text-on-surface transition-colors" href="#">Support</a>
+<a class="font-body-md text-body-md text-secondary hover:underline hover:text-on-surface transition-colors" href="#">Privacy Policy</a>
+</div>
+</footer>
+</body></html>

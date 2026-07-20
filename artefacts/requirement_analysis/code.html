@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AIRAM | Requirement Analysis Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#faf8ff",
+                        "secondary": "#575f67",
+                        "surface-bright": "#faf8ff",
+                        "on-surface": "#191b24",
+                        "on-secondary-fixed": "#141d23",
+                        "inverse-primary": "#b1c5ff",
+                        "surface-tint": "#0057ce",
+                        "outline": "#727787",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#cf4b00",
+                        "surface-dim": "#d8d9e5",
+                        "tertiary-fixed": "#ffdbce",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e1e2ee",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#ffffff",
+                        "surface-container-high": "#e6e7f3",
+                        "inverse-on-surface": "#eff0fc",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "tertiary": "#a63b00",
+                        "on-background": "#191b24",
+                        "secondary-fixed": "#dbe4ed",
+                        "primary-fixed-dim": "#b1c5ff",
+                        "surface-variant": "#e1e2ee",
+                        "primary-fixed": "#dae2ff",
+                        "on-primary-fixed-variant": "#00419e",
+                        "on-primary-fixed": "#001946",
+                        "on-surface-variant": "#424655",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#d8e1ea",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed-dim": "#bfc8d0",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#3f484f",
+                        "inverse-surface": "#2d3039",
+                        "on-error": "#ffffff",
+                        "primary-container": "#0d6efd",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#370e00",
+                        "primary": "#0057cd",
+                        "on-secondary-container": "#5b646b",
+                        "surface-container-low": "#f2f3ff",
+                        "outline-variant": "#c2c6d8",
+                        "surface-container": "#ecedf9",
+                        "on-tertiary-container": "#ffffff",
+                        "background": "#faf8ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "gutter": "16px",
+                        "container-padding": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "technical-id": ["JetBrains Mono"],
+                        "metric-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "technical-id": ["13px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "metric-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+            line-height: 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c2c6d8; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #727787; }
+        
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+        .executing-state { animation: pulse-soft 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 w-full bg-surface border-b border-outline-variant shadow-sm transition-all duration-200">
+<div class="flex items-center justify-between px-container-padding py-4 w-full max-w-[1200px] mx-auto">
+<div class="flex items-center gap-8">
+<span class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">AIRAM</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-secondary hover:text-primary transition-colors duration-200 font-label-sm text-label-sm" href="#">Dashboard</a>
+<a class="text-primary border-b-2 border-primary font-bold pb-1 font-label-sm text-label-sm" href="#">Requirement Analysis</a>
+<a class="text-secondary hover:text-primary transition-colors duration-200 font-label-sm text-label-sm" href="#">RAG Configuration</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-full border border-outline-variant">
+<span class="w-2 h-2 bg-green-500 rounded-full"></span>
+<span class="text-secondary font-label-sm text-label-sm">Connected</span>
+</div>
+<button class="p-2 text-secondary hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-secondary hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a software engineer in a clean, high-key office environment. The subject is wearing a modern charcoal suit and has a focused, technical expression. The lighting is soft and even, typical of a high-end corporate setting, with a subtle blue color palette reflecting technology and reliability." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeGuU_sA1H6-iZE3k43YRUPk8IJqnqv4BJHUJ2KIPk7LPOAZJh6un-_seA9FIvgi0yElw--cqQTkbWM3KvlrJbFKQuxgsS5fGGs9FUXWdwqu1ajasJIOkJgu_zRk0WCjZdEWdEmWJOfuzf6okm1IuqINiI6jF1s9npQD7PmWNFhz2FGUGiOxgCxgEq7yp8A2rsVtqPR9faFoGd9YXLg3MRXxro_yIIcP-2LDrcnxx7icVkdJEBoliUA4Dc0CI8WKdSy8VahJTHQKY"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-container-padding py-stack-lg space-y-stack-lg">
+<!-- Header Section -->
+<section class="flex flex-col gap-2">
+<h1 class="font-headline-md text-headline-md text-on-surface">Analysis Workspace</h1>
+<p class="text-secondary font-body-md max-w-2xl">Execute automated ASPICE-compliant quality checks and bi-directional traceability analysis using state-of-the-art LLM architectures.</p>
+</section>
+<!-- 4.1 Configuration Card -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-stack-lg bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-lg shadow-sm">
+<!-- Left: File Uploads & Model -->
+<div class="space-y-stack-md">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary">description</span>
+<h2 class="font-headline-sm text-[18px] font-semibold">Requirement Artifacts</h2>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-4 flex flex-col items-center justify-center gap-2 hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-secondary group-hover:text-primary">upload_file</span>
+<span class="font-label-sm text-label-sm text-on-surface">SWE.1 / HLR</span>
+<span class="text-[10px] text-secondary uppercase">Drag &amp; Drop or Browse</span>
+</div>
+<div class="border-2 border-dashed border-outline-variant rounded-lg p-4 flex flex-col items-center justify-center gap-2 hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-secondary group-hover:text-primary">upload_file</span>
+<span class="font-label-sm text-label-sm text-on-surface">SWE.2 / LLR</span>
+<span class="text-[10px] text-secondary uppercase">Drag &amp; Drop or Browse</span>
+</div>
+</div>
+<div class="pt-2">
+<label class="font-label-sm text-label-sm text-secondary block mb-2">Analysis Model Selector</label>
+<div class="relative">
+<select class="w-full bg-surface border border-outline-variant rounded-lg px-4 py-2 appearance-none focus:ring-2 focus:ring-primary-container focus:border-primary outline-none text-on-surface font-body-md">
+<option>Llama 3.3 Nemotron (70B-Technical)</option>
+<option>Mistral Large 2 (Complex Logic)</option>
+<option>GPT-4o (High-Density Analysis)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 pointer-events-none text-secondary">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Right: Logic & Rules -->
+<div class="space-y-stack-md border-l border-outline-variant pl-0 lg:pl-stack-lg">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary">rule</span>
+<h2 class="font-headline-sm text-[18px] font-semibold">Evaluation Logic</h2>
+</div>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Quality Analysis &amp; Correction</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary" type="checkbox"/>
+<span class="font-body-md text-on-surface group-hover:text-primary transition-colors">Traceability Verification (HLR-LLR)</span>
+</label>
+</div>
+<div class="flex flex-col gap-2 pt-2">
+<span class="font-label-sm text-label-sm text-secondary">Rules Evaluation Mode</span>
+<div class="flex gap-2 p-1 bg-surface-container-high rounded-lg w-fit">
+<button class="px-4 py-1.5 rounded-md bg-surface-container-lowest shadow-sm text-primary font-label-sm text-label-sm border border-outline-variant">RAG</button>
+<button class="px-4 py-1.5 rounded-md text-secondary hover:text-on-surface font-label-sm text-label-sm">Strict</button>
+<button class="px-4 py-1.5 rounded-md text-secondary hover:text-on-surface font-label-sm text-label-sm">Custom</button>
+</div>
+</div>
+<div class="space-y-2">
+<span class="font-label-sm text-label-sm text-secondary">Guidelines Dataset</span>
+<div class="flex items-center gap-2">
+<div class="relative flex-grow">
+<select class="w-full bg-surface border border-outline-variant rounded-lg px-4 py-2 appearance-none focus:ring-2 focus:ring-primary-container outline-none text-on-surface font-body-md">
+<option>ISO 26262 Automotive Safety</option>
+<option>Internal Quality Handbook v4.2</option>
+<option>Customer Specific Rules (BMW Group)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-2.5 pointer-events-none text-secondary">expand_more</span>
+</div>
+<button class="px-4 py-2 border border-outline-variant rounded-lg font-label-sm text-label-sm text-on-surface hover:bg-surface-container-high transition-colors">Manage</button>
+</div>
+</div>
+</div>
+</section>
+<!-- 4.2 Execution Controls -->
+<section class="flex flex-col md:flex-row items-center gap-stack-lg bg-surface border border-outline-variant rounded-xl p-6">
+<div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+<button class="flex items-center gap-3 bg-primary text-on-primary px-8 py-3 rounded-lg font-bold text-lg shadow-lg hover:bg-primary-container transition-all active:scale-95 group">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+                    Start Execution
+                </button>
+<div class="h-10 w-[1px] bg-outline-variant hidden md:block"></div>
+<div class="flex items-center gap-2">
+<button class="p-2.5 border border-outline-variant rounded-lg hover:bg-surface-container-high text-secondary transition-colors" title="Pause">
+<span class="material-symbols-outlined">pause</span>
+</button>
+<button class="p-2.5 border border-outline-variant rounded-lg hover:bg-surface-container-high text-secondary transition-colors" title="Resume">
+<span class="material-symbols-outlined">play_arrow</span>
+</button>
+<button class="p-2.5 border border-error bg-error-container/10 rounded-lg hover:bg-error hover:text-on-error text-error transition-all" title="Stop">
+<span class="material-symbols-outlined">stop</span>
+</button>
+</div>
+</div>
+<!-- Progress Section (Hidden by default, shown during run) -->
+<div class="flex-grow flex flex-col gap-2 w-full md:w-auto">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="font-technical-id text-technical-id text-secondary tracking-widest">RUN_ID: AF77-92XC</span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">Row: 42/150</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary">Analyzing Logic Nodes...</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[28%] relative">
+<div class="absolute inset-0 bg-white/20 animate-[pulse_1.5s_infinite]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4.3 Results Table -->
+<section class="flex flex-col border border-outline-variant rounded-xl bg-surface-container-lowest overflow-hidden shadow-sm">
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant overflow-x-auto custom-scrollbar">
+<button class="px-8 py-4 font-label-sm text-label-sm border-b-2 border-primary text-primary bg-surface-container-low transition-colors">SYS 1 QUALITY</button>
+<button class="px-8 py-4 font-label-sm text-label-sm text-secondary hover:text-on-surface hover:bg-surface-container-lowest transition-colors whitespace-nowrap">SYS 2 QUALITY</button>
+<button class="px-8 py-4 font-label-sm text-label-sm text-secondary hover:text-on-surface hover:bg-surface-container-lowest transition-colors whitespace-nowrap">TRACEABILITY (HLR &lt;&gt; LLR)</button>
+<div class="ml-auto flex items-center pr-4">
+<button class="flex items-center gap-2 font-label-sm text-label-sm text-secondary hover:text-primary">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                        Export Report
+                    </button>
+</div>
+</div>
+<!-- Datatable -->
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low text-secondary uppercase font-label-sm text-[11px] tracking-wider">
+<tr>
+<th class="px-4 py-3 border-r border-outline-variant w-24">ID</th>
+<th class="px-6 py-3 min-w-[250px]">Requirement Statement</th>
+<th class="px-4 py-3 text-center">Status</th>
+<th class="px-4 py-3">Violated Rule</th>
+<th class="px-6 py-3 min-w-[200px]">AI Rationale</th>
+<th class="px-6 py-3 min-w-[250px] bg-primary-container/5 text-primary border-l border-primary/20">Proposed Correction</th>
+</tr>
+</thead>
+<tbody class="font-body-md divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-4 py-4 border-r border-outline-variant font-technical-id text-technical-id font-bold">REQ_BRK_01</td>
+<td class="px-6 py-4 text-on-surface leading-relaxed">The system shall activate the emergency brake if the distance to the obstacle is too small.</td>
+<td class="px-4 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-error-container/20 text-error border border-error/30">
+<span class="w-1.5 h-1.5 rounded-full bg-error mr-1.5 animate-pulse"></span> REVIEW
+                                </span>
+</td>
+<td class="px-4 py-4 font-technical-id text-technical-id text-tertiary">RULE_VAG_02</td>
+<td class="px-6 py-4 text-secondary italic text-sm">Ambiguous term 'too small'. Metric criteria not defined. Requirement is not verifiable.</td>
+<td class="px-6 py-4 bg-primary-container/5 border-l border-primary/20 font-medium text-on-surface-variant">The system shall activate the emergency brake if the distance to the detected obstacle is &lt; 1.5 meters.</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-4 py-4 border-r border-outline-variant font-technical-id text-technical-id font-bold">REQ_BRK_02</td>
+<td class="px-6 py-4 text-on-surface leading-relaxed">Latency between detection and braking initiation must be less than 50ms at all times.</td>
+<td class="px-4 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-green-100 text-green-700 border border-green-200">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> PASS
+                                </span>
+</td>
+<td class="px-4 py-4 font-technical-id text-technical-id text-secondary">-</td>
+<td class="px-6 py-4 text-secondary text-sm">Requirement is atomic, uniquely identifiable, and contains measurable performance metrics.</td>
+<td class="px-6 py-4 bg-primary-container/5 border-l border-primary/20 text-secondary text-sm">No correction required.</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container transition-colors group">
+<td class="px-4 py-4 border-r border-outline-variant font-technical-id text-technical-id font-bold">REQ_ACC_09</td>
+<td class="px-6 py-4 text-on-surface leading-relaxed">The cruise control module should smoothly adjust throttle levels to maintain speed.</td>
+<td class="px-4 py-4 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-error-container/20 text-error border border-error/30">
+<span class="w-1.5 h-1.5 rounded-full bg-error mr-1.5 animate-pulse"></span> REVIEW
+                                </span>
+</td>
+<td class="px-4 py-4 font-technical-id text-technical-id text-tertiary">RULE_MOD_01</td>
+<td class="px-6 py-4 text-secondary italic text-sm">Use of modal verb 'should' instead of mandatory 'shall'. Lacks precise definition of 'smoothly'.</td>
+<td class="px-6 py-4 bg-primary-container/5 border-l border-primary/20 font-medium text-on-surface-variant">The cruise control module shall adjust throttle levels with a maximum ramp rate of 0.5%/ms to maintain speed.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="flex items-center justify-between px-6 py-4 bg-surface-container-high border-t border-outline-variant">
+<span class="font-label-sm text-label-sm text-secondary">Showing 1 to 10 of 150 requirements</span>
+<div class="flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container-highest text-secondary transition-colors"><span class="material-symbols-outlined">first_page</span></button>
+<button class="p-1 rounded hover:bg-surface-container-highest text-secondary transition-colors"><span class="material-symbols-outlined">chevron_left</span></button>
+<div class="flex items-center gap-1 mx-2">
+<button class="w-8 h-8 rounded bg-primary text-on-primary text-xs font-bold">1</button>
+<button class="w-8 h-8 rounded hover:bg-surface-container-highest text-secondary text-xs">2</button>
+<button class="w-8 h-8 rounded hover:bg-surface-container-highest text-secondary text-xs">3</button>
+<span class="px-1 text-secondary">...</span>
+<button class="w-8 h-8 rounded hover:bg-surface-container-highest text-secondary text-xs">15</button>
+</div>
+<button class="p-1 rounded hover:bg-surface-container-highest text-secondary transition-colors"><span class="material-symbols-outlined">chevron_right</span></button>
+<button class="p-1 rounded hover:bg-surface-container-highest text-secondary transition-colors"><span class="material-symbols-outlined">last_page</span></button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full bg-transparent border-t border-outline-variant mt-stack-lg">
+<div class="flex flex-col md:flex-row justify-between items-center py-stack-md px-container-padding w-full max-w-[1200px] mx-auto gap-4">
+<span class="font-body-md text-body-md text-secondary">© 2024 AIRAM Automotive Systems. All rights reserved.</span>
+<nav class="flex items-center gap-6">
+<a class="font-body-md text-body-md text-secondary hover:text-on-surface hover:underline transition-all" href="#">Documentation</a>
+<a class="font-body-md text-body-md text-secondary hover:text-on-surface hover:underline transition-all" href="#">Support</a>
+<a class="font-body-md text-body-md text-secondary hover:text-on-surface hover:underline transition-all" href="#">Privacy Policy</a>
+</nav>
+</div>
+</footer>
+<!-- Interactive Layer for Row Hovers and Clicks -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableRows = document.querySelectorAll('tbody tr');
+            tableRows.forEach(row => {
+                row.addEventListener('click', () => {
+                    // Logic for opening detailed requirement view or conflict resolution modal
+                    console.log('Requirement Selected:', row.querySelector('td:first-child').innerText);
+                });
+            });
+
+            // Demo Execution Simulation
+            const startBtn = document.querySelector('button.bg-primary');
+            let isRunning = false;
+            
+            startBtn.addEventListener('click', () => {
+                isRunning = !isRunning;
+                if(isRunning) {
+                    startBtn.innerHTML = `<span class="material-symbols-outlined animate-spin" style="font-variation-settings: 'FILL' 1;">sync</span> Processing...`;
+                    startBtn.classList.replace('bg-primary', 'bg-secondary');
+                } else {
+                    startBtn.innerHTML = `<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rocket_launch</span> Start Execution`;
+                    startBtn.classList.replace('bg-secondary', 'bg-primary');
+                }
+            });
+        });
+    </script>
+</body></html>

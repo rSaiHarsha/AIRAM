@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Baseline &amp; Impact Manager - Argus Core</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#0057ce",
+                        "on-tertiary-container": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-background": "#191b24",
+                        "error-container": "#ffdad6",
+                        "primary": "#0057cd",
+                        "error": "#ba1a1a",
+                        "surface": "#faf8ff",
+                        "on-primary-fixed": "#001946",
+                        "surface-dim": "#d8d9e5",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#00419e",
+                        "inverse-on-surface": "#eff0fc",
+                        "primary-fixed-dim": "#b1c5ff",
+                        "tertiary-fixed": "#ffdbce",
+                        "primary-fixed": "#dae2ff",
+                        "surface-container": "#ecedf9",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#cf4b00",
+                        "secondary-fixed-dim": "#bfc8d0",
+                        "secondary": "#575f67",
+                        "surface-container-highest": "#e1e2ee",
+                        "on-primary-container": "#ffffff",
+                        "primary-container": "#0d6efd",
+                        "on-tertiary-fixed": "#370e00",
+                        "background": "#faf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f2f3ff",
+                        "on-secondary-container": "#5b646b",
+                        "outline": "#727787",
+                        "surface-container-high": "#e6e7f3",
+                        "on-secondary-fixed-variant": "#3f484f",
+                        "inverse-surface": "#2d3039",
+                        "secondary-container": "#d8e1ea",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#e1e2ee",
+                        "surface-bright": "#faf8ff",
+                        "on-secondary-fixed": "#141d23",
+                        "inverse-primary": "#b1c5ff",
+                        "tertiary": "#a63b00",
+                        "tertiary-fixed-dim": "#ffb599",
+                        "on-tertiary-fixed-variant": "#7f2b00",
+                        "on-surface": "#191b24",
+                        "secondary-fixed": "#dbe4ed",
+                        "outline-variant": "#c2c6d8",
+                        "on-surface-variant": "#424655",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "24px",
+                        "gutter": "16px",
+                        "stack-md": "16px",
+                        "unit": "4px",
+                        "container-padding": "24px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "technical-id": ["JetBrains Mono"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "metric-lg": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "technical-id": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "metric-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .line-tree {
+            position: absolute;
+            background-color: #c2c6d8;
+            z-index: 0;
+        }
+        .tree-node {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .pulse-dot {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(218, 226, 255, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(218, 226, 255, 0); }
+            100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(218, 226, 255, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-container-padding h-16">
+<div class="flex items-center gap-stack-lg">
+<span class="font-headline-md text-headline-md font-bold text-primary">Argus Core</span>
+<!-- search_bar: on_left -->
+<div class="relative w-64 hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-body-lg">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-md text-on-surface focus:border-primary focus:ring-2 focus:ring-primary-fixed focus:outline-none transition-all shadow-[0_2px_4px_rgba(0,0,0,0.05)]" placeholder="Search..." type="text"/>
+</div>
+</div>
+<!-- navigation_links -->
+<div class="hidden md:flex h-full items-end gap-stack-lg">
+<a class="h-full flex items-center text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low duration-200 px-unit font-label-sm text-label-sm" href="#">Dashboard</a>
+<a class="h-full flex items-center text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low duration-200 px-unit font-label-sm text-label-sm" href="#">Analysis</a>
+<a class="h-full flex items-center text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low duration-200 px-unit font-label-sm text-label-sm" href="#">RAG</a>
+<a class="h-full flex items-center text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low duration-200 px-unit font-label-sm text-label-sm" href="#">AI Orchestrator</a>
+<a class="h-full flex items-center text-primary border-b-2 border-primary pb-1 font-semibold hover:bg-surface-container-low duration-200 px-unit font-label-sm text-label-sm" href="#">Impact</a>
+</div>
+<!-- trailing_icon_actions & profile -->
+<div class="flex items-center gap-stack-md">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="Engineer Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant hover:scale-[1.05] transition-transform cursor-pointer" data-alt="A small, professional headshot of an engineer in light-mode corporate setting. Professional, neutral expression, subtle lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-FgxuOKuRTA3-DgmGIs4pxftGcQxIhKRMCImkmvBLeAtoNwUkOr8KFm0Qv3F_ZmIDSJ1LkKlDBZVqxubjvKmEv52wOmMHIIGn8ZSqKMHIxcK7W7gV74AJ_Q6YD3dvJW7Elo2rl8vfBNPnZnON1R6Wvuxd6K38FQIMz3qCnXToOowkMSif2A5_diq5VoiSyVudfOkzCxEmdg4fb8-N8GxRKvtZp81gFEtNOFeP6WeDJcXjVYDqVneiki1de7u6aPVpcDw80mlKiSk"/>
+</div>
+</nav>
+<!-- SideNavBar -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 bg-surface-container-lowest border-l border-outline-variant shadow-md flex flex-col p-stack-md gap-stack-md z-40 hidden xl:flex">
+<div class="flex items-center gap-stack-sm mb-stack-sm">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed flex items-center justify-center">
+<img alt="AI Copilot" class="w-full h-full rounded-lg object-cover" data-alt="Abstract AI copilot avatar. Minimalist glowing geometric shape on light blue background, technical, modern." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIOta_f3t5EGoVi-73MAcz1s2BO3bTD-qaQb6mGWCmZRx9vdwMsyj2rbEc9saWcjm49XnJkyoVhkGQ3kheeGswZROnkurAMww10ZwgGRlYNgMljhsoLuK1ikCeisM15Edd6-ZEGJCiZKs_UznVBA1gX2lkf3fCszAV5hxtjKx619BcVsJTHqyAKJTZnsVSJ6zRbdIWMeI7yUNmDdvcCVa3yHN9TvUGesIu3jz5oETD4YBg6vMzaRm43hTUyE5Pp3F5VZwI2P9IHRs"/>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">AI Copilot</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Requirement Specialist</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-body-md text-body-md h-10 rounded-lg hover:bg-surface-tint active:scale-95 transition-all shadow-[0_2px_4px_rgba(0,0,0,0.1)] mb-stack-sm font-semibold flex items-center justify-center gap-unit">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            New Analysis
+        </button>
+<!-- tab_labels -->
+<nav class="flex-1 flex flex-col gap-unit overflow-y-auto">
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors hover:scale-[1.01] active:scale-[0.99]" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-sm text-label-sm">Context</span>
+</a>
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-primary bg-secondary-container font-bold hover:scale-[1.01] active:scale-[0.99] transition-all" href="#">
+<span class="material-symbols-outlined icon-fill">alt_route</span>
+<span class="font-label-sm text-label-sm">Traceability</span>
+</a>
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors hover:scale-[1.01] active:scale-[0.99]" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-label-sm text-label-sm">History</span>
+</a>
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors hover:scale-[1.01] active:scale-[0.99]" href="#">
+<span class="material-symbols-outlined">error_outline</span>
+<span class="font-label-sm text-label-sm">Issues</span>
+</a>
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors hover:scale-[1.01] active:scale-[0.99]" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="font-label-sm text-label-sm">Knowledge</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-stack-sm flex flex-col gap-unit">
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors hover:scale-[1.01] active:scale-[0.99]" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="font-label-sm text-label-sm">Help</span>
+</a>
+<a class="flex items-center gap-stack-sm p-stack-sm rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors hover:scale-[1.01] active:scale-[0.99]" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="font-label-sm text-label-sm">Status</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace Container -->
+<main class="flex-1 mt-16 pt-container-padding px-container-padding pb-container-padding flex flex-col gap-stack-lg xl:mr-80 h-[calc(100vh-64px)] overflow-hidden">
+<!-- Header Actions -->
+<header class="flex justify-between items-center shrink-0">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Baseline &amp; Impact Manager</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-unit">Evaluate proposed changes against locked requirement milestones.</p>
+</div>
+<div class="flex items-center gap-stack-md">
+<div class="flex items-center gap-stack-sm bg-surface-container-lowest border border-outline-variant rounded-lg p-unit shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
+<span class="font-label-sm text-label-sm text-on-surface-variant px-stack-sm">Simulate Change</span>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<button class="bg-primary text-on-primary font-label-sm text-label-sm px-gutter py-2 rounded-lg hover:bg-surface-tint active:scale-95 transition-all shadow-[0_2px_4px_rgba(0,0,0,0.1)] flex items-center gap-unit">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+                    Create Baseline
+                </button>
+</div>
+</header>
+<!-- Three Panel Layout -->
+<div class="flex-1 flex gap-stack-lg overflow-hidden">
+<!-- Left Panel: Milestone Baselines -->
+<div class="w-80 shrink-0 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-gutter border-b border-outline-variant bg-surface-container-low">
+<h2 class="font-headline-md text-headline-md text-on-surface text-[18px]">Milestone Baselines</h2>
+</div>
+<div class="flex-1 overflow-y-auto p-stack-sm flex flex-col gap-unit">
+<!-- Baseline Item Active -->
+<div class="p-stack-sm rounded-lg border border-primary bg-primary-fixed-dim/20 cursor-pointer hover:bg-primary-fixed/30 transition-colors">
+<div class="flex justify-between items-start mb-unit">
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">ASPICE Level 2</span>
+<span class="material-symbols-outlined text-primary text-[18px]">lock</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-technical-id text-technical-id text-on-surface-variant">V1.0.4</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Oct 12, 2023</span>
+</div>
+</div>
+<!-- Baseline Item -->
+<div class="p-stack-sm rounded-lg border border-outline-variant bg-surface hover:shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:scale-[1.01] transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-unit">
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Customer Milestone B</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">lock</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-technical-id text-technical-id text-on-surface-variant">V0.9.1</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Sep 28, 2023</span>
+</div>
+</div>
+<!-- Baseline Item -->
+<div class="p-stack-sm rounded-lg border border-outline-variant bg-surface hover:shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:scale-[1.01] transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-unit">
+<span class="font-label-sm text-label-sm font-semibold text-on-surface">Initial Draft Review</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">lock</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-technical-id text-technical-id text-on-surface-variant">V0.1.0</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Aug 15, 2023</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Center Panel: Change Impact Analysis (Canvas) -->
+<div class="flex-1 bg-surface-container-low border border-outline-variant rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col">
+<div class="p-gutter border-b border-outline-variant bg-surface-container-lowest flex justify-between items-center z-20">
+<h2 class="font-headline-md text-headline-md text-on-surface text-[18px]">Change Impact Analysis</h2>
+<div class="flex gap-stack-md">
+<div class="flex items-center gap-unit"><div class="w-3 h-3 rounded-full bg-error"></div><span class="font-label-sm text-label-sm">Stale</span></div>
+<div class="flex items-center gap-unit"><div class="w-3 h-3 rounded-full bg-[#f59e0b]"></div><span class="font-label-sm text-label-sm">Affected</span></div>
+</div>
+</div>
+<!-- Diagram Area (Simulated Canvas) -->
+<div class="flex-1 overflow-auto relative p-stack-lg flex flex-col items-center">
+<!-- Grid background pattern -->
+<div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#727787 1px, transparent 1px); background-size: 20px 20px;"></div>
+<!-- Connection Lines (SVG) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0" style="min-width: 800px; min-height: 600px;">
+<path d="M 400 120 L 400 180 L 250 180 L 250 220" fill="none" stroke="#c2c6d8" stroke-width="2"></path>
+<path d="M 400 120 L 400 180 L 550 180 L 550 220" fill="none" stroke="#c2c6d8" stroke-width="2"></path>
+<path d="M 250 320 L 250 380 L 150 380 L 150 420" fill="none" stroke="#fca5a5" stroke-dasharray="4" stroke-width="2"></path>
+<path d="M 250 320 L 250 380 L 350 380 L 350 420" fill="none" stroke="#c2c6d8" stroke-width="2"></path>
+<path d="M 550 320 L 550 380 L 550 420" fill="none" stroke="#fcd34d" stroke-dasharray="4" stroke-width="2"></path>
+</svg>
+<!-- Root Node -->
+<div class="tree-node bg-surface border border-outline-variant rounded-lg p-stack-sm w-64 shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:scale-[1.02] transition-transform cursor-pointer mt-8">
+<div class="flex justify-between items-start mb-stack-sm">
+<span class="font-technical-id text-technical-id text-primary bg-primary-fixed/30 px-2 py-1 rounded">REQ-SWE1-409</span>
+<div class="flex items-center gap-1 bg-surface-variant px-2 py-1 rounded">
+<span class="w-2 h-2 rounded-full bg-primary pulse-dot"></span>
+<span class="font-label-sm text-[10px] text-on-surface-variant">MODIFIED</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-tight">The system shall regulate coolant flow based on thermal sensor input T-01.</p>
+</div>
+<!-- Level 2 Nodes -->
+<div class="flex gap-24 mt-24">
+<!-- Node 2.1 (Stale) -->
+<div class="tree-node bg-[#fef2f2] border border-error rounded-lg p-stack-sm w-64 shadow-[0_4px_8px_rgba(186,26,26,0.15)] hover:scale-[1.02] transition-transform cursor-pointer relative">
+<div class="absolute -top-3 -right-3 bg-error text-on-error w-6 h-6 rounded-full flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+</div>
+<div class="flex justify-between items-start mb-stack-sm">
+<span class="font-technical-id text-technical-id text-error bg-error-container/50 px-2 py-1 rounded">REQ-SWE2-112</span>
+<div class="flex items-center gap-1 bg-error-container/30 px-2 py-1 rounded border border-error/20">
+<span class="font-label-sm text-[10px] text-error">STALE</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-tight">Coolant pump PWM duty cycle calculation module.</p>
+</div>
+<!-- Node 2.2 (Affected) -->
+<div class="tree-node bg-[#fffbeb] border border-[#f59e0b] rounded-lg p-stack-sm w-64 shadow-[0_4px_8px_rgba(245,158,11,0.1)] hover:scale-[1.02] transition-transform cursor-pointer">
+<div class="flex justify-between items-start mb-stack-sm">
+<span class="font-technical-id text-technical-id text-[#d97706] bg-[#fef3c7] px-2 py-1 rounded">REQ-SWE2-115</span>
+<div class="flex items-center gap-1 bg-[#fef3c7]/50 px-2 py-1 rounded border border-[#fcd34d]/50">
+<span class="font-label-sm text-[10px] text-[#d97706]">AFFECTED</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface text-[13px] leading-tight">Thermal sensor data validation routine.</p>
+</div>
+</div>
+<!-- Level 3 Nodes -->
+<div class="flex gap-16 mt-24 w-full max-w-4xl justify-center">
+<div class="flex gap-8 mr-12">
+<!-- Node 3.1 (Stale Test) -->
+<div class="tree-node bg-surface border border-error rounded-lg p-stack-sm w-48 shadow-sm hover:scale-[1.02] transition-transform cursor-pointer opacity-90">
+<div class="flex justify-between items-start mb-unit">
+<span class="font-technical-id text-[11px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">science</span> TC-SWE5-04</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant leading-tight">Test: Pump Activation Limits</p>
+</div>
+<!-- Node 3.2 (OK Test) -->
+<div class="tree-node bg-surface border border-outline-variant rounded-lg p-stack-sm w-48 shadow-sm hover:scale-[1.02] transition-transform cursor-pointer">
+<div class="flex justify-between items-start mb-unit">
+<span class="font-technical-id text-[11px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">science</span> TC-SWE5-08</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant leading-tight">Test: Duty Cycle Bounds</p>
+</div>
+</div>
+<!-- Node 3.3 (Affected Test) -->
+<div class="tree-node bg-surface border border-[#f59e0b] rounded-lg p-stack-sm w-48 shadow-sm hover:scale-[1.02] transition-transform cursor-pointer opacity-90 ml-20">
+<div class="flex justify-between items-start mb-unit">
+<span class="font-technical-id text-[11px] text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">science</span> TC-SWE5-12</span>
+</div>
+<p class="font-body-md text-[12px] text-on-surface-variant leading-tight">Test: Sensor Disconnect</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: Impact Details -->
+<div class="w-80 shrink-0 flex flex-col bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-gutter border-b border-outline-variant bg-surface-container-low flex items-center gap-stack-sm">
+<span class="material-symbols-outlined text-primary">analytics</span>
+<h2 class="font-headline-md text-headline-md text-on-surface text-[18px]">Impact Summary</h2>
+</div>
+<div class="flex-1 overflow-y-auto p-gutter flex flex-col gap-stack-lg">
+<!-- Metrics -->
+<div class="grid grid-cols-2 gap-stack-sm">
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-sm flex flex-col items-center">
+<span class="font-metric-lg text-metric-lg text-error text-[32px] leading-tight">1</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Stale Nodes</span>
+</div>
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-sm flex flex-col items-center">
+<span class="font-metric-lg text-metric-lg text-[#d97706] text-[32px] leading-tight">2</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Affected</span>
+</div>
+</div>
+<!-- List of Impacted IDs -->
+<div>
+<h3 class="font-label-sm text-label-sm text-on-surface-variant mb-stack-sm uppercase">Critical Impacts</h3>
+<ul class="flex flex-col gap-unit">
+<li class="flex items-center justify-between p-2 bg-[#fef2f2] rounded border border-error/20">
+<span class="font-technical-id text-technical-id text-error">REQ-SWE2-112</span>
+<span class="font-label-sm text-[10px] bg-error text-on-error px-1.5 py-0.5 rounded">HIGH RISK</span>
+</li>
+<li class="flex items-center justify-between p-2 bg-[#fffbeb] rounded border border-[#f59e0b]/20">
+<span class="font-technical-id text-technical-id text-[#d97706]">REQ-SWE2-115</span>
+<span class="font-label-sm text-[10px] bg-[#f59e0b] text-white px-1.5 py-0.5 rounded">MED RISK</span>
+</li>
+<li class="flex items-center justify-between p-2 bg-[#fffbeb] rounded border border-[#f59e0b]/20">
+<span class="font-technical-id text-technical-id text-[#d97706]">TC-SWE5-12</span>
+<span class="font-label-sm text-[10px] bg-[#f59e0b] text-white px-1.5 py-0.5 rounded">MED RISK</span>
+</li>
+</ul>
+</div>
+<!-- Recommendation -->
+<div class="bg-surface-container rounded-lg p-stack-sm border border-outline-variant/50">
+<h4 class="font-label-sm text-label-sm text-on-surface flex items-center gap-1 mb-1"><span class="material-symbols-outlined text-[16px] text-primary">lightbulb</span> AI Assessment</h4>
+<p class="font-body-md text-[13px] text-on-surface-variant">Modification to T-01 sensor logic invalidates existing PWM boundary tests. SWE.2 architecture update required.</p>
+</div>
+</div>
+<div class="p-gutter border-t border-outline-variant bg-surface-container-lowest">
+<button class="w-full bg-surface-container border border-outline-variant text-on-surface font-label-sm text-label-sm py-2.5 rounded-lg hover:bg-surface-container-highest active:scale-95 transition-all flex items-center justify-center gap-unit">
+<span class="material-symbols-outlined text-[18px]">send</span>
+                        Notify Team Leads
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</body></html>
