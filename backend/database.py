@@ -114,7 +114,6 @@ def init_db():
     cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category = 'sys2'")
     
     # Projects Table
-    cursor.execute("DROP TABLE IF EXISTS projects")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS projects (
             id TEXT PRIMARY KEY,
@@ -125,7 +124,6 @@ def init_db():
     """)
     
     # Project Requirements Table
-    cursor.execute("DROP TABLE IF EXISTS project_requirements")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS project_requirements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
