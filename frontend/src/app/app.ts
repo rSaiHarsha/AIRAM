@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DashboardComponent } from './components/dashboard/dashboard';
 import { RequirementsComponent } from './components/requirements/requirements';
+import { ProjectsComponent } from './components/projects/projects';
 import { RAGConfigComponent } from './components/rag-config/rag-config';
 import { ApiService } from './services/api.service';
 
@@ -14,6 +15,7 @@ import { ApiService } from './services/api.service';
     FormsModule,
     DashboardComponent,
     RequirementsComponent,
+    ProjectsComponent,
     RAGConfigComponent
   ],
   template: `
@@ -44,6 +46,9 @@ import { ApiService } from './services/api.service';
           <nav class="top-nav-tabs">
             <button class="nav-tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">
               Dashboard
+            </button>
+            <button class="nav-tab" [class.active]="activeTab === 'projects'" (click)="setTab('projects')">
+              Projects
             </button>
             <button class="nav-tab" [class.active]="activeTab === 'analysis'" (click)="setTab('analysis')">
               Requirement Analysis
@@ -85,6 +90,10 @@ import { ApiService } from './services/api.service';
         (viewRun)="onViewHistoryRun($event)"
         (newExecution)="setTab('analysis')">
       </app-dashboard>
+      
+      <app-projects
+        [hidden]="activeTab !== 'projects'">
+      </app-projects>
       
       <app-requirements 
         #requirementsComp

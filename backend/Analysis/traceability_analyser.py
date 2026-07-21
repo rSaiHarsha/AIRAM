@@ -118,3 +118,187 @@ def compare_traceability(swe1_reqs: List[Requirement], swe2_reqs: List[Requireme
         "metrics": metrics,
         "table": table
     }
+
+
+def correct_traceability_requirement(
+    r_swe1: Requirement,
+    linked_swe2s: list,
+    analysis_status: str,
+    analysis_rationale: str,
+    swe2_reqs: list,
+    llm,
+    custom_context: str = None
+) -> str:
+    """
+    Generates or rewrites SWE.2 (LLR) requirements to improve traceability coverage
+    for a given SWE.1 (HLR) requirement that has FAIL or REVIEW status.
+    
+    Returns corrected/new requirement text (newline-separated if multiple).
+    """
+    if not llm or not llm.client.api_key or llm.client.api_key == "mock-key":
+        return None
+
+    # Build context of existing linked SWE.2s (if any)
+    linked_context = ""
+    if linked_swe2s:
+        linked_context = "\n".join([f"- {s2.name}: {s2.content}" for s2 in linked_swe2s])
+        linked_context = f"\nCurrently linked SWE.2 requirements:\n{linked_context}"
+
+    system_prompt = (
+        "You are a Senior Automotive Systems Engineer and Requirements Expert.\n"
+        "Based on the traceability analysis results, your task is to generate or rewrite "
+        "Low-Level Software Requirements (SWE.2 / LLR) that properly trace to and satisfy "
+        "the given High-Level Requirement (SWE.1 / HLR).\n\n"
+        "You MUST adhere to these strict rules:\n"
+        "1. Return ONLY valid JSON exactly matching the schema below.\n"
+        "2. Do NOT include any explanation or markdown formatting outside the JSON.\n"
+        "3. Each corrected requirement must be a complete, standalone requirement.\n"
+        "4. Use EARS syntax patterns (ubiquitous, event-driven, state-driven) where applicable.\n"
+        "5. Split into multiple requirements if the SWE.1 contains multiple aspects that need separate LLR coverage.\n"
+        "6. Each requirement must be atomic, unambiguous, and verifiable.\n\n"
+        "JSON Schema:\n"
+        "{\n"
+        "  \"split_required\": boolean,\n"
+        "  \"corrected_requirements\": [string]\n"
+        "}"
+    )
+
+    if custom_context:
+        system_prompt += (
+            "\n\nIn addition to the above rules, you MUST also conform to these custom criteria:\n"
+            f"{custom_context}\n"
+        )
+
+    user_content = (
+        f"SWE.1 High-Level Requirement:\n"
+        f"ID: {r_swe1.name}\n"
+        f"Content: {r_swe1.content}\n\n"
+        f"Traceability Analysis Result: {analysis_status}\n"
+        f"Analysis Rationale: {analysis_rationale}"
+        f"{linked_context}\n\n"
+    )
+
+    if analysis_status == "FAIL" and not linked_swe2s:
+        user_content += (
+            "This SWE.1 requirement has NO linked SWE.2 requirements. "
+            "Generate new SWE.2 Low-Level Requirements that would properly decompose and trace to this SWE.1."
+        )
+    else:
+        user_content += (
+            "The existing SWE.2 linkage is incomplete or has issues. "
+            "Rewrite or generate additional SWE.2 requirements to fully satisfy and trace to this SWE.1."
+        )
+
+    try:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ]
+        response = llm.get_response(
+            messages, stream=False,
+            model=getattr(llm, "analysis_model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
+        )
+
+        raw_response = response.choices[0].message.content.strip()
+
+        try:
+            data = clean_and_parse_json(raw_response)
+            corrected_requirements = data.get("corrected_requirements", [])
+
+            if corrected_requirements:
+                return "\n".join(
+                    req.strip() for req in corrected_requirements if req and req.strip()
+                )
+            return None
+        except Exception:
+            # Fallback: treat raw response as the corrected text
+            if raw_response and not raw_response.startswith("{"):
+                return raw_response
+            return None
+
+    except Exception as e:
+        print(f"Traceability correction LLM call failed: {e}")
+        return None
+
+
+def correct_orphaned_swe2(
+    orphaned_swe2: Requirement,
+    swe1_reqs: list,
+    llm,
+    custom_context: str = None
+) -> str:
+    """
+    Rewrites an orphaned SWE.2 requirement to better trace to one of the
+    available SWE.1 requirements, or suggests which SWE.1 it should trace to.
+    
+    Returns corrected requirement text (newline-separated if multiple).
+    """
+    if not llm or not llm.client.api_key or llm.client.api_key == "mock-key":
+        return None
+
+    # Build context of available SWE.1 requirements
+    swe1_context = "\n".join([f"- {r.name}: {r.content}" for r in swe1_reqs[:50]])
+
+    system_prompt = (
+        "You are a Senior Automotive Systems Engineer and Requirements Expert.\n"
+        "An orphaned Low-Level Requirement (SWE.2 / LLR) has been identified that does not "
+        "trace to any High-Level Requirement (SWE.1 / HLR).\n\n"
+        "Your task is to rewrite this SWE.2 requirement so that it properly traces to "
+        "the most relevant SWE.1 requirement from the list provided.\n\n"
+        "You MUST adhere to these strict rules:\n"
+        "1. Return ONLY valid JSON exactly matching the schema below.\n"
+        "2. Do NOT include any explanation or markdown formatting outside the JSON.\n"
+        "3. Each corrected requirement must be a complete, standalone requirement.\n"
+        "4. Use EARS syntax patterns where applicable.\n"
+        "5. Split into multiple requirements if the original contains multiple actions.\n\n"
+        "JSON Schema:\n"
+        "{\n"
+        "  \"split_required\": boolean,\n"
+        "  \"corrected_requirements\": [string]\n"
+        "}"
+    )
+
+    if custom_context:
+        system_prompt += (
+            "\n\nIn addition to the above rules, you MUST also conform to these custom criteria:\n"
+            f"{custom_context}\n"
+        )
+
+    user_content = (
+        f"Orphaned SWE.2 Requirement:\n"
+        f"ID: {orphaned_swe2.name}\n"
+        f"Content: {orphaned_swe2.content}\n\n"
+        f"Available SWE.1 Requirements:\n{swe1_context}\n\n"
+        "Rewrite this orphaned SWE.2 requirement to properly trace to the most relevant SWE.1 above. "
+        "If the requirement addresses multiple aspects, split it into separate atomic requirements."
+    )
+
+    try:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ]
+        response = llm.get_response(
+            messages, stream=False,
+            model=getattr(llm, "analysis_model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
+        )
+
+        raw_response = response.choices[0].message.content.strip()
+
+        try:
+            data = clean_and_parse_json(raw_response)
+            corrected_requirements = data.get("corrected_requirements", [])
+
+            if corrected_requirements:
+                return "\n".join(
+                    req.strip() for req in corrected_requirements if req and req.strip()
+                )
+            return None
+        except Exception:
+            if raw_response and not raw_response.startswith("{"):
+                return raw_response
+            return None
+
+    except Exception as e:
+        print(f"Orphaned SWE.2 correction LLM call failed: {e}")
+        return None

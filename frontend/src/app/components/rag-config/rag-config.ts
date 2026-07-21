@@ -97,6 +97,11 @@ import { ApiService } from '../../services/api.service';
             
             <div style="display: flex; gap: 16px;">
               <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
+                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Collections</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);">{{ metrics.total_collections || 0 }}</div>
+              </div>
+              
+              <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
                 <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Total Chunks</div>
                 <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary);">{{ metrics.total_chunks }}</div>
               </div>
@@ -105,6 +110,20 @@ import { ApiService } from '../../services/api.service';
                 <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Total Tokens</div>
                 <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary);">{{ metrics.total_tokens | number }}</div>
               </div>
+            </div>
+
+            <!-- Per-collection breakdown -->
+            <div *ngIf="metrics.collections && metrics.collections.length > 0" style="margin-top: 16px;">
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px;">Collection Details</div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div *ngFor="let col of metrics.collections" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); font-size: 0.8rem;">
+                  <span style="font-weight: 500; color: var(--text-primary);">{{ col.name }}</span>
+                  <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ col.chunks }} chunks</span>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="!metrics.collections || metrics.collections.length === 0" style="margin-top: 12px; font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">
+              No collections found. Ingest a document to get started.
             </div>
           </div>
 
@@ -452,10 +471,12 @@ export class RAGConfigComponent implements OnInit {
   processedChunks: number = 0;
   logs: Array<{ time: Date; message: string }> = [];
   
-  metrics = {
+  metrics: any = {
     total_chunks: 0,
     total_tokens: 0,
-    avg_tokens: 0
+    avg_tokens: 0,
+    total_collections: 0,
+    collections: []
   };
 
   searchQuery: string = '';
@@ -591,8 +612,8 @@ export class RAGConfigComponent implements OnInit {
         } else if (event.status === 'completed') {
           this.isTraining = false;
           this.progressPercent = 100;
-          this.metrics = event.metrics;
           this.addLog(`Training completed successfully! Progressive commits completed.`);
+          this.loadMetrics(); // Refresh full metrics including Qdrant collection data
           this.loadCollections(); // Refresh collections list
         }
         this.cdr.detectChanges();

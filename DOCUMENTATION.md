@@ -7,6 +7,8 @@
 ## Table of Contents
 
 1. [Project Overview](#1-project-overview)
+   - 1.1 [Use Case](#11-use-case)
+   - 1.2 [Current Project Status](#12-current-project-status)
 2. [Architecture & Technology Stack](#2-architecture--technology-stack)
 3. [Project Structure & File Map](#3-project-structure--file-map)
 4. [Core Features & Functionalities](#4-core-features--functionalities)
@@ -65,6 +67,125 @@
 | **Manual Retrieval** | Lets users query the vector DB to verify semantic retrieval relevance scores |
 | **Interactive Dashboard** | Visualizes execution history, stacked compliance statistics, and chunking metrics |
 | **Execution Control** | Pause, resume, and stop long-running analysis jobs mid-execution |
+
+### 1.1 Use Case
+
+#### The Problem
+
+Automotive software development is governed by rigorous process standards such as **Automotive SPICE (ASPICE)**, **ISO 26262**, and **INCOSE** requirements engineering guidelines. Engineering teams writing Software Requirements Specifications (SRS) for safety-critical systems — e.g., Advanced Driver-Assistance Systems (ADAS) features like Lane Keep Assist, Adaptive Cruise Control, or Emergency Braking — must ensure that:
+
+1. **Every requirement is well-formed** — unambiguous, atomic, verifiable, and written in standardized syntax (e.g., EARS patterns).
+2. **Every high-level requirement (HLR) traces to concrete low-level requirements (LLR)** — establishing bidirectional traceability between SWE.1 (Software Requirements Analysis) and SWE.2 (Software Architectural Design) work products.
+3. **All requirements comply with organizational and industry guidelines** — including custom internal rules, INCOSE best practices, and EARS syntax patterns.
+
+Manually auditing hundreds or thousands of requirements against these standards is **time-consuming, error-prone, and inconsistent** — different reviewers interpret rules differently, and critical violations can slip through during high-pressure release cycles.
+
+#### How AIRAM Solves It
+
+AIRAM automates the entire requirements validation lifecycle by combining **Large Language Models (LLMs)** with **domain-specific engineering knowledge** through Retrieval-Augmented Generation (RAG):
+
+| Workflow Step | Manual Process | AIRAM Automation |
+|---|---|---|
+| **Quality Audit** | Engineers manually read each requirement and check it against a printed checklist of INCOSE/EARS rules | LLM evaluates each requirement against the full ruleset, returning PASS/REVIEW verdicts with structured rationale |
+| **Quality Correction** | Engineers manually rewrite non-compliant requirements, often introducing new issues | LLM auto-corrects violated requirements, splitting multi-action requirements into atomic ones |
+| **Traceability Check** | Engineers manually cross-reference HLR↔LLR mappings in spreadsheets, often missing orphaned items | LLM performs semantic matching between SWE.1 and SWE.2 requirements, identifying orphaned LLDs automatically |
+| **Guideline Reference** | Engineers search through PDF standards documents to find relevant guidance | RAG engine indexes guideline documents and retrieves semantically relevant chunks as LLM context |
+
+#### Target Users & Personas
+
+| Persona | Role | How They Use AIRAM |
+|---|---|---|
+| **Requirements Engineer** | Authors and maintains SWE.1/SWE.2 requirements specifications | Uploads requirement CSV/XLSX files, runs quality audits, reviews and accepts auto-corrections |
+| **Quality Assurance Engineer** | Validates compliance before ASPICE assessments and milestone reviews | Uses the dashboard to track compliance rates across execution runs, identifies recurring rule violations |
+| **Systems Architect** | Ensures HLR→LLR traceability coverage for safety-critical features | Runs traceability analysis to verify bidirectional coverage and detect orphaned requirements |
+| **Process Improvement Lead** | Maintains and evolves organizational requirements writing guidelines | Uploads custom guideline documents to the RAG engine, creates and manages strict JSON rule files |
+
+#### Example Use Case: Lane Keep Assist (LKA) Feature
+
+1. A **Requirements Engineer** has authored 60 SWE.1 high-level requirements and 120 SWE.2 low-level requirements for a Lane Keep Assist feature.
+2. They upload the SWE.1 CSV file to AIRAM and select **Quality Analysis** with the **EARS canonical 16-rule** guideline.
+3. AIRAM processes each requirement row-by-row, returning verdicts like:
+   - `PASS` — *"The requirement follows EARS ubiquitous pattern: 'The LKA system shall provide lateral steering torque…'"*
+   - `REVIEW` — *"Violated rules: [Avoid Ambiguity, One Requirement Per Statement]. The requirement uses 'and/or' and combines two distinct system behaviors."*
+4. The engineer enables **Quality Correction**, and AIRAM automatically rewrites the flagged requirement into two atomic, EARS-compliant statements.
+5. Next, they upload both SWE.1 and SWE.2 files and run **Traceability Analysis**. AIRAM identifies 5 SWE.1 requirements with no LLR coverage and 8 orphaned SWE.2 requirements with no parent HLR.
+6. The **QA Engineer** reviews the dashboard, sees the compliance trend improving across runs, and exports the results for the upcoming ASPICE assessment.
+
+#### Industry Standards Addressed
+
+| Standard | How AIRAM Supports It |
+|---|---|---|
+| **Automotive SPICE (ASPICE)** | Validates SWE.1↔SWE.2 bidirectional traceability (BP3: Bidirectional Traceability), ensures requirements are well-defined (BP1: Software Requirements Analysis) |
+| **INCOSE Guide for Writing Requirements** | Evaluates requirements against INCOSE quality attributes: necessity, unambiguity, completeness, singularity, feasibility, verifiability, correctness, and conformity |
+| **EARS (Easy Approach to Requirements Syntax)** | Validates requirements against EARS syntactic patterns: ubiquitous, event-driven, state-driven, unwanted behavior, optional, and complex (combined) |
+| **ISO 26262** | Supports ASIL-tagged requirements with safety-level metadata, enabling safety-aware traceability validation |
+
+### 1.2 Current Project Status
+
+> **Last Updated:** July 2026
+
+#### Development Status: **Active Development (Beta)**
+
+AIRAM is in active development with all core features implemented and functional. The platform is deployed for internal use and validation, with ongoing refinements to the UI, analysis accuracy, and deployment infrastructure.
+
+#### Implemented Features
+
+| Feature | Status | Notes |
+|---|---|---|
+| Requirements Quality Auditor (RAG + Strict + Custom modes) | ✅ Complete | Three analysis modes fully operational with recheck mechanism |
+| Requirements Quality Corrector | ✅ Complete | Auto-correction with requirement splitting support |
+| Requirements Traceability Analyzer | ✅ Complete | Bidirectional SWE.1↔SWE.2 mapping with orphan detection |
+| RAG Document Ingestion (PDF, Excel, CSV, JSON, TXT) | ✅ Complete | Progressive SSE streaming with real-time chunk tracking |
+| Manual Retrieval Evaluation | ✅ Complete | Configurable search with score thresholds and collection targeting |
+| Interactive Dashboard | ✅ Complete | Execution history, compliance stats, pagination, minimize/restore |
+| Execution Control (Pause / Resume / Stop) | ✅ Complete | Database-backed state management with real-time polling |
+| Standards & Guidelines Management | ✅ Complete | Upload, edit, delete, and combine JSON rule files |
+| WebSocket Health Monitoring | ✅ Complete | Real-time backend status with auto-reconnect |
+| Batch Analysis Mode | ✅ Complete | Multi-requirement LLM calls with automatic fallback to single |
+| Cloud Deployment (Render) | ✅ Complete | Auto-detection of local vs. cloud base URLs |
+
+#### Active Branches
+
+| Branch | Purpose | Status |
+|---|---|---|
+| `main` | Primary development branch with SQLite backend | Active — latest stable |
+| `render-deployment` | Cloud deployment branch with Postgres adaptations for Render hosting | Active — cloud-specific changes |
+| `ui-redesign` | UI/UX improvements and visual overhaul | In progress |
+| `Testing-metrics-with-rules` | Experimental branch for evaluation metrics and rule effectiveness tracking | Experimental |
+
+#### Recent Development Activity
+
+- Reverted Render-specific database changes from main to keep local and cloud codebases clean
+- Fixed UI tab navigation and traceability category detection (SWE.1/SWE.2 labeling)
+- Enhanced run control management for accurate pause/resume/stop behavior
+- Implemented dashboard pagination and execution history improvements
+- Added guideline name metadata tracking across execution runs
+- Fixed orphaned traceability popup display for missing requirements
+- Added Available Rules tab with download and inline editing capabilities
+- Implemented requirement splitting UI and CSV export logic
+
+#### Known Limitations
+
+| Limitation | Impact | Planned Mitigation |
+|---|---|---|
+| LLM rate limits (NVIDIA NIM free tier) | Analysis throughput is throttled; large requirement sets may take significant time | Exponential backoff is implemented; paid tier or self-hosted models planned |
+| Single LLM provider (NVIDIA NIM) | No fallback if NVIDIA API is unavailable | Multi-provider support (OpenAI, Anthropic, local Ollama) on roadmap |
+| Traceability limited to 100 SWE.2 reqs per SWE.1 context | Very large LLR sets may have incomplete matching | Chunked SWE.2 batching planned |
+| SQLite for local, Postgres for cloud (separate branches) | Feature parity between branches requires manual sync | Database abstraction layer planned |
+| No user authentication | Single-user local tool only; no multi-tenant support | Auth layer planned for team deployment |
+
+#### Roadmap
+
+| Priority | Planned Feature | Description |
+|---|---|---|
+| 🔴 High | Multi-LLM Provider Support | Add OpenAI, Anthropic, and local Ollama model backends |
+| 🔴 High | Database Abstraction Layer | Unified SQLite/Postgres layer to eliminate branch divergence |
+| 🟡 Medium | Export & Reporting | PDF/Excel compliance report generation with charts |
+| 🟡 Medium | Batch File Upload | Process multiple requirement files in a single execution run |
+| 🟡 Medium | Rule Effectiveness Metrics | Track which rules catch the most violations across runs |
+| 🟢 Low | User Authentication & RBAC | Multi-user support with role-based access control |
+| 🟢 Low | CI/CD Integration | CLI mode for automated requirements validation in pipelines |
+| 🟢 Low | Requirement Diff Tracking | Compare compliance results between requirement versions |
 
 ---
 
