@@ -66,14 +66,14 @@ import { ApiService } from '../../services/api.service';
             Loading more runs...
           </div>
 
-          <!-- Prev 8 / Next 8 quick-page control, shown next to the heading -->
+          <!-- Prev / Next quick-page control, shown next to the heading -->
           <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous 8 runs">
-              ‹ Prev 8
+            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous page">
+              ‹ Prev
             </button>
             <span style="font-weight: 500; color: var(--text-primary);">{{ historyPage }} / {{ getHistoryTotalPages() }}</span>
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages() && !hasMoreHistory" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next 8 runs">
-              Next 8 ›
+            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages() && !hasMoreHistory" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next page">
+              Next ›
             </button>
           </div>
 
@@ -142,9 +142,6 @@ import { ApiService } from '../../services/api.service';
             <div class="history-meta" style="display: flex; gap: 16px; align-items: center;">
               <div style="display: flex; gap: 8px;">
                 <span class="badge badge-blue-pill" style="font-size: 0.65rem;">{{ run.type }} RUN</span>
-                <span *ngIf="run.project_name" class="badge" style="background: var(--color-primary); color: white; font-size: 0.65rem;">
-                  {{ run.project_name }}
-                </span>
               </div>
               <div>
                 <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ run.type === 'quality' ? 'Requirement Validation Suite' : 'Traceability Mapping Audit' }}</div>
@@ -191,6 +188,11 @@ import { ApiService } from '../../services/api.service';
                   </button>
                 </div>
                 
+                <div *ngIf="run.project_name" style="margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); background: #f1f5f9; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  <span><strong style="color: var(--text-primary);">Project:</strong> {{ run.project_name }}</span>
+                </div>
+
                 <div *ngIf="run.type === 'quality'" style="margin-bottom: 16px; font-size: 0.8rem; color: var(--text-secondary); background: #f1f5f9; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color);">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                   <span><strong style="color: var(--text-primary);">Rules File:</strong> {{ run.guideline_name || 'None' }}</span>

@@ -14,154 +14,135 @@ import { ApiService } from '../../services/api.service';
         <p class="section-desc">Ingest standards and evaluate semantic search retrieval.</p>
       </div>
 
-      <div class="grid grid-2" style="align-items: start;">
+      <!-- Top Section: Manual Retrieval Evaluation -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
+          <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin: 0;">
+            Manual Retrieval Evaluation
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Target Collection:</span>
+            <select [(ngModel)]="searchCollection" (change)="onSearchCollectionChanged()" style="font-size: 0.8rem; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: #f8fafc; cursor: pointer;">
+              <option *ngFor="let col of collections" [value]="col">{{ col }}</option>
+            </select>
+          </div>
+        </div>
+        <p class="section-desc" style="margin-bottom: 16px;">Search guidelines to check semantic relevance and retrieval accuracy.</p>
         
-        <!-- Left Column: Ingestion & Logs -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
-          
-          <!-- Document Ingestion Card -->
-          <div class="card" style="margin-bottom: 0;">
-            <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 20px;">
-              Document Ingestion & Training
-            </div>
-            
-            <div class="dropzone" (click)="fileInput.click()">
-              <div class="dropzone-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-              </div>
-              <div class="dropzone-text">Click or drag to upload standards</div>
-              <div class="dropzone-subtext">.pdf, .txt, .json formats supported</div>
-              <input #fileInput type="file" (change)="onFileSelected($event)" style="display: none;" accept=".json,.pdf,.txt">
-            </div>
-            
-            <!-- File selection details -->
-            <div *ngIf="selectedFile && !showConfigDialog" class="file-details">
-              <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 6px; background: var(--bg-card); margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                  <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">{{ selectedFile.name }}</span>
-                </div>
-                <button class="icon-btn-minimal" (click)="selectedFile = null; logs = [];" aria-label="Remove file">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-              </div>
-              
-              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 16px;">
-                <div style="color: var(--text-secondary);">Target: <strong style="color: var(--text-primary);">{{ collectionMode === 'create' ? newCollectionName : selectedCollection }}</strong></div>
-                <div *ngIf="isPdf" style="color: var(--text-secondary);">Pages: <strong style="color: var(--text-primary);">{{ startPage }}-{{ endPage }}</strong></div>
-              </div>
-              
-              <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" style="flex: 1;" [disabled]="isTraining" (click)="startIngestion()">Start Ingestion</button>
-                <button class="btn btn-secondary" [disabled]="isTraining" (click)="showConfigDialog = true">Edit Config</button>
-              </div>
-            </div>
-
-            <!-- Progressive Training Log -->
-            <div *ngIf="isTraining || logs.length > 0" class="progress-section" style="margin-top: 24px;">
-              <div class="progress-meta">
-                <span>Ingestion Progress</span>
-                <span>{{ progressPercent }}% ({{ processedChunks }}/{{ totalChunks }} chunks)</span>
-              </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar" [style.width.%]="progressPercent"></div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Terminal Logs -->
-          <div class="card" style="margin-bottom: 0;">
-            <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 12px;">
-              Training Progress Log
-            </div>
-            <div class="log-container">
-              <div class="log-window">
-                <div *ngFor="let log of logs" class="log-entry">
-                  <span class="log-time">[{{ log.time | date:'HH:mm:ss' }}]</span>
-                  <span class="log-msg">{{ log.message }}</span>
-                </div>
-                <div *ngIf="logs.length === 0" style="color: #64748b; font-style: italic;">Awaiting ingestion task...</div>
-              </div>
-            </div>
-          </div>
-
+        <div class="search-box" style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <input type="text" [(ngModel)]="searchQuery" placeholder="Enter keyword or requirement sentence to test vector search..." (keyup.enter)="evaluateSearch()" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem;" [disabled]="isSearching">
+          <button class="btn btn-primary" (click)="evaluateSearch()" [disabled]="!searchQuery || isSearching" style="padding: 0 24px; display: inline-flex; align-items: center; gap: 8px;">
+            <span *ngIf="isSearching" class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0; border-top-color: white;"></span>
+            <span>{{ isSearching ? 'Searching...' : 'Search' }}</span>
+          </button>
+        </div>
+        
+        <div *ngIf="isSearching" style="text-align: center; padding: 24px; color: var(--text-secondary); font-size: 0.85rem; background: #f8fafc; border-radius: 8px; border: 1px dashed var(--border-color);">
+          <div class="spinner" style="width: 22px; height: 22px; border-width: 2px; margin-bottom: 8px;"></div>
+          <div>Searching vector database for matching guideline chunks...</div>
         </div>
 
-        <!-- Right Column: Metrics & Evaluation -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
-          <!-- Metrics card -->
-          <div class="card" style="margin-bottom: 0;">
-            <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 20px;">
+        <div *ngIf="!isSearching && searchResults.length > 0" class="search-results" style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto; padding-right: 4px;">
+          <div *ngFor="let result of searchResults" class="result-card" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; background: #fafafa;">
+            <div class="result-text" style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 8px; line-height: 1.5;">"{{ result.text }}"</div>
+            <div class="result-footer" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary);">
+              <span class="result-doc" style="display: flex; align-items: center; gap: 4px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                {{ result.doc_name }}
+              </span>
+              <span class="result-score">Score: <strong style="color: var(--color-primary);">{{ result.score | number:'1.3-3' }}</strong></span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!isSearching && searched && searchResults.length === 0" class="no-results" style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.85rem; background: #f8fafc; border-radius: 6px; border: 1px dashed var(--border-color);">
+          No matching guideline chunks found. Ensure you have trained guidelines!
+        </div>
+      </div>
+
+      <!-- Bottom Grid: Metrics & Logs -->
+      <div class="grid grid-2" style="align-items: start; gap: 24px;">
+        
+        <!-- Left Column: Chunking Metrics with Ingestion Action -->
+        <div class="card" style="margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin: 0;">
               Chunking Metrics
             </div>
-            
-            <div style="display: flex; gap: 16px;">
-              <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Collections</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);">{{ metrics.total_collections || 0 }}</div>
-              </div>
-              
-              <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Total Chunks</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary);">{{ metrics.total_chunks }}</div>
-              </div>
-              
-              <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Total Tokens</div>
-                <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary);">{{ metrics.total_tokens | number }}</div>
-              </div>
-            </div>
+            <button class="btn btn-primary" (click)="fileInput.click()" [disabled]="isTraining" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.85rem; padding: 6px 14px; border-radius: 20px; background: var(--color-primary); color: white; border: none; cursor: pointer;">
+              <span style="font-size: 1.1rem; line-height: 1; font-weight: 700;">+</span> Ingest Document
+            </button>
+            <input #fileInput type="file" (change)="onFileSelected($event)" style="display: none;" accept=".json,.pdf,.txt">
+          </div>
 
-            <!-- Per-collection breakdown -->
-            <div *ngIf="metrics.collections && metrics.collections.length > 0" style="margin-top: 16px;">
-              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px;">Collection Details</div>
-              <div style="display: flex; flex-direction: column; gap: 6px;">
-                <div *ngFor="let col of metrics.collections" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); font-size: 0.8rem;">
-                  <span style="font-weight: 500; color: var(--text-primary);">{{ col.name }}</span>
-                  <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ col.chunks }} chunks</span>
-                </div>
-              </div>
+          <!-- Progressive Training Bar inside Metrics card -->
+          <div *ngIf="isTraining || logs.length > 0" class="progress-section" style="margin-bottom: 20px; padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div class="progress-meta" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px;">
+              <span>Ingestion Progress {{ selectedFile ? '(' + selectedFile.name + ')' : '' }}</span>
+              <span>{{ progressPercent }}% ({{ processedChunks }}/{{ totalChunks }} chunks)</span>
             </div>
-            <div *ngIf="!metrics.collections || metrics.collections.length === 0" style="margin-top: 12px; font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">
-              No collections found. Ingest a document to get started.
+            <div class="progress-bar-bg" style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+              <div class="progress-bar" [style.width.%]="progressPercent" style="height: 100%; background: var(--color-primary); transition: width 0.2s ease;"></div>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 16px;">
+            <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Collections</div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-primary);">{{ metrics.total_collections || 0 }}</div>
+            </div>
+            
+            <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Total Chunks</div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary);">{{ metrics.total_chunks }}</div>
+            </div>
+            
+            <div style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-card);">
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">Total Tokens</div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: var(--text-primary);">{{ metrics.total_tokens | number }}</div>
             </div>
           </div>
 
-          <!-- Retrieval Search Bar Evaluation -->
-          <div class="card" style="margin-bottom: 0;">
-            <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 12px;">
-              Manual Retrieval Evaluation
+          <!-- Scrollable Per-collection chunk breakdown -->
+          <div *ngIf="metrics.collections && metrics.collections.length > 0" style="margin-top: 20px;">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.3px;">
+              Collection Chunks Breakdown
             </div>
-            <p class="section-desc" style="margin-bottom: 20px;">Search guidelines to check semantic relevance and retrieval accuracy.</p>
-            
-            <div class="form-group" style="margin-bottom: 16px;">
-              <select [(ngModel)]="searchCollection" (change)="onSearchCollectionChanged()" style="width: 100%; max-width: 300px; font-size: 0.8rem; padding: 8px 12px;">
-                <option *ngFor="let col of collections" [value]="col">Target: {{ col }}</option>
-              </select>
-            </div>
-
-            <div class="search-box">
-              <input type="text" [(ngModel)]="searchQuery" placeholder="Enter keyword or requirement sentence..." (keyup.enter)="evaluateSearch()">
-              <button class="btn btn-primary" (click)="evaluateSearch()" [disabled]="!searchQuery">Search</button>
-            </div>
-            
-            <div *ngIf="searchResults.length > 0" class="search-results">
-              <div *ngFor="let result of searchResults" class="result-card">
-                <div class="result-text">"{{ result.text }}"</div>
-                <div class="result-footer">
-                  <span class="result-doc">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: text-bottom;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    {{ result.doc_name }}
-                  </span>
-                  <span class="result-score">Score: <strong>{{ result.score | number:'1.3-3' }}</strong></span>
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding-right: 4px;">
+                <div *ngFor="let col of metrics.collections" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; background: #f8fafc; font-size: 0.8rem;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    <span style="font-weight: 600; color: var(--text-primary);">{{ col.name }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge" style="font-size: 0.7rem; background: #e0f2fe; color: #0369a1; font-weight: 700; padding: 2px 8px; border-radius: 12px;">{{ col.chunks }} chunks</span>
+                    <button class="icon-btn-minimal" (click)="deleteCollection(col.name, $event)" title="Delete Collection" style="padding: 2px 6px; color: #ef4444; border: none; background: none; cursor: pointer;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
             </div>
-            <div *ngIf="searched && searchResults.length === 0" class="no-results">
-              No matching guideline chunks found. Ensure you have trained guidelines!
+          </div>
+          <div *ngIf="!metrics.collections || metrics.collections.length === 0" style="margin-top: 16px; font-size: 0.8rem; color: var(--text-secondary); font-style: italic;">
+            No collections found. Click + Ingest Document to get started.
+          </div>
+        </div>
+
+        <!-- Right Column: Training Progress Log -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 12px;">
+            Training Progress Log
+          </div>
+          <div class="log-container">
+            <div class="log-window" style="min-height: 280px;">
+              <div *ngFor="let log of logs" class="log-entry">
+                <span class="log-time">[{{ log.time | date:'HH:mm:ss' }}]</span>
+                <span class="log-msg">{{ log.message }}</span>
+              </div>
+              <div *ngIf="logs.length === 0" style="color: #64748b; font-style: italic;">Awaiting ingestion task...</div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -482,6 +463,7 @@ export class RAGConfigComponent implements OnInit {
   searchQuery: string = '';
   searchResults: any[] = [];
   searched: boolean = false;
+  isSearching: boolean = false;
 
   // Dialog parameters
   showConfigDialog = false;
@@ -532,7 +514,9 @@ export class RAGConfigComponent implements OnInit {
     this.apiService.getRagMetrics().subscribe({
       next: (res) => {
         this.metrics = res;
-      }
+        this.cdr.detectChanges();
+      },
+      error: () => this.cdr.detectChanges()
     });
   }
 
@@ -553,8 +537,27 @@ export class RAGConfigComponent implements OnInit {
           this.selectedCollection = 'airam_guidelines';
           this.searchCollection = 'airam_guidelines';
         }
-      }
+        this.cdr.detectChanges();
+      },
+      error: () => this.cdr.detectChanges()
     });
+  }
+
+  deleteCollection(colName: string, event: Event) {
+    event.stopPropagation();
+    if (confirm(`Are you sure you want to delete the vector collection '${colName}'? All vector chunks stored inside it will be permanently deleted.`)) {
+      this.apiService.deleteRagCollection(colName).subscribe({
+        next: () => {
+          this.loadMetrics();
+          this.loadCollections();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          alert('Failed to delete collection: ' + (err.error?.detail || err.message));
+          this.cdr.detectChanges();
+        }
+      });
+    }
   }
 
   closeDialog() {
@@ -643,11 +646,22 @@ export class RAGConfigComponent implements OnInit {
   }
 
   evaluateSearch() {
-    if (!this.searchQuery) return;
+    if (!this.searchQuery || this.isSearching) return;
     this.searched = true;
+    this.isSearching = true;
+    this.searchResults = [];
+    this.cdr.detectChanges();
+
     this.apiService.searchRag(this.searchQuery, 5, this.searchCollection).subscribe({
       next: (res) => {
         this.searchResults = res;
+        this.isSearching = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("Vector search failed", err);
+        this.isSearching = false;
+        this.cdr.detectChanges();
       }
     });
   }

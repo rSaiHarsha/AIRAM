@@ -85,6 +85,7 @@ import { ApiService } from './services/api.service';
     <!-- Main Workspace -->
     <main class="container">
       <app-dashboard 
+        #dashboardComp
         [hidden]="activeTab !== 'dashboard'"
         [active]="activeTab === 'dashboard'"
         (viewRun)="onViewHistoryRun($event)"
@@ -92,7 +93,9 @@ import { ApiService } from './services/api.service';
       </app-dashboard>
       
       <app-projects
-        [hidden]="activeTab !== 'projects'">
+        #projectsComp
+        [hidden]="activeTab !== 'projects'"
+        (viewRun)="onViewHistoryRun($event)">
       </app-projects>
       
       <app-requirements 
@@ -101,6 +104,7 @@ import { ApiService } from './services/api.service';
       </app-requirements>
       
       <app-rag-config 
+        #ragConfigComp
         [hidden]="activeTab !== 'rag'">
       </app-rag-config>
     </main>
@@ -289,7 +293,10 @@ export class App implements OnInit {
 
 
 
+  @ViewChild('dashboardComp') dashboardComp?: DashboardComponent;
   @ViewChild('requirementsComp') requirementsComp?: RequirementsComponent;
+  @ViewChild('projectsComp') projectsComp?: ProjectsComponent;
+  @ViewChild('ragConfigComp') ragConfigComp?: RAGConfigComponent;
 
   constructor(private apiService: ApiService, private cdr: ChangeDetectorRef) {}
 
@@ -333,6 +340,21 @@ export class App implements OnInit {
 
   setTab(tabName: string) {
     this.activeTab = tabName;
+    if (tabName === 'dashboard' && this.dashboardComp) {
+      this.dashboardComp.loadData();
+    }
+    if (tabName === 'analysis' && this.requirementsComp) {
+      this.requirementsComp.loadProjects();
+      this.requirementsComp.loadGuidelines();
+      this.requirementsComp.loadHistory();
+    }
+    if (tabName === 'projects' && this.projectsComp) {
+      this.projectsComp.loadProjects();
+    }
+    if (tabName === 'rag' && this.ragConfigComp) {
+      this.ragConfigComp.loadMetrics();
+      this.ragConfigComp.loadCollections();
+    }
   }
 
   onViewHistoryRun(runId: string) {

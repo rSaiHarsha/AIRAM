@@ -56,6 +56,10 @@ private baseUrl = window.location.hostname === 'localhost'
     return this.http.get<string[]>(`${this.baseUrl}/api/rag/collections`);
   }
 
+  deleteRagCollection(collectionName: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/api/rag/collections/${collectionName}`);
+  }
+
   inspectPdf(file: File): Observable<{ pages: number }> {
     const formData = new FormData();
     formData.append('file', file);
@@ -144,6 +148,10 @@ private baseUrl = window.location.hostname === 'localhost'
 
   getProjectRequirements(projectId: string): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/api/projects/${projectId}/requirements`);
+  }
+
+  deleteProject(projectId: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/api/projects/${projectId}`);
   }
 
   // Requirements Analysis Controls & Progress Tracker

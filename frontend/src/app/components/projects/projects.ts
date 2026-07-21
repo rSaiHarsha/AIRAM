@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -59,7 +59,7 @@ import { ApiService } from '../../services/api.service';
                 <p style="margin: 0; font-size: 0.95rem; color: var(--text-secondary); max-width: 600px; line-height: 1.5;">{{ selectedProject.description || 'Comprehensive analysis and traceability matrix for this project. Tracking functional requirements against system architecture constraints.' }}</p>
               </div>
               
-              <div style="display: flex; gap: 12px;">
+              <div style="display: flex; gap: 12px; align-items: center;">
                 <button class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px;">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   Export Report
@@ -67,6 +67,10 @@ import { ApiService } from '../../services/api.service';
                 <button class="btn btn-primary" (click)="openUploadModal()" style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px;">
                   <span style="font-size: 1.1rem; line-height: 1;">+</span>
                   New Document
+                </button>
+                <button class="btn btn-danger" (click)="deleteProject(selectedProject)" style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Delete Project
                 </button>
               </div>
             </div>
@@ -234,11 +238,45 @@ import { ApiService } from '../../services/api.service';
                 </div>
               </div>
 
-              <!-- Traceability Tab (Mock content) -->
-              <div *ngIf="activeTab === 'trace'" style="padding: 32px; text-align: center; color: var(--text-secondary);">
-                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
-                 <h3 style="margin: 0 0 8px 0; color: var(--text-primary);">Traceability Matrix</h3>
-                 <p style="margin: 0; font-size: 0.9rem;">The Traceability mapping graph will be generated here during Analysis.</p>
+              <!-- Traceability Tab -->
+              <div *ngIf="activeTab === 'trace'" style="padding: 24px; background: #f8fafc; min-height: 100%;">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                   <h3 style="margin: 0; color: var(--text-primary); font-size: 1.1rem; font-weight: 600;">Traceability Run History</h3>
+                 </div>
+                 
+                 <div *ngIf="projectHistory.length === 0" style="text-align: center; color: var(--text-secondary); padding: 40px; background: #fff; border: 1px dashed var(--border-color); border-radius: 8px;">
+                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
+                   <p style="margin: 0; font-size: 0.9rem;">No traceability runs found for this project. Start an analysis from the Requirements Analysis tab.</p>
+                 </div>
+                 
+                 <div *ngIf="projectHistory.length > 0" style="display: flex; flex-direction: column; gap: 16px;">
+                   <div *ngFor="let run of projectHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                     <div style="display: flex; gap: 16px; align-items: center;">
+                       <span class="badge" style="font-size: 0.65rem; background: #e0f2fe; color: #0284c7; padding: 4px 8px; border-radius: 12px; font-weight: 700;">{{ run.type | uppercase }} RUN</span>
+                       <div>
+                         <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">Traceability Mapping Audit</div>
+                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">{{ run.timestamp | date:'medium' }}</div>
+                       </div>
+                     </div>
+                     <div style="display: flex; gap: 20px; align-items: center;">
+                       <div style="text-align: right;">
+                         <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Pass Rate</div>
+                         <div style="font-weight: 700; color: var(--color-success); font-size: 1rem;">
+                           {{ run.total_count ? ((run.pass_count / run.total_count) * 100 | number:'1.0-0') : 0 }}%
+                         </div>
+                       </div>
+                       <div style="text-align: right;">
+                         <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Status</div>
+                         <span class="badge" [ngStyle]="{'background': run.status === 'completed' ? '#dcfce7' : '#fee2e2', 'color': run.status === 'completed' ? '#166534' : '#991b1b', 'font-size': '0.7rem', 'border-radius': '4px', 'padding': '2px 6px'}">
+                           {{ run.status | uppercase }}
+                         </span>
+                       </div>
+                       <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.8rem; border-radius: 4px;" (click)="viewRun.emit(run.run_id)">
+                         Load Result
+                       </button>
+                     </div>
+                   </div>
+                 </div>
               </div>
 
             </div>
@@ -423,6 +461,7 @@ import { ApiService } from '../../services/api.service';
   `]
 })
 export class ProjectsComponent implements OnInit {
+  @Output() viewRun = new EventEmitter<string>();
   projects: any[] = [];
   selectedProject: any = null;
   
@@ -430,6 +469,7 @@ export class ProjectsComponent implements OnInit {
     swe1: [] as any[],
     swe2: [] as any[]
   };
+  projectHistory: any[] = [];
   isLoadingReqs = false;
   activeTab: 'overview' | 'swe1' | 'swe2' | 'trace' = 'overview';
   
@@ -456,9 +496,25 @@ export class ProjectsComponent implements OnInit {
     this.apiService.getProjects().subscribe({
       next: (res) => {
         this.projects = res;
+        if (this.projects.length > 0) {
+          if (!this.selectedProject) {
+            this.selectProject(this.projects[0]);
+          } else {
+            const updated = this.projects.find(p => p.id === this.selectedProject.id);
+            if (updated) {
+              this.selectedProject = updated;
+            } else {
+              this.selectProject(this.projects[0]);
+            }
+          }
+        } else {
+          this.selectedProject = null;
+        }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error("Failed to load projects", err);
+        this.cdr.detectChanges();
       }
     });
   }
@@ -468,17 +524,54 @@ export class ProjectsComponent implements OnInit {
     this.isLoadingReqs = true;
     this.activeTab = 'overview';
     this.reqs = { swe1: [], swe2: [] };
+    this.projectHistory = [];
+    this.cdr.detectChanges();
     
     this.apiService.getProjectRequirements(project.id).subscribe({
       next: (res) => {
         this.reqs = res;
         this.isLoadingReqs = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error("Failed to load project requirements", err);
         this.isLoadingReqs = false;
+        this.cdr.detectChanges();
       }
     });
+    
+    this.loadProjectHistory();
+  }
+
+  loadProjectHistory() {
+    this.apiService.getHistory(100, 0).subscribe({
+      next: (res) => {
+        if (this.selectedProject) {
+          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type === 'traceability');
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  deleteProject(project: any) {
+    if (!project) return;
+    if (confirm(`Are you sure you want to delete project '${project.name}'? This will permanently remove all associated requirements.`)) {
+      this.apiService.deleteProject(project.id).subscribe({
+        next: () => {
+          this.selectedProject = null;
+          this.loadProjects();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          alert("Failed to delete project: " + (err.error?.detail || err.message));
+          this.cdr.detectChanges();
+        }
+      });
+    }
   }
 
   openUploadModal() {

@@ -130,3 +130,11 @@ def search_guideline_chunks(query: str, limit: int = 5, collection_name: str = "
     except Exception as e:
         print(f"Search chunks failed: {e}")
         return []
+
+def delete_rag_collection(collection_name: str):
+    """Deletes a collection from Qdrant vector database."""
+    try:
+        rag_engine.clear_database(collection_name)
+    except Exception as e:
+        print(f"Failed to delete collection {collection_name}: {e}")
+

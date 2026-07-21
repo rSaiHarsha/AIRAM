@@ -35,10 +35,12 @@ from backend.database import (
     get_all_projects,
     get_project_by_id,
     save_project_requirements,
-    get_project_requirements_from_db
+    get_project_requirements_from_db,
+    delete_project,
+    trigger_render_sync
 )
 from pydantic import BaseModel
-from backend.rag_service import train_document_stream, search_guideline_chunks
+from backend.rag_service import train_document_stream, search_guideline_chunks, delete_rag_collection
 from backend.analyzer_service import run_requirements_analysis_job, ACTIVE_JOBS, parse_requirements_file
 
 @asynccontextmanager
@@ -205,6 +207,13 @@ async def search_rag(query: str, limit: int = 5, collection_name: str = "requali
     """Search endpoint to manually evaluate chunking and relevance retrieval."""
     return search_guideline_chunks(query, limit, collection_name)
 
+@app.delete("/api/rag/collections/{collection_name}")
+async def remove_rag_collection(collection_name: str):
+    """Deletes a RAG vector database collection."""
+    delete_rag_collection(collection_name)
+    trigger_render_sync()
+    return {"status": "success", "collection_name": collection_name}
+
 @app.post("/api/projects")
 async def add_project(
     name: str = Form(...),
@@ -231,6 +240,13 @@ async def add_project(
 @app.get("/api/projects")
 async def list_projects():
     return get_all_projects()
+
+@app.delete("/api/projects/{project_id}")
+async def remove_project(project_id: str):
+    """Deletes a project and its requirements from the database."""
+    delete_project(project_id)
+    trigger_render_sync()
+    return {"status": "success", "project_id": project_id}
 
 @app.get("/api/projects/{project_id}/requirements")
 async def get_project_reqs(project_id: str):

@@ -486,3 +486,34 @@ def get_project_by_id(project_id: str):
             row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
         return row_dict
     return None
+
+def delete_project(project_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Fetch project name to delete associated execution runs & results
+    cursor.execute("SELECT name FROM projects WHERE id = ?", (project_id,))
+    row = cursor.fetchone()
+    project_name = row["name"] if row else None
+
+    if project_name:
+        cursor.execute("SELECT run_id FROM execution_runs WHERE project_name = ?", (project_name,))
+        runs = cursor.fetchall()
+        for r in runs:
+            run_id = r["run_id"]
+            cursor.execute("DELETE FROM execution_results WHERE run_id = ?", (run_id,))
+        cursor.execute("DELETE FROM execution_runs WHERE project_name = ?", (project_name,))
+
+    cursor.execute("DELETE FROM project_requirements WHERE project_id = ?", (project_id,))
+    cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    conn.commit()
+    conn.close()
+
+def trigger_render_sync():
+    try:
+        from backend.database_render import sync_sqlite_to_postgres
+        import threading
+        threading.Thread(target=sync_sqlite_to_postgres, daemon=True).start()
+    except Exception:
+        pass
+
