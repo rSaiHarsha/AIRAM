@@ -126,14 +126,33 @@ private baseUrl = window.location.hostname === 'localhost'
     });
   }
 
+  // Projects API
+  createProject(name: string, description: string, swe1File: File, swe2File?: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('swe1_file', swe1File);
+    if (swe2File) {
+      formData.append('swe2_file', swe2File);
+    }
+    return this.http.post(`${this.baseUrl}/api/projects`, formData);
+  }
+
+  getProjects(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/api/projects`);
+  }
+
+  getProjectRequirements(projectId: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/api/projects/${projectId}/requirements`);
+  }
+
   // Requirements Analysis Controls & Progress Tracker
   startAnalysis(
     runType: string,
+    projectId: string,
     guidelineId: string | null,
     useRag: boolean,
     modelName: string,
-    swe1File?: File,
-    swe2File?: File,
     correctQuality: boolean = false,
     correctTrace: boolean = false,
     customContext?: string,
@@ -141,11 +160,10 @@ private baseUrl = window.location.hostname === 'localhost'
   ): Observable<any> {
     const formData = new FormData();
     formData.append('run_type', runType);
+    formData.append('project_id', projectId);
     if (guidelineId) formData.append('guideline_id', guidelineId);
     formData.append('use_rag', String(useRag));
     formData.append('model_name', modelName);
-    if (swe1File) formData.append('swe1_file', swe1File);
-    if (swe2File) formData.append('swe2_file', swe2File);
     formData.append('correct_quality', String(correctQuality));
     formData.append('correct_trace', String(correctTrace));
     if (customContext) formData.append('custom_context', customContext);
@@ -154,15 +172,15 @@ private baseUrl = window.location.hostname === 'localhost'
   }
 
   pauseAnalysis(runId: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/api/analysis/${runId}/pause`, {});
+    return this.http.post<any>(this.baseUrl + '/api/analysis/' + runId + '/pause', {});
   }
 
   resumeAnalysis(runId: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/api/analysis/${runId}/resume`, {});
+    return this.http.post<any>(this.baseUrl + '/api/analysis/' + runId + '/resume', {});
   }
 
   stopAnalysis(runId: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/api/analysis/${runId}/stop`, {});
+    return this.http.post<any>(this.baseUrl + '/api/analysis/' + runId + '/stop', {});
   }
 
   getAnalysisStatus(runId: string): Observable<any> {

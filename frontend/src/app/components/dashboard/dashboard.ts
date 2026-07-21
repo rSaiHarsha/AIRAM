@@ -140,7 +140,12 @@ import { ApiService } from '../../services/api.service';
         <div *ngFor="let run of pagedHistory" class="history-card" [class.minimized]="run.minimized === 1">
           <div class="history-header">
             <div class="history-meta" style="display: flex; gap: 16px; align-items: center;">
-              <span class="badge badge-blue-pill" style="font-size: 0.65rem;">{{ run.type }} RUN</span>
+              <div style="display: flex; gap: 8px;">
+                <span class="badge badge-blue-pill" style="font-size: 0.65rem;">{{ run.type }} RUN</span>
+                <span *ngIf="run.project_name" class="badge" style="background: var(--color-primary); color: white; font-size: 0.65rem;">
+                  {{ run.project_name }}
+                </span>
+              </div>
               <div>
                 <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ run.type === 'quality' ? 'Requirement Validation Suite' : 'Traceability Mapping Audit' }}</div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">{{ run.timestamp | date:'medium' }}</div>

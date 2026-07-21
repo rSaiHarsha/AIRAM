@@ -22,37 +22,14 @@ import { ApiService } from '../../services/api.service';
         <div class="grid grid-2" style="align-items: stretch; gap: 24px;">
           <!-- Left Configuration: Upload fields -->
           <div style="display: flex; flex-direction: column; gap: 16px;">
-            <div style="display: flex; gap: 16px;">
-              <div style="flex: 1;">
-                <label class="form-label">SWE 1 / HLR Document <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
-                <div class="dropzone" [class.has-file]="swe1File" style="height: 100px; padding: 16px; position: relative;">
-                  <button *ngIf="swe1File" (click)="removeFile($event, 'swe1')" title="Remove file" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; padding: 0;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </button>
-                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" (click)="swe1Input.click()">
-                    <div class="dropzone-icon" style="margin-bottom: 8px;">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                    </div>
-                    <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all;">{{ swe1File ? swe1File.name : 'Click to upload CSV/XLSX' }}</div>
-                  </div>
-                  <input #swe1Input type="file" (change)="onFileSelected($event, 'swe1')" style="display: none;" accept=".csv,.xlsx">
-                </div>
-              </div>
-
-              <div style="flex: 1;">
-                <label class="form-label">SWE 2 / LLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
-                <div class="dropzone" [class.has-file]="swe2File" style="height: 100px; padding: 16px; position: relative;">
-                  <button *ngIf="swe2File" (click)="removeFile($event, 'swe2')" title="Remove file" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; padding: 0;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </button>
-                  <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;" (click)="swe2Input.click()">
-                    <div class="dropzone-icon" style="margin-bottom: 8px;">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                    </div>
-                    <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all;">{{ swe2File ? swe2File.name : 'Click to upload CSV/XLSX' }}</div>
-                  </div>
-                  <input #swe2Input type="file" (change)="onFileSelected($event, 'swe2')" style="display: none;" accept=".csv,.xlsx">
-                </div>
+            <div class="form-group">
+              <label class="form-label">Select Project <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
+              <select [(ngModel)]="selectedProjectId" style="width: 100%;">
+                <option value="" disabled>-- Select a Project --</option>
+                <option *ngFor="let p of projects" [value]="p.id">{{ p.name }} ({{ p.created_at | date:'short' }})</option>
+              </select>
+              <div *ngIf="projects.length === 0" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                No projects found. Go to the Projects tab to create one.
               </div>
             </div>
 
@@ -74,10 +51,10 @@ import { ApiService } from '../../services/api.service';
                   <input type="checkbox" [(ngModel)]="actions.correct" (ngModelChange)="onCorrectionToggle($event)"> Quality Correction
                 </label>
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.trace"> Traceability Analysis (SWE.2 to SWE.1)
+                  <input type="checkbox" [(ngModel)]="actions.trace" [disabled]="actions.correctTrace"> Traceability Analysis (SWE.2 to SWE.1)
                 </label>
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.correctTrace"> Traceability Correction
+                  <input type="checkbox" [(ngModel)]="actions.correctTrace" (ngModelChange)="onTraceCorrectionToggle($event)"> Traceability Correction
                 </label>
               </div>
             </div>
@@ -156,7 +133,7 @@ import { ApiService } from '../../services/api.service';
             
             <div class="execution-controls" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
               <div class="btn-group" style="display: flex; gap: 8px;">
-                <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!swe1File && !swe2File" style="flex: 1;">
+                <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!selectedProjectId" style="flex: 1;">
                   🚀 Start Execution
                 </button>
                 <button class="btn btn-warning" (click)="pauseRun()" *ngIf="isRunning && !isPaused" style="flex: 1;">
@@ -223,6 +200,7 @@ import { ApiService } from '../../services/api.service';
                 <th>SWE.2 Requirement</th>
                 <th>Status</th>
                 <th>Rationale / Reasoning</th>
+                <th *ngIf="hasTraceCorrections()">Corrected Requirement</th>
               </tr>
             </thead>
             <tbody>
@@ -268,18 +246,43 @@ import { ApiService } from '../../services/api.service';
                 
                 <!-- Traceability Matrix View -->
                 <ng-container *ngIf="isTraceabilityRun">
-                  <tr *ngFor="let swe2 of row.parsed_swe2_list; let i = index">
-                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
-                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
-                    <td style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color);">{{ swe2.id }}</td>
-                    <td style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color);">{{ swe2.text }}</td>
-                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
-                      <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
-                        {{ row.status }}
-                      </span>
-                    </td>
-                    <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="color: var(--text-secondary); font-size: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.rationale }}</td>
-                  </tr>
+                  <!-- Traceability with split corrected requirements -->
+                  <ng-container *ngIf="hasTraceCorrections() && splitCorrectedReq(row.corrected_req).length > 1; else singleTraceRowView">
+                    <tr *ngFor="let corrReq of splitCorrectedReq(row.corrected_req); let i = index">
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.req_id || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.input_req || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
+                          {{ row.status }}
+                        </span>
+                      </td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="color: var(--text-secondary); font-size: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.rationale }}</td>
+                      <td style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-bottom: 1px solid #e2e8f0; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px; vertical-align: middle;">
+                        <span style="color: var(--color-primary); font-weight: 600; margin-right: 6px;">{{i + 1}}.</span>{{ corrReq }}
+                      </td>
+                    </tr>
+                  </ng-container>
+
+                  <!-- Standard single-row traceability view -->
+                  <ng-template #singleTraceRowView>
+                    <tr *ngFor="let swe2 of row.parsed_swe2_list; let i = index">
+                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
+                      <td style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color);">{{ swe2.id }}</td>
+                      <td style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color);">{{ swe2.text }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
+                          {{ row.status }}
+                        </span>
+                      </td>
+                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="color: var(--text-secondary); font-size: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.rationale }}</td>
+                      <td *ngIf="hasTraceCorrections() && i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        {{ row.corrected_req || '-' }}
+                      </td>
+                    </tr>
+                  </ng-template>
                 </ng-container>
               </ng-container>
             </tbody>
@@ -625,8 +628,8 @@ import { ApiService } from '../../services/api.service';
   `]
 })
 export class RequirementsComponent implements OnInit, OnDestroy {
-  swe1File: File | null = null;
-  swe2File: File | null = null;
+  projects: any[] = [];
+  selectedProjectId: string = '';
   
   actions = {
     analyse: true,
@@ -723,8 +726,17 @@ JSON Schema:
   constructor(private apiService: ApiService, private elementRef: ElementRef, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    this.loadProjects();
     this.loadGuidelines();
     this.loadHistory();
+  }
+
+  loadProjects() {
+    this.apiService.getProjects().subscribe({
+      next: (res) => {
+        this.projects = res;
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -919,25 +931,7 @@ JSON Schema:
     });
   }
 
-  removeFile(event: Event, type: 'swe1' | 'swe2') {
-    event.stopPropagation();
-    if (type === 'swe1') {
-      this.swe1File = null;
-    } else {
-      this.swe2File = null;
-    }
-  }
 
-  onFileSelected(event: any, type: string) {
-    const file = event.target.files[0];
-    if (file) {
-      if (type === 'swe1') {
-        this.swe1File = file;
-      } else {
-        this.swe2File = file;
-      }
-    }
-  }
 
   onCorrectionToggle(checked: boolean) {
     if (checked) {
@@ -946,14 +940,25 @@ JSON Schema:
     }
   }
 
+  onTraceCorrectionToggle(checked: boolean) {
+    if (checked) {
+      // Traceability correction requires traceability analysis — auto-enable it
+      this.actions.trace = true;
+    }
+  }
+
+  hasTraceCorrections(): boolean {
+    return this.results.some(r => r.corrected_req && r.corrected_req.trim() && r.corrected_req !== '-');
+  }
+
   startRun() {
-    if ((this.actions.analyse || this.actions.correct) && this.rulesMode === 'strict' && this.selectedGuidelineIds.length === 0) {
-      alert('⚠️ Please select at least one strict guideline document from the dropdown before starting execution.');
+    if (!this.selectedProjectId) {
+      alert('⚠️ Please select a project before starting execution.');
       return;
     }
 
-    if ((this.actions.trace || this.actions.correctTrace) && (!this.swe1File || !this.swe2File)) {
-      alert('⚠️ Both SYS 1 and SYS 2 documents must be uploaded for traceability analysis.');
+    if ((this.actions.analyse || this.actions.correct) && this.rulesMode === 'strict' && this.selectedGuidelineIds.length === 0) {
+      alert('⚠️ Please select at least one strict guideline document from the dropdown before starting execution.');
       return;
     }
 
@@ -983,11 +988,10 @@ JSON Schema:
 
     this.apiService.startAnalysis(
       runType,
+      this.selectedProjectId,
       this.rulesMode === 'strict' ? (this.selectedGuidelineIds.join(',') || null) : null,
       useRagBool,
       this.selectedAnalysisModel,
-      this.swe1File || undefined,
-      this.swe2File || undefined,
       this.actions.correct,
       this.actions.correctTrace,
       customPromptVal,

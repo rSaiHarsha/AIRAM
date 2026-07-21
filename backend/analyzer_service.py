@@ -25,7 +25,7 @@ from backend.database import (
     get_execution_status,
 )
 from backend.rag_service import rag_engine
-from Analysis.traceability_analyser import analyze_traceability_from_swe1_with_llm
+from Analysis.traceability_analyser import analyze_traceability_from_swe1_with_llm, correct_traceability_requirement, correct_orphaned_swe2
 
 # Active execution state tracker for single process fallback (still kept for backward compatibility, but DB is source of truth)
 ACTIVE_JOBS = {}  # run_id -> { "status": "running" | "paused" | "stopped", "current_row": int, "total_rows": int }
@@ -362,17 +362,16 @@ def analyze_quality(
         "failed_rule": failed_rule_str if failed_rule_str and failed_rule_str != "None" else None,
         "rationale": res.get("Rationale", "No explanation provided."),
         "corrected_req": corrected_req,
-        "swe1_id": None
+                    "swe1_id": None
     }
 
 async def run_requirements_analysis_job(
     run_id: str,
-    run_type: str, # 'quality', 'traceability', 'combined'
-    swe1_content: bytes = None,
-    swe1_filename: str = None,
-    swe2_content: bytes = None,
-    swe2_filename: str = None,
+    run_type: str,
+    swe1_reqs_raw: list = None,
+    swe2_reqs_raw: list = None,
     guideline_id: str = None,
+    project_name: str = None,
     use_rag: bool = False,
     model_name: str = "nvidia/llama-3.3-nemotron-super-49b-v1.5",
     correct_quality: bool = False,
@@ -390,7 +389,7 @@ async def run_requirements_analysis_job(
             if g_details:
                 guideline_name = g_details["name"]
                 
-        save_execution_run(run_id, run_type, "running", guideline_name=guideline_name)
+        save_execution_run(run_id, run_type, "running", guideline_name=guideline_name, project_name=project_name)
         ACTIVE_JOBS[run_id] = {
             "status": "running",
             "current_row": 0,
@@ -400,11 +399,9 @@ async def run_requirements_analysis_job(
         # Initialize LLMManager using passed model
         llm_manager = LLMManager(model_name=model_name, analysis_model_name=model_name)
         print(f"[TRACE] LLM initialized. API key present: {llm_manager.client.api_key != 'mock-key'}", flush=True)
-        
-        # 1. Parse requirement sets
-        swe1_reqs_raw = parse_requirements_file(swe1_content, swe1_filename) if swe1_content else []
-        swe2_reqs_raw = parse_requirements_file(swe2_content, swe2_filename) if swe2_content else []
-        print(f"[TRACE] Parsed SWE1: {len(swe1_reqs_raw)} rows, SWE2: {len(swe2_reqs_raw)} rows", flush=True)
+        swe1_reqs_raw = swe1_reqs_raw or []
+        swe2_reqs_raw = swe2_reqs_raw or []
+        print(f"[TRACE] Loaded SWE1: {len(swe1_reqs_raw)} rows, SWE2: {len(swe2_reqs_raw)} rows", flush=True)
         
         # Debug: print first parsed row keys to verify header mapping
         if swe1_reqs_raw:
@@ -551,13 +548,25 @@ async def run_requirements_analysis_job(
                 # Track covered
                 for s2 in linked_swe2s:
                     covered_swe2_ids.add(s2.name)
+                
+                # Run traceability correction if enabled and status is FAIL/REVIEW
+                corrected_req = None
+                if correct_trace and status in ["FAIL", "REVIEW"]:
+                    print(f"[TRACE]   Running traceability correction for {r.name}...", flush=True)
+                    corrected_req = await asyncio.to_thread(
+                        correct_traceability_requirement,
+                        r, linked_swe2s, status, rationale, swe2_reqs, llm_manager,
+                        custom_context_correction
+                    )
+                    if corrected_req:
+                        print(f"[TRACE]   Correction generated for {r.name}: {corrected_req[:80]}...", flush=True)
                     
                 update_execution_result_by_id(
                     row_id=row_id,
                     status=status,
                     failed_rule=None,
                     rationale=rationale,
-                    corrected_req=None,
+                    corrected_req=corrected_req,
                     swe1_id=r.name,
                     swe1_text=r.content,
                     req_id=swe2_ids_str,
@@ -592,12 +601,25 @@ async def run_requirements_analysis_job(
                 if s2.name not in covered_swe2_ids:
                     orphan_count += 1
                     row_id = create_placeholder_result(run_id, s2.name, s2.content, category="traceability")
+                    
+                    # Run orphan correction if enabled
+                    orphan_corrected = None
+                    if correct_trace:
+                        print(f"[TRACE]   Running orphan correction for {s2.name}...", flush=True)
+                        orphan_corrected = await asyncio.to_thread(
+                            correct_orphaned_swe2,
+                            s2, swe1_reqs, llm_manager,
+                            custom_context_correction
+                        )
+                        if orphan_corrected:
+                            print(f"[TRACE]   Orphan correction generated for {s2.name}: {orphan_corrected[:80]}...", flush=True)
+                    
                     update_execution_result_by_id(
                         row_id=row_id,
                         status="FAIL",
                         failed_rule="Orphan LLD",
                         rationale="Orphaned LLD: No linked SWE.1 requirement found.",
-                        corrected_req=None,
+                        corrected_req=orphan_corrected,
                         swe1_id=None,
                         swe1_text=None,
                         category="traceability"

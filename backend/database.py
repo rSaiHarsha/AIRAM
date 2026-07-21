@@ -57,7 +57,8 @@ def init_db():
             minimized INTEGER DEFAULT 0, -- 0 = normal, 1 = minimized
             current_row INTEGER DEFAULT 0,
             total_rows INTEGER DEFAULT 0,
-            guideline_name TEXT
+            guideline_name TEXT,
+            project_name TEXT
         )
     """)
     try:
@@ -72,6 +73,13 @@ def init_db():
         cursor.execute("ALTER TABLE execution_runs ADD COLUMN guideline_name TEXT")
     except Exception:
         pass
+    try:
+        cursor.execute("ALTER TABLE execution_runs ADD COLUMN project_name TEXT")
+    except Exception:
+        pass
+        
+    # Migrate old execution runs to have a default project name
+    cursor.execute("UPDATE execution_runs SET project_name = 'old tests' WHERE project_name IS NULL")
     
     # Execution Results Table
     cursor.execute("""
@@ -104,6 +112,30 @@ def init_db():
     # Migrate old categories
     cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
     cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category = 'sys2'")
+    
+    # Projects Table
+    cursor.execute("DROP TABLE IF EXISTS projects")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Project Requirements Table
+    cursor.execute("DROP TABLE IF EXISTS project_requirements")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS project_requirements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL,
+            req_id TEXT NOT NULL,
+            content TEXT NOT NULL,
+            req_type TEXT NOT NULL, -- 'swe1' or 'swe2'
+            FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        )
+    """)
     
     conn.commit()
     conn.close()
@@ -203,12 +235,12 @@ def get_chunking_metrics():
         }
     return {"total_chunks": 0, "total_tokens": 0, "avg_tokens": 0}
 
-def save_execution_run(run_id: str, run_type: str, status: str, guideline_name: str = None):
+def save_execution_run(run_id: str, run_type: str, status: str, guideline_name: str = None, project_name: str = None):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT OR REPLACE INTO execution_runs (run_id, type, status, guideline_name) VALUES (?, ?, ?, ?)",
-        (run_id, run_type, status, guideline_name)
+        "INSERT OR REPLACE INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?)",
+        (run_id, run_type, status, guideline_name, project_name)
     )
     conn.commit()
     conn.close()
@@ -333,7 +365,7 @@ def get_previous_executions(limit: int = 10, offset: int = 0):
     # Fetch execution runs with a summary count of pass, fail, review
     cursor.execute(f"""
         SELECT 
-            r.run_id, r.timestamp, r.type, r.status, r.minimized, r.guideline_name,
+            r.run_id, r.timestamp, r.type, r.status, r.minimized, r.guideline_name, r.project_name,
             SUM(CASE WHEN s.status = 'PASS' THEN 1 ELSE 0 END) as pass_count,
             SUM(CASE WHEN s.status = 'FAIL' THEN 1 ELSE 0 END) as fail_count,
             SUM(CASE WHEN s.status = 'REVIEW' THEN 1 ELSE 0 END) as review_count,
@@ -374,3 +406,85 @@ def delete_execution_run(run_id: str):
 if __name__ == "__main__":
     init_db()
     print("Database initialized successfully at", DATABASE_PATH)
+
+# Project Helpers
+def get_latest_execution_run_for_project(project_name: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT run_id, status FROM execution_runs 
+        WHERE project_name = ? 
+        ORDER BY timestamp DESC LIMIT 1
+    """, (project_name,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def create_project(project_id: str, name: str, description: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO projects (id, name, description) VALUES (?, ?, ?)",
+        (project_id, name, description)
+    )
+    conn.commit()
+    conn.close()
+
+def save_project_requirements(project_id: str, requirements_list: list, req_type: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    for req in requirements_list:
+        req_id = req.get("id") or "UNKNOWN"
+        content_json = json.dumps(req)
+        cursor.execute(
+            "INSERT INTO project_requirements (project_id, req_id, content, req_type) VALUES (?, ?, ?, ?)",
+            (project_id, req_id, content_json, req_type)
+        )
+    conn.commit()
+    conn.close()
+
+def get_project_requirements_from_db(project_id: str, req_type: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT content FROM project_requirements WHERE project_id = ? AND req_type = ? ORDER BY id ASC",
+        (project_id, req_type)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        results.append(json.loads(r["content"]))
+    return results
+
+def get_all_projects():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        row_dict = dict(r)
+        if "created_at" in row_dict and row_dict["created_at"]:
+            row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
+        results.append(row_dict)
+    return results
+
+def get_project_by_id(project_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        row_dict = dict(row)
+        if "created_at" in row_dict and row_dict["created_at"]:
+            row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
+        return row_dict
+    return None
