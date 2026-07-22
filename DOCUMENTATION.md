@@ -20,6 +20,7 @@
    - 4.6 [Interactive Dashboard](#46-interactive-dashboard)
    - 4.7 [Execution Control (Pause / Resume / Stop)](#47-execution-control-pause--resume--stop)
    - 4.8 [Standards & Guidelines Management](#48-standards--guidelines-management)
+   - 4.9 [Project Management System](#49-project-management-system)
 5. [Backend Specifications](#5-backend-specifications)
    - 5.1 [FastAPI Application & Lifespan](#51-fastapi-application--lifespan)
    - 5.2 [REST API Endpoints](#52-rest-api-endpoints)
@@ -37,8 +38,9 @@
    - 6.2 [API Service](#62-api-service)
    - 6.3 [Dashboard Component](#63-dashboard-component)
    - 6.4 [Requirements Component](#64-requirements-component)
-   - 6.5 [RAG Configuration Component](#65-rag-configuration-component)
-   - 6.6 [Design System & Styling](#66-design-system--styling)
+   - 6.5 [Projects Component](#65-projects-component)
+   - 6.6 [RAG Configuration Component](#66-rag-configuration-component)
+   - 6.7 [Design System & Styling](#67-design-system--styling)
 7. [Data Flow & Processing Pipelines](#7-data-flow--processing-pipelines)
    - 7.1 [Quality Analysis Pipeline](#71-quality-analysis-pipeline)
    - 7.2 [Traceability Analysis Pipeline](#72-traceability-analysis-pipeline)
@@ -66,6 +68,7 @@
 | **RAG Ingestion** | Progressively chunks, embeds, and indexes guideline documents (PDF, Excel, CSV, JSON, TXT) into a Qdrant vector database |
 | **Manual Retrieval** | Lets users query the vector DB to verify semantic retrieval relevance scores |
 | **Interactive Dashboard** | Visualizes execution history, stacked compliance statistics, and chunking metrics |
+| **Project Management** | Workspace-level isolation of projects, persistent SWE.1 & SWE.2 requirement datasets, project deletion, and run history binding |
 | **Execution Control** | Pause, resume, and stop long-running analysis jobs mid-execution |
 
 ### 1.1 Use Case
@@ -138,7 +141,12 @@ AIRAM is in active development with all core features implemented and functional
 | RAG Document Ingestion (PDF, Excel, CSV, JSON, TXT) | ✅ Complete | Progressive SSE streaming with real-time chunk tracking |
 | Manual Retrieval Evaluation | ✅ Complete | Configurable search with score thresholds and collection targeting |
 | Interactive Dashboard | ✅ Complete | Execution history, compliance stats, pagination, minimize/restore |
+| Project Management System | ✅ Complete | Multi-project workspace, persistent dataset storage in SQLite, deletion with cascade |
 | Execution Control (Pause / Resume / Stop) | ✅ Complete | Database-backed state management with real-time polling |
+| Standards & Guidelines Management | ✅ Complete | Upload, edit, delete, and combine JSON rule files |
+| WebSocket Health Monitoring | ✅ Complete | Real-time backend status with auto-reconnect |
+| Batch Analysis Mode | ✅ Complete | Multi-requirement LLM calls with automatic fallback to single |
+| Cloud Deployment (Render) | ✅ Complete | Auto-detection of local vs. cloud base URLs |
 | Standards & Guidelines Management | ✅ Complete | Upload, edit, delete, and combine JSON rule files |
 | WebSocket Health Monitoring | ✅ Complete | Real-time backend status with auto-reconnect |
 | Batch Analysis Mode | ✅ Complete | Multi-requirement LLM calls with automatic fallback to single |
@@ -194,16 +202,16 @@ AIRAM is in active development with all core features implemented and functional
 ### System Architecture
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                     Angular 22 Frontend                  │
-│  ┌──────────┐  ┌─────────────────┐  ┌──────────────────┐│
-│  │Dashboard │  │Requirements     │  │RAG Configuration ││
-│  │Component │  │Analysis Component│  │Component         ││
-│  └────┬─────┘  └────────┬────────┘  └────────┬─────────┘│
-│       │                 │                     │          │
-│       └────────┬────────┴─────────────────────┘          │
-│                │  ApiService (HttpClient + Fetch SSE)     │
-└────────────────┼─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            Angular 22 Frontend                           │
+│  ┌──────────┐  ┌─────────┐  ┌──────────────────┐  ┌──────────────────┐  │
+│  │Dashboard │  │Projects │  │Requirements      │  │RAG Configuration │  │
+│  │Component │  │Component│  │Analysis Component│  │Component         │  │
+│  └────┬─────┘  └────┬────┘  └────────┬─────────┘  └────────┬─────────┘  │
+│       │             │                │                     │             │
+│       └─────────────┴───────┬────────┴─────────────────────┘             │
+│                             │  ApiService (HttpClient + Fetch SSE)       │
+└─────────────────────────────┼────────────────────────────────────────────┘
                  │  HTTP REST + WebSocket + SSE
 ┌────────────────┼─────────────────────────────────────────┐
 │                │      FastAPI Backend (Python)            │
@@ -253,7 +261,7 @@ AIRAM is in active development with all core features implemented and functional
 | **LLM Model (Analysis)** | `nvidia/llama-3.3-nemotron-super-49b-v1.5` | — |
 | **Embedding Model** | `nvidia/nv-embedqa-e5-v5` | — |
 | **PDF Processing** | PyMuPDF + pymupdf4llm | Latest |
-| **Excel Processing** | pandas + openpyxl | Latest |
+| **Excel Processing** | Built-in zipfile/xml + pandas | Built-in |
 
 ---
 
@@ -277,6 +285,7 @@ ReQualiTrace_Studio/
 │   ├── .env                           # Environment variables (API keys)
 │   ├── main.py                        # FastAPI application entry point
 │   ├── database.py                    # SQLite database schema & accessors
+│   ├── file_parser.py                 # File parser (CSV & XLSX with header fuzzy matching)
 │   ├── analyzer_service.py            # Async job runner for analysis
 │   ├── rag_service.py                 # RAG training & search orchestrator
 │   ├── test_backend.py                # Integration test suite
@@ -298,23 +307,27 @@ ReQualiTrace_Studio/
     ├── start.js                       # Custom dev server launcher
     ├── tsconfig.json                  # TypeScript configuration
     ├── src/
-    │   ├── index.html                 # HTML entry point
-    │   ├── main.ts                    # Angular bootstrap
-    │   ├── styles.css                 # Global design system
-    │   └── app/
-    │       ├── app.ts                 # Root component (header + tab nav)
-    │       ├── app.html               # Default Angular template (placeholder)
-    │       ├── app.css
-    │       ├── app.config.ts          # Application config & providers
-    │       ├── app.routes.ts          # Routing configuration
-    │       ├── services/
-    │       │   └── api.service.ts     # HttpClient API service
-    │       └── components/
-    │           ├── dashboard/
-    │           │   └── dashboard.ts   # Dashboard view component
-    │           ├── requirements/
-    │           │   └── requirements.ts # Analysis execution component
-    │           └── rag-config/
+        ├── index.html                 # HTML entry point
+        ├── main.ts                    # Angular bootstrap
+        ├── styles.css                 # Global design system
+        └── app/
+            ├── app.ts                 # Root component (header + tab nav)
+            ├── app.html               # Default Angular template (placeholder)
+            ├── app.css
+            ├── app.config.ts          # Application config & providers
+            ├── app.routes.ts          # Routing configuration
+            ├── services/
+            │   └── api.service.ts     # HttpClient API service
+            └── components/
+                ├── dashboard/
+                │   └── dashboard.ts   # Dashboard view component
+                ├── projects/
+                │   └── projects.ts    # Projects workspace component
+                ├── requirements/
+                │   └── requirements.ts # Analysis execution component
+                └── rag-config/
+                    └── rag-config.ts  # RAG ingestion & search component
+```
     │               └── rag-config.ts  # RAG ingestion & search component
 ```
 
@@ -475,6 +488,17 @@ ReQualiTrace_Studio/
 - Support for multi-file guideline layouts (each file becomes a named section)
 - Support for combining multiple guideline files in a single analysis run (comma-separated IDs)
 
+### 4.9 Project Management System
+
+**Purpose:** Provides a persistent, workspace-level container for managing software requirements datasets (SWE.1 HLR and SWE.2 LLR) and binding analysis runs directly to specific projects.
+
+**Features:**
+- **Project Creation:** Upload project name, description, SWE.1 requirement file (CSV/XLSX), and optional SWE.2 file (CSV/XLSX)
+- **Persistent Storage:** Saves project metadata and raw requirement JSON representations in SQLite (`projects` and `project_requirements` tables)
+- **Project Overview & Detail Tabs:** Displays total requirement counts, document status badges, individual SWE.1/SWE.2 tables, and latest analysis results
+- **Analysis Execution Binding:** When launching an analysis run, users select an active Project ID. Requirement datasets are loaded directly from the database rather than re-uploading files for every execution
+- **Cascading Deletion:** Deleting a project automatically purges all associated project requirements, execution runs, and execution results from SQLite
+
 ---
 
 ## 5. Backend Specifications
@@ -489,6 +513,15 @@ ReQualiTrace_Studio/
 | **Lifespan** | Database initialization on startup via `init_db()` |
 
 ### 5.2 REST API Endpoints
+
+#### Projects Endpoints
+
+| Method | Endpoint | Description | Input |
+|---|---|---|---|
+| `POST` | `/api/projects` | Create a new project with SWE.1/SWE.2 files | `name`, `description`, `swe1_file`, `swe2_file` |
+| `GET` | `/api/projects` | List all projects | — |
+| `GET` | `/api/projects/{project_id}/requirements` | Get SWE.1 & SWE.2 requirements + latest analysis | — |
+| `DELETE` | `/api/projects/{project_id}` | Delete a project & all associated data | — |
 
 #### Guidelines Endpoints
 
@@ -506,14 +539,14 @@ ReQualiTrace_Studio/
 | `POST` | `/api/rag/train` | Ingest & chunk a file, returns SSE stream | `file`, `collection_name`, `collection_mode`, `start_page`, `end_page` |
 | `POST` | `/api/rag/inspect-pdf` | Get PDF page count | `file` (upload) |
 | `GET` | `/api/rag/collections` | List all Qdrant collections | — |
-| `GET` | `/api/rag/metrics` | Get chunking metrics (total chunks, tokens, avg) | — |
+| `GET` | `/api/rag/metrics` | Get chunking metrics (total chunks, tokens, avg, live Qdrant stats) | — |
 | `GET` | `/api/rag/search` | Manual semantic search | `query`, `limit`, `collection_name` |
 
 #### Analysis Endpoints
 
 | Method | Endpoint | Description | Input |
 |---|---|---|---|
-| `POST` | `/api/analysis/start` | Start an async analysis job | `run_type`, `guideline_id`, `use_rag`, `model_name`, `swe1_file`, `swe2_file`, `correct_quality`, `correct_trace`, `custom_context`, `custom_context_correction` |
+| `POST` | `/api/analysis/start` | Start an async analysis job | `run_type`, `project_id`, `guideline_id`, `use_rag`, `model_name`, `correct_quality`, `correct_trace`, `custom_context`, `custom_context_correction` |
 | `POST` | `/api/analysis/{run_id}/pause` | Pause a running job | — |
 | `POST` | `/api/analysis/{run_id}/resume` | Resume a paused job | — |
 | `POST` | `/api/analysis/{run_id}/stop` | Stop a running job | — |
@@ -532,6 +565,25 @@ ReQualiTrace_Studio/
 ### 5.4 Database Schema (SQLite)
 
 **File:** `airam.db` (WAL journal mode, 20s timeout)
+
+#### `projects` Table
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | TEXT (PK) | Project UUID |
+| `name` | TEXT | Project name |
+| `description` | TEXT | Optional description |
+| `created_at` | TIMESTAMP | Creation timestamp |
+
+#### `project_requirements` Table
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | INTEGER (PK) | Auto-increment |
+| `project_id` | TEXT (FK) | References `projects.id` (ON DELETE CASCADE) |
+| `req_id` | TEXT | Requirement ID |
+| `content` | TEXT | JSON string of requirement row |
+| `req_type` | TEXT | `swe1` or `swe2` |
 
 #### `guidelines` Table
 
@@ -566,6 +618,7 @@ ReQualiTrace_Studio/
 | `current_row` | INTEGER | Current processing row |
 | `total_rows` | INTEGER | Total rows to process |
 | `guideline_name` | TEXT | Name of selected guideline |
+| `project_name` | TEXT | Name of target project |
 
 #### `execution_results` Table
 
@@ -582,6 +635,15 @@ ReQualiTrace_Studio/
 | `swe1_id` | TEXT | Parent SWE.1 ID (traceability mode) |
 | `swe1_text` | TEXT | Parent SWE.1 text (traceability mode) |
 | `category` | TEXT | `swe1`, `swe2`, or `traceability` |
+
+**Project Database Accessors (`database.py`):**
+- `create_project(project_id, name, description)`
+- `save_project_requirements(project_id, requirements_list, req_type)`
+- `get_project_requirements_from_db(project_id, req_type)`
+- `get_all_projects()`
+- `get_project_by_id(project_id)`
+- `delete_project(project_id)` — Deletes project, requirements, and associated runs/results
+- `get_latest_execution_run_for_project(project_name)`
 
 ### 5.5 LLM Manager
 
@@ -681,6 +743,8 @@ ReQualiTrace_Studio/
 |---|---|
 | `analyze_traceability_from_swe1_with_llm()` | For one SWE.1 req, identifies matching SWE.2 reqs via LLM. Limits SWE.2 context to 100 requirements to prevent token overflow. |
 | `compare_traceability()` | Full bidirectional mapping: iterates all SWE.1 reqs, collects linked SWE.2s, then identifies orphaned SWE.2s |
+| `correct_traceability_requirement()` | Generates or rewrites SWE.2 (LLR) requirements to improve traceability coverage for SWE.1 (HLR) items with FAIL or REVIEW status |
+| `correct_orphaned_swe2()` | Rewrites an orphaned SWE.2 requirement to properly trace to the most relevant SWE.1 requirement |
 
 ### 5.9 RAG Engine (Vector Store)
 
@@ -734,28 +798,28 @@ ReQualiTrace_Studio/
 
 ### 5.11 Analyzer Service (Job Runner)
 
-**File:** `backend/analyzer_service.py` (627 lines)
+**File:** `backend/analyzer_service.py` (373 lines)
 
 **Main Function:** `run_requirements_analysis_job()` — async background task that:
 
-1. Parses uploaded CSV/XLSX files into `Requirement` objects with intelligent header mapping
-2. Creates the execution run record in the database
+1. Retrieves raw SWE.1 and SWE.2 requirement objects from `project_requirements` in SQLite for the specified `project_id`
+2. Creates the execution run record in the database with guideline and project metadata
 3. Initializes `LLMManager` with the specified model
 4. Processes requirements row-by-row with:
    - Pause/resume/stop polling via DB status checks
    - Placeholder "PROCESSING" results created before LLM call
-   - Progressive UI updates via DB row tracking
+   - Progressive UI updates via DB row tracking (`current_row` / `total_rows`)
    - RAG context fetching if enabled
 5. For quality mode: calls `analyze_quality()` then optionally `correct_single_requirement()`
-6. For traceability mode: calls `analyze_traceability_from_swe1_with_llm()` then processes orphaned SWE.2s
+6. For traceability mode: calls `analyze_traceability_from_swe1_with_llm()`, optionally runs `correct_traceability_requirement()`, then processes orphaned SWE.2s with `correct_orphaned_swe2()` if requested
 7. Marks job as completed, resets global rules state
 
-**File Parsing Features:**
+**File Parsing Features (`file_parser.py`):**
 - Supports CSV and XLSX formats
 - Intelligent header auto-detection with fuzzy matching
 - XLSX parsing uses Python's built-in `zipfile` and `xml.etree.ElementTree` (no openpyxl needed at runtime)
 - Handles shared strings, rich text, multi-sheet workbooks
-- Column mapping: ID → `id`, Content → `text`, additional columns preserved
+- Column mapping: ID → `id`, Content → `text`, additional metadata columns preserved
 
 ---
 
@@ -764,23 +828,27 @@ ReQualiTrace_Studio/
 ### 6.1 Angular Application Structure
 
 **Root Component:** `App` (`app.ts`)
-- Tab-based navigation: **Dashboard**, **Requirement Analysis**, **RAG Configuration**
-- Sticky header with AIRAM logo, navigation tabs, and backend status badge
-- WebSocket connection to backend for real-time health monitoring
-- Auto-reconnect on disconnect (3-second retry)
+- Tab-based navigation across 4 main views: **Dashboard**, **Projects**, **Requirement Analysis**, **RAG Configuration**
+- Sticky header with AIRAM logo, navigation tabs, and real-time backend connection status badge
+- WebSocket connection (`/api/ws/status`) to backend for real-time health monitoring (`CONNECTED`, `CONNECTING`, `DISCONNECTED` with animated pulse)
+- Auto-reconnect on disconnect (3-second retry loop)
 
 ### 6.2 API Service
 
-**File:** `frontend/src/app/services/api.service.ts`
+**File:** `frontend/src/app/services/api.service.ts` (218 lines)
 
 **Base URL Resolution:**
 - `localhost` → `http://localhost:8000`
 - Otherwise → `https://aaram.onrender.com` (deployed instance)
 
-**Methods (20 total):**
+**Methods (24 total):**
 
 | Category | Method | Description |
 |---|---|---|
+| **Projects** | `createProject()` | Create new project with SWE.1/SWE.2 files |
+| | `getProjects()` | List all projects |
+| | `getProjectRequirements()` | Get project SWE.1/SWE.2 requirements + latest analysis |
+| | `deleteProject()` | Delete project and all associated datasets |
 | **Guidelines** | `uploadGuideline()` | Upload JSON guideline file |
 | | `getGuidelines()` | List all guidelines |
 | | `updateGuideline()` | Update guideline name/content |
@@ -821,19 +889,33 @@ The `trainRAG()` method uses the native `fetch()` API with `ReadableStream` to p
 **File:** `frontend/src/app/components/requirements/requirements.ts` (59,380 bytes)
 
 **Features:**
-- **File Upload:** Drag-and-drop or click-to-browse for SWE.1 and SWE.2 CSV/XLSX files
+- **Project Selection:** Dropdown selector for targeting an active workspace Project
 - **Run Type Selection:** Quality, Traceability, or Combined
 - **Guidelines Source:** RAG Engine or Strict Guidelines (with guideline selection dropdown)
 - **Model Selection:** Default `nvidia/llama-3.3-nemotron-super-49b-v1.5`
 - **Correction Options:** Checkboxes for Quality Correction and Traceability Correction
 - **Custom Context:** Free-text areas for custom analysis and correction evaluation criteria
 - **Execution Controls:** Start, Pause, Resume, Stop buttons
-- **Progress Tracking:** Real-time row-by-row progress with polling
+- **Progress Tracking:** Real-time row-by-row progress bar with polling
 - **Results Table:** Expandable rows showing requirement ID, original text, status badge, failed rules, rationale, and corrected text
 - **Category Filtering:** Filter results by SWE.1, SWE.2, or Traceability category
 - **History Results Viewer:** Load results from a previous execution run
 
-### 6.5 RAG Configuration Component
+### 6.5 Projects Component
+
+**File:** `frontend/src/app/components/projects/projects.ts` (36,532 bytes)
+
+**Features:**
+- **Project List Sidebar:** List of available projects with active status badge, description, creation timestamp, and selection highlight
+- **Project Creation Modal:** Dialog to enter project name, description, and upload SWE.1 requirement file (CSV/XLSX) and optional SWE.2 file (CSV/XLSX)
+- **Header Card:** Shows project ID badge, active status, project title, description, Report Export button, New Document button, and Delete Project button with cascading database purge
+- **Tabbed Requirement Workspace:**
+  - **Overview Tab:** Summary cards for SWE.1 and SWE.2 requirement files (total count, status badge, conflict indicators, view links)
+  - **SWE.1 Requirements Tab:** Searchable, paginated table of High-Level Requirements
+  - **SWE.2 Requirements Tab:** Searchable, paginated table of Low-Level Requirements
+  - **Traceability Tab:** View latest execution mapping results for the project
+
+### 6.6 RAG Configuration Component
 
 **File:** `frontend/src/app/components/rag-config/rag-config.ts` (24,703 bytes)
 
@@ -847,7 +929,7 @@ The `trainRAG()` method uses the native `fetch()` API with `ReadableStream` to p
 - **Chunking Metrics:** Total chunks, total tokens, average tokens per chunk
 - **Manual Search:** Query input with collection selector and results display (text + score)
 
-### 6.6 Design System & Styling
+### 6.7 Design System & Styling
 
 **File:** `frontend/src/styles.css`
 
@@ -883,15 +965,18 @@ The `trainRAG()` method uses the native `fetch()` API with `ReadableStream` to p
 ### 7.1 Quality Analysis Pipeline
 
 ```
-User uploads CSV/XLSX file(s)
+User creates Project with CSV/XLSX requirement files
          │
          ▼
-POST /api/analysis/start (run_type = "quality")
+POST /api/projects (saves SWE.1 & SWE.2 in SQLite project_requirements)
+         │
+         ▼
+POST /api/analysis/start (run_type = "quality", project_id = "PRJ-...")
          │
          ▼
 analyzer_service.run_requirements_analysis_job()
          │
-         ├── Parse CSV/XLSX → list of Requirement objects
+         ├── Fetch SWE.1 & SWE.2 requirements from SQLite for project_id
          │
          ├── Load guidelines (Strict JSON or skip for RAG mode)
          │
@@ -918,15 +1003,15 @@ analyzer_service.run_requirements_analysis_job()
 ### 7.2 Traceability Analysis Pipeline
 
 ```
-User uploads SWE.1 (HLR) + SWE.2 (LLR) files
+User creates Project with SWE.1 (HLR) + SWE.2 (LLR) files
          │
          ▼
-POST /api/analysis/start (run_type = "traceability")
+POST /api/analysis/start (run_type = "traceability", project_id = "PRJ-...")
          │
          ▼
 analyzer_service.run_requirements_analysis_job()
          │
-         ├── Parse both files → SWE.1 + SWE.2 Requirement lists
+         ├── Fetch SWE.1 & SWE.2 requirements from SQLite for project_id
          │
          ├── For each SWE.1 requirement:
          │   │
@@ -938,11 +1023,14 @@ analyzer_service.run_requirements_analysis_job()
          │   │   └── LLM evaluates which SWE.2 reqs trace to this SWE.1
          │   │   └── Returns { status, linked_swe2_ids, rationale }
          │   │
+         │   ├── [If correct_trace & FAIL/REVIEW] Call correct_traceability_requirement()
+         │   │
          │   ├── Track covered SWE.2 IDs
          │   │
          │   └── Update result row in DB
          │
          ├── For each uncovered SWE.2:
+         │   ├── [If correct_trace] Call correct_orphaned_swe2()
          │   └── Create "FAIL" result with "Orphaned LLD" rationale
          │
          └── Mark run as "completed"

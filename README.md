@@ -2,10 +2,11 @@
 
 AIRAM is an agentic automotive requirements analysis and compliance validation tool. It provides:
 1. **Requirements Compliance & Quality Auditor**: Evaluates software requirements (such as SWE.1 HLR or SWE.2 LLR) against strict guidelines (e.g. INCOSE, ASPICE rules) using LLMs and gives audit statuses (PASS / REVIEW) along with suggested rewrites if violations are found.
-2. **Requirements Traceability Analyzer**: Evaluates tracing compliance between Low-Level Software Requirements (SWE.2) and High-Level System Requirements (SWE.1).
-3. **RAG (Retrieval-Augmented Generation) Ingestion**: Supports progressive database segmenting and indexing of guidelines documents (such as PDF files, Excel lists, CSVs, TXTs) using layout-aware `pymupdf` and `pymupdf4llm` extraction with configurable target collections and page ranges.
-4. **Manual Retrieval Querying**: Lets you verify semantic Qdrant retrieval scores across dynamic custom guideline collections.
-5. **Interactive Dashboard**: Visualizes execution history runs, stacked compliance statistics, and Qdrant chunking metrics.
+2. **Requirements Traceability Analyzer**: Evaluates tracing compliance between Low-Level Software Requirements (SWE.2) and High-Level System Requirements (SWE.1) with automated orphan LLD rewriting.
+3. **Workspace Project Management**: Provides workspace containers to store SWE.1/SWE.2 requirements datasets persistently in SQLite and manage multi-project validation lifecycles.
+4. **RAG (Retrieval-Augmented Generation) Ingestion**: Supports progressive database segmenting and indexing of guidelines documents (such as PDF files, Excel lists, CSVs, TXTs) using layout-aware extraction with page-range controls and Qdrant Cloud vector database integration.
+5. **Manual Retrieval Querying**: Lets you verify semantic Qdrant retrieval scores across dynamic custom guideline collections.
+6. **Interactive Dashboard**: Visualizes execution history runs, stacked compliance statistics, and Qdrant chunking metrics with WebSocket health monitoring.
 
 ---
 
@@ -32,7 +33,6 @@ Before running the application, make sure you have the following installed on yo
      ```
    - **On macOS/Linux**:
      ```bash
-     python -m venv myenv
      source myenv/bin/activate
      ```
 
@@ -49,8 +49,7 @@ Before running the application, make sure you have the following installed on yo
    QDRANT_API_KEY=your-qdrant-api-key-here
 
    # LLM Model Access (NVIDIA NIM or OpenAI compatible base URL)
-   OPENAI_API_KEY=nvapi-your-nvidia-nim-api-key-here
-   OPENAI_BASE_URL=https://integrate.api.nvidia.com/v1
+   NVIDIA_API_KEY=nvapi-your-nvidia-nim-api-key-here
    ```
 
 5. Launch the FastAPI server:
@@ -83,17 +82,23 @@ Before running the application, make sure you have the following installed on yo
 
 ## 3. How to Use the Studio
 
-### Requirement Validation
-1. Go to the **Standards Setup** tab to upload strict guidelines files (in JSON format) if using strict guidelines.
-2. Go to the **Requirement Analysis** tab.
-3. Upload your SWE.1 (HLR) or SWE.2 (LLR) requirements (in CSV or XLSX format).
-4. Configure which actions to run (Quality Analysis, Quality Correction, Traceability Analysis, or Traceability Correction) using the checkboxes.
-5. Select whether to use the **RAG Engine** (which queries semantic chunks from Qdrant vector database) or **Strict Guidelines** files.
-6. Click **Start Execution** to run validation row-by-row with progressive UI updates.
+### Workspace Project Setup
+1. Go to the **Projects** tab.
+2. Click **+ New Project** to open the creation modal.
+3. Enter your Project Name, Description, and upload your **SWE.1 (HLR)** and **SWE.2 (LLR)** CSV or XLSX files.
+4. Your requirements are automatically parsed, normalized, and saved to the SQLite workspace database.
+
+### Requirement Validation & Traceability
+1. Go to the **Requirement Analysis** tab.
+2. Select your active project from the **Project** dropdown.
+3. Select whether to use the **RAG Engine** (semantic search over vector DB) or **Strict Guidelines** (JSON rule files uploaded via Standards Setup).
+4. Configure analysis options (Quality Analysis, Quality Correction, Traceability Analysis, Traceability Correction) using the checkboxes.
+5. Click **Start Execution** to run validation row-by-row with live progress tracking, pause/resume/stop control, and full rationale outputs.
 
 ### Progressive RAG Training
 1. Go to the **RAG Configuration** tab.
-2. Choose a PDF, JSON, or TXT guideline document to upload.
+2. Choose a PDF, JSON, CSV, XLSX, or TXT guideline document to upload.
 3. The configuration dialog will pop up automatically. Configure your **Target Collection** (Create New or Add to Existing) and **PDF Page Range** (e.g. pages 1 to 5).
 4. Confirm and watch the logs list chunking progress and progressive vector commits in real time.
 5. Use the **Manual Retrieval Evaluation** search box at the bottom to verify semantic query relevance scores inside your target collection.
+
