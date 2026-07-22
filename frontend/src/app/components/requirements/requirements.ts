@@ -238,7 +238,12 @@ import { ApiService } from '../../services/api.service';
                       <td style="font-weight: 500; font-family: monospace;">{{ row.failed_rule || 'N/A' }}</td>
                       <td style="color: var(--text-secondary); font-size: 0.8rem;">{{ row.rationale }}</td>
                       <td *ngIf="hasCorrections()" style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px;">
-                        {{ row.corrected_req || '-' }}
+                        <ng-container *ngIf="splitCorrectedReq(row.corrected_req).length > 0; else noQualCorr">
+                          <div *ngFor="let corrReq of splitCorrectedReq(row.corrected_req); let cIdx = index" style="margin-bottom: 6px; line-height: 1.4;">
+                            <span style="color: var(--color-primary); font-weight: 600; margin-right: 6px;">{{cIdx + 1}}.</span>{{ corrReq }}
+                          </div>
+                        </ng-container>
+                        <ng-template #noQualCorr>-</ng-template>
                       </td>
                     </tr>
                   </ng-template>
@@ -251,8 +256,14 @@ import { ApiService } from '../../services/api.service';
                     <tr *ngFor="let corrReq of splitCorrectedReq(row.corrected_req); let i = index">
                       <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
                       <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
-                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.req_id || '-' }}</td>
-                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.input_req || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; max-width: 150px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        <div *ngFor="let swe2 of getSwe2List(row)" style="color: #15803d; margin-bottom: 4px;">{{ swe2.id }}</div>
+                      </td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="max-width: 350px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        <div *ngFor="let swe2 of getSwe2List(row)" style="margin-bottom: 4px; line-height: 1.4;">
+                          <span *ngIf="getSwe2List(row).length > 1" style="font-weight: 600; color: #15803d;">• </span>{{ swe2.text }}
+                        </div>
+                      </td>
                       <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
                         <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
                           {{ row.status }}
@@ -267,19 +278,24 @@ import { ApiService } from '../../services/api.service';
 
                   <!-- Standard single-row traceability view -->
                   <ng-template #singleTraceRowView>
-                    <tr *ngFor="let swe2 of row.parsed_swe2_list; let i = index">
-                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
-                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
+                    <tr *ngFor="let swe2 of getSwe2List(row); let i = index">
+                      <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="font-weight: 600; white-space: nowrap; color: #0369a1; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_id || '-' }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
                       <td style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color);">{{ swe2.id }}</td>
                       <td style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color);">{{ swe2.text }}</td>
-                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                      <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
                         <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
                           {{ row.status }}
                         </span>
                       </td>
-                      <td *ngIf="i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="color: var(--text-secondary); font-size: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.rationale }}</td>
-                      <td *ngIf="hasTraceCorrections() && i === 0" [attr.rowspan]="row.parsed_swe2_list.length" style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); vertical-align: middle;">
-                        {{ row.corrected_req || '-' }}
+                      <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="color: var(--text-secondary); font-size: 0.8rem; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.rationale }}</td>
+                      <td *ngIf="hasTraceCorrections() && i === 0" [attr.rowspan]="getSwe2List(row).length" style="font-weight: 500; color: #1e293b; background-color: #fafafa; border-left: 3px solid #cbd5e1; padding-left: 10px; padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                        <ng-container *ngIf="splitCorrectedReq(row.corrected_req).length > 0; else noTraceCorr">
+                          <div *ngFor="let corrReq of splitCorrectedReq(row.corrected_req); let cIdx = index" style="margin-bottom: 6px; line-height: 1.4;">
+                            <span style="color: var(--color-primary); font-weight: 600; margin-right: 6px;">{{cIdx + 1}}.</span>{{ corrReq }}
+                          </div>
+                        </ng-container>
+                        <ng-template #noTraceCorr>-</ng-template>
                       </td>
                     </tr>
                   </ng-template>
@@ -947,10 +963,6 @@ JSON Schema:
     }
   }
 
-  hasTraceCorrections(): boolean {
-    return this.results.some(r => r.corrected_req && r.corrected_req.trim() && r.corrected_req !== '-');
-  }
-
   startRun() {
     if (!this.selectedProjectId) {
       alert('⚠️ Please select a project before starting execution.');
@@ -1152,35 +1164,48 @@ JSON Schema:
     });
   }
 
+  getSwe2List(row: any): { id: string, text: string }[] {
+    if (!row) return [{ id: '-', text: '-' }];
+    if (row.parsed_swe2_list && row.parsed_swe2_list.length > 0) {
+      return row.parsed_swe2_list;
+    }
+    const parsed = this.getParsedSwe2List(row);
+    row.parsed_swe2_list = parsed;
+    return parsed;
+  }
+
   getParsedSwe2List(row: any): any[] {
-    if (!row.req_id || row.req_id === '-' || row.req_id.trim() === '') {
+    if (!row || !row.req_id || row.req_id === '-' || !row.req_id.trim()) {
+      return [{ id: '-', text: row?.input_req || '-' }];
+    }
+    
+    const ids = row.req_id.split(',').map((id: string) => id.trim()).filter((id: string) => id.length > 0);
+    if (ids.length === 0) {
       return [{ id: '-', text: row.input_req || '-' }];
     }
     
-    const ids = row.req_id.split(',').map((id: string) => id.trim());
-    
-    // Attempt to parse input_req based on "• ID: text" format
-    const texts = row.input_req ? row.input_req.split('\n').map((t: string) => t.trim()) : [];
+    const lines = row.input_req ? row.input_req.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0) : [];
     
     const parsedList = [];
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i];
       let text = '-';
       
-      // Try to find the matching text block by ID
-      const prefix = `• ${id}:`;
-      const match = texts.find((t: string) => t.startsWith(prefix));
-      if (match) {
-        text = match.substring(prefix.length).trim();
-      } else if (texts[i]) {
-        // Fallback: just use the line corresponding to the index
-        text = texts[i].replace(/^•\s*[A-Za-z0-9_\-\.]+:\s*/, '').trim();
+      // Try prefix match: "• ID:" or "ID:" or "• ID -"
+      const prefixRegex = new RegExp(`^(?:•|\\*|-)?\\s*${id}\\s*[:\\-]?\\s*`, 'i');
+      const matchLine = lines.find((l: string) => prefixRegex.test(l));
+      
+      if (matchLine) {
+        text = matchLine.replace(prefixRegex, '').trim();
+      } else if (lines[i]) {
+        // Fallback: use line corresponding to index, cleaning any leading bullet/ID
+        text = lines[i].replace(/^(?:•|\*|-)?\s*[A-Za-z0-9_\-\.]+\s*[:\-]?\s*/, '').trim();
       }
       
-      parsedList.push({ id, text });
+      parsedList.push({ id, text: text || '-' });
     }
     
-    return parsedList.length > 0 ? parsedList : [{ id: '-', text: row.input_req || '-' }];
+    return parsedList.length > 0 ? parsedList : [{ id: row.req_id, text: row.input_req || '-' }];
   }
 
 
@@ -1257,9 +1282,17 @@ JSON Schema:
     return this.filteredResults.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
   }
 
+  hasTraceCorrections(): boolean {
+    if (!this.filteredResults || this.filteredResults.length === 0) return false;
+    return this.filteredResults.some(row => row.corrected_req && row.corrected_req !== '-' && row.corrected_req.trim() !== '');
+  }
+
   splitCorrectedReq(text: string): string[] {
-    if (!text || text === '-') return [];
-    return text.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+    if (!text || text === '-' || !text.trim()) return [];
+    return text
+      .split(/\r?\n/)
+      .map(t => t.trim().replace(/^[\d+\.\•\-\*]+\s*/, ''))
+      .filter(t => t.length > 0);
   }
 
   // Pagination & Reset Methods

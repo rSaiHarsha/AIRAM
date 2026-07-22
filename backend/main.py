@@ -41,7 +41,8 @@ from backend.database import (
 )
 from pydantic import BaseModel
 from backend.rag_service import train_document_stream, search_guideline_chunks, delete_rag_collection
-from backend.analyzer_service import run_requirements_analysis_job, ACTIVE_JOBS, parse_requirements_file
+from backend.analyzer_service import run_requirements_analysis_job, ACTIVE_JOBS
+from backend.file_parser import parse_requirements_file
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
