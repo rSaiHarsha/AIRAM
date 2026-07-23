@@ -360,13 +360,14 @@ def update_execution_result_by_id(
 def get_previous_executions(limit: int = 10, offset: int = 0):
     conn = get_connection()
     cursor = conn.cursor()
-    # Fetch execution runs with a summary count of pass, fail, review
+    # Fetch execution runs with a summary count of pass, fail, review, and corrections
     cursor.execute(f"""
         SELECT 
             r.run_id, r.timestamp, r.type, r.status, r.minimized, r.guideline_name, r.project_name,
             SUM(CASE WHEN s.status = 'PASS' THEN 1 ELSE 0 END) as pass_count,
             SUM(CASE WHEN s.status = 'FAIL' THEN 1 ELSE 0 END) as fail_count,
             SUM(CASE WHEN s.status = 'REVIEW' THEN 1 ELSE 0 END) as review_count,
+            SUM(CASE WHEN s.corrected_req IS NOT NULL AND s.corrected_req != '' THEN 1 ELSE 0 END) as correction_count,
             COUNT(s.id) as total_count
         FROM execution_runs r
         LEFT JOIN execution_results s ON r.run_id = s.run_id
@@ -382,6 +383,14 @@ def get_previous_executions(limit: int = 10, offset: int = 0):
         row_dict = dict(r)
         if "timestamp" in row_dict and row_dict["timestamp"]:
             row_dict["timestamp"] = row_dict["timestamp"].replace(" ", "T") + "Z"
+            
+        t = (row_dict.get("type") or "").lower()
+        has_corrections = (row_dict.get("correction_count", 0) or 0) > 0
+        if t == "quality":
+            row_dict["type"] = "quality_correction" if has_corrections else "quality_analysis"
+        elif t == "traceability":
+            row_dict["type"] = "traceability_correction" if has_corrections else "traceability_analysis"
+            
         results.append(row_dict)
     return results
 
@@ -442,6 +451,70 @@ def save_project_requirements(project_id: str, requirements_list: list, req_type
         )
     conn.commit()
     conn.close()
+
+def append_project_requirements(project_id: str, requirements_list: list, req_type: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Get existing req_ids for this project and type to prevent duplicates
+    cursor.execute(
+        "SELECT req_id FROM project_requirements WHERE project_id = ? AND req_type = ?",
+        (project_id, req_type)
+    )
+    existing_req_ids = {row['req_id'] for row in cursor.fetchall()}
+    
+    appended_count = 0
+    for req in requirements_list:
+        req_id = req.get("id") or "UNKNOWN"
+        if req_id in existing_req_ids:
+            continue
+            
+        content_json = json.dumps(req)
+        cursor.execute(
+            "INSERT INTO project_requirements (project_id, req_id, content, req_type) VALUES (?, ?, ?, ?)",
+            (project_id, req_id, content_json, req_type)
+        )
+        appended_count += 1
+        
+    conn.commit()
+    conn.close()
+    return appended_count
+
+def update_project_requirement(project_id: str, req_type: str, req_id: str, new_text: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, content FROM project_requirements WHERE project_id = ? AND req_type = ? AND req_id = ?",
+        (project_id, req_type, req_id)
+    )
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return False
+        
+    content_obj = json.loads(row["content"])
+    content_obj["text"] = new_text
+    
+    cursor.execute(
+        "UPDATE project_requirements SET content = ? WHERE id = ?",
+        (json.dumps(content_obj), row["id"])
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+def delete_project_requirements(project_id: str, req_type: str, req_ids: list[str]):
+    if not req_ids:
+        return 0
+    conn = get_connection()
+    cursor = conn.cursor()
+    placeholders = ",".join(["?"] * len(req_ids))
+    query = f"DELETE FROM project_requirements WHERE project_id = ? AND req_type = ? AND req_id IN ({placeholders})"
+    cursor.execute(query, [project_id, req_type] + req_ids)
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return deleted
 
 def get_project_requirements_from_db(project_id: str, req_type: str):
     conn = get_connection()
@@ -508,6 +581,30 @@ def delete_project(project_id: str):
     cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
     conn.commit()
     conn.close()
+
+def update_project(project_id: str, name: str, description: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Fetch old project name to update execution_runs if project name changes
+    cursor.execute("SELECT name FROM projects WHERE id = ?", (project_id,))
+    row = cursor.fetchone()
+    old_name = row["name"] if row else None
+    
+    cursor.execute(
+        "UPDATE projects SET name = ?, description = ? WHERE id = ?",
+        (name, description, project_id)
+    )
+    
+    if old_name and old_name != name:
+        cursor.execute(
+            "UPDATE execution_runs SET project_name = ? WHERE project_name = ?",
+            (name, old_name)
+        )
+        
+    conn.commit()
+    conn.close()
+    trigger_render_sync()
 
 def trigger_render_sync():
     try:

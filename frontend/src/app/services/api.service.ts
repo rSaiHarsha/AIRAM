@@ -151,6 +151,31 @@ private baseUrl = window.location.hostname === 'localhost'
     return this.http.post(`${this.baseUrl}/api/projects`, formData);
   }
 
+  appendProjectRequirements(
+    projectId: string,
+    sys1File?: File,
+    sys2File?: File,
+    sys3File?: File,
+    swe1File?: File,
+    swe2File?: File
+  ): Observable<any> {
+    const formData = new FormData();
+    if (sys1File) formData.append('sys1_file', sys1File);
+    if (sys2File) formData.append('sys2_file', sys2File);
+    if (sys3File) formData.append('sys3_file', sys3File);
+    if (swe1File) formData.append('swe1_file', swe1File);
+    if (swe2File) formData.append('swe2_file', swe2File);
+    return this.http.post(`${this.baseUrl}/api/projects/${projectId}/append`, formData);
+  }
+
+  updateProjectRequirement(projectId: string, reqType: string, reqId: string, newText: string): Observable<any> {
+    return this.http.put(`${this.baseUrl}/api/projects/${projectId}/requirements/${reqType}/${reqId}`, { text: newText });
+  }
+
+  deleteProjectRequirements(projectId: string, reqType: string, reqIds: string[]): Observable<any> {
+    return this.http.post(`${this.baseUrl}/api/projects/${projectId}/requirements/${reqType}/delete`, { req_ids: reqIds });
+  }
+
   getProjects(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/api/projects`);
   }
@@ -161,6 +186,10 @@ private baseUrl = window.location.hostname === 'localhost'
 
   deleteProject(projectId: string): Observable<any> {
     return this.http.delete(`${this.baseUrl}/api/projects/${projectId}`);
+  }
+
+  updateProject(projectId: string, name: string, description: string): Observable<any> {
+    return this.http.put(`${this.baseUrl}/api/projects/${projectId}`, { name, description });
   }
 
   // Requirements Analysis Controls & Progress Tracker

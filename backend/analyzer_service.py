@@ -154,7 +154,7 @@ async def run_requirements_analysis_job(
         analysis_items = []
         mode = "quality"
         
-        if run_type == "traceability":
+        if "traceability" in run_type:
             if sys1_reqs:
                 primary_parent_reqs = sys1_reqs
                 child_reqs = sys2_reqs + sys3_reqs + swe1_reqs + swe2_reqs
