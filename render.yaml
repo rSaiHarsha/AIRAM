@@ -3,7 +3,8 @@ services:
     name: requalitrace-backend
     env: python
     buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    startCommand: "cd backend && python main.py"
+    healthCheckPath: /healthz
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
