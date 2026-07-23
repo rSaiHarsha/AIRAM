@@ -5,24 +5,83 @@ import json
 DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "airam.db")
 OLD_DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requalitrace.db")
 
-# Automatically migrate database if old one exists
-if not os.path.exists(DATABASE_PATH) and os.path.exists(OLD_DATABASE_PATH):
-    try:
-        import shutil
-        shutil.copy2(OLD_DATABASE_PATH, DATABASE_PATH)
-        print(f"[database] Migrated old database to {DATABASE_PATH}")
-    except Exception as e:
-        print(f"[database] Failed to migrate database: {e}")
+IS_POSTGRES = bool(os.environ.get("DATABASE_URL"))
+if IS_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+else:
+    # Automatically migrate database if old one exists
+    if not os.path.exists(DATABASE_PATH) and os.path.exists(OLD_DATABASE_PATH):
+        try:
+            import shutil
+            shutil.copy2(OLD_DATABASE_PATH, DATABASE_PATH)
+            print(f"[database] Migrated old database to {DATABASE_PATH}")
+        except Exception as e:
+            print(f"[database] Failed to migrate database: {e}")
+
+class CursorWrapper:
+    def __init__(self, cursor, is_postgres):
+        self._cursor = cursor
+        self.is_postgres = is_postgres
+
+    def execute(self, query, params=()):
+        if self.is_postgres:
+            query = query.replace("?", "%s")
+        self._cursor.execute(query, params)
+        return self
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        return None if self.is_postgres else self._cursor.lastrowid
+
+class ConnectionWrapper:
+    def __init__(self, conn, is_postgres):
+        self._conn = conn
+        self.is_postgres = is_postgres
+
+    def cursor(self):
+        if self.is_postgres:
+            cur = self._conn.cursor(cursor_factory=RealDictCursor)
+        else:
+            cur = self._conn.cursor()
+        return CursorWrapper(cur, self.is_postgres)
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+        
+    def execute(self, query, params=()):
+        cur = self.cursor()
+        cur.execute(query, params)
+        return cur
 
 def get_connection():
-    conn = sqlite3.connect(DATABASE_PATH, timeout=20.0)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.row_factory = sqlite3.Row
-    return conn
+    if IS_POSTGRES:
+        conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
+        return ConnectionWrapper(conn, True)
+    else:
+        conn = sqlite3.connect(DATABASE_PATH, timeout=20.0)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return ConnectionWrapper(conn, False)
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
+    
+    auto_inc = "SERIAL" if IS_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
     
     # Guidelines Table
     cursor.execute("""
@@ -35,9 +94,9 @@ def init_db():
     """)
     
     # Chunks Table for progressive loading & metrics
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS chunks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {auto_inc},
             doc_name TEXT NOT NULL,
             chunk_index INTEGER NOT NULL,
             chunk_text TEXT NOT NULL,
@@ -82,9 +141,9 @@ def init_db():
     cursor.execute("UPDATE execution_runs SET project_name = 'old tests' WHERE project_name IS NULL")
     
     # Execution Results Table
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS execution_results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {auto_inc},
             run_id TEXT NOT NULL,
             req_id TEXT,
             input_req TEXT,
@@ -124,9 +183,9 @@ def init_db():
     """)
     
     # Project Requirements Table
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS project_requirements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {auto_inc},
             project_id TEXT NOT NULL,
             req_id TEXT NOT NULL,
             content TEXT NOT NULL,
@@ -142,10 +201,16 @@ def init_db():
 def save_guidelines(guideline_id: str, name: str, data: dict):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT OR REPLACE INTO guidelines (id, name, content) VALUES (?, ?, ?)",
-        (guideline_id, name, json.dumps(data))
-    )
+    if IS_POSTGRES:
+        cursor.execute(
+            "INSERT INTO guidelines (id, name, content) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, content = EXCLUDED.content",
+            (guideline_id, name, json.dumps(data))
+        )
+    else:
+        cursor.execute(
+            "INSERT OR REPLACE INTO guidelines (id, name, content) VALUES (?, ?, ?)",
+            (guideline_id, name, json.dumps(data))
+        )
     conn.commit()
     conn.close()
 
@@ -236,10 +301,16 @@ def get_chunking_metrics():
 def save_execution_run(run_id: str, run_type: str, status: str, guideline_name: str = None, project_name: str = None):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT OR REPLACE INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?)",
-        (run_id, run_type, status, guideline_name, project_name)
-    )
+    if IS_POSTGRES:
+        cursor.execute(
+            "INSERT INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (run_id) DO UPDATE SET type = EXCLUDED.type, status = EXCLUDED.status, guideline_name = EXCLUDED.guideline_name, project_name = EXCLUDED.project_name",
+            (run_id, run_type, status, guideline_name, project_name)
+        )
+    else:
+        cursor.execute(
+            "INSERT OR REPLACE INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?)",
+            (run_id, run_type, status, guideline_name, project_name)
+        )
     conn.commit()
     conn.close()
 
@@ -313,11 +384,18 @@ def save_execution_result(run_id: str, req_id: str, input_req: str, status: str,
 def create_placeholder_result(run_id: str, req_id: str, input_req: str, category: str = None) -> int:
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
-    )
-    last_id = cursor.lastrowid
+    if IS_POSTGRES:
+        cursor.execute(
+            "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+        )
+        last_id = cursor.fetchone()["id"]
+    else:
+        cursor.execute(
+            "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+        )
+        last_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return last_id
