@@ -59,6 +59,9 @@ class ConnectionWrapper:
     def commit(self):
         self._conn.commit()
 
+    def rollback(self):
+        self._conn.rollback()
+
     def close(self):
         self._conn.close()
         
@@ -120,22 +123,23 @@ def init_db():
             project_name TEXT
         )
     """)
+    add_col = "ADD COLUMN IF NOT EXISTS" if IS_POSTGRES else "ADD COLUMN"
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN current_row INTEGER DEFAULT 0")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} current_row INTEGER DEFAULT 0")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN total_rows INTEGER DEFAULT 0")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} total_rows INTEGER DEFAULT 0")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN guideline_name TEXT")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} guideline_name TEXT")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN project_name TEXT")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} project_name TEXT")
     except Exception:
-        pass
+        conn.rollback()
         
     # Migrate old execution runs to have a default project name
     cursor.execute("UPDATE execution_runs SET project_name = 'old tests' WHERE project_name IS NULL")
@@ -160,13 +164,13 @@ def init_db():
     
     # Safely migrate existing databases
     try:
-        cursor.execute("ALTER TABLE execution_results ADD COLUMN swe1_text TEXT")
+        cursor.execute(f"ALTER TABLE execution_results {add_col} swe1_text TEXT")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_results ADD COLUMN category TEXT")
+        cursor.execute(f"ALTER TABLE execution_results {add_col} category TEXT")
     except Exception:
-        pass
+        conn.rollback()
         
     # Migrate old categories
     cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
