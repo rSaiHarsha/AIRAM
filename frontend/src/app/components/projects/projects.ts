@@ -81,10 +81,13 @@ import { ApiService } from '../../services/api.service';
             
             <!-- Tabs Nav -->
             <div style="padding: 0 24px; border-bottom: 1px solid var(--border-color); background: #f8fafc;">
-              <div class="tabs-nav" style="display: flex; gap: 32px; margin-top: 8px;">
+              <div class="tabs-nav" style="display: flex; gap: 24px; margin-top: 8px; overflow-x: auto;">
                 <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">Overview</button>
-                <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'">SWE.1 Requirements ({{reqs.swe1.length}})</button>
-                <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'">SWE.2 Requirements ({{reqs.swe2.length}})</button>
+                <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'" *ngIf="reqs.sys1 && reqs.sys1.length > 0">SYS.1 Reqs ({{reqs.sys1.length}})</button>
+                <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'" *ngIf="reqs.sys2 && reqs.sys2.length > 0">SYS.2 Reqs ({{reqs.sys2.length}})</button>
+                <button class="tab-btn" [class.active]="activeTab === 'sys3'" (click)="activeTab = 'sys3'" *ngIf="reqs.sys3 && reqs.sys3.length > 0">SYS.3 Reqs ({{reqs.sys3.length}})</button>
+                <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'" *ngIf="reqs.swe1 && reqs.swe1.length > 0">SWE.1 Reqs ({{reqs.swe1.length}})</button>
+                <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'" *ngIf="reqs.swe2 && reqs.swe2.length > 0">SWE.2 Reqs ({{reqs.swe2.length}})</button>
                 <button class="tab-btn" [class.active]="activeTab === 'trace'" (click)="activeTab = 'trace'">Traceability</button>
               </div>
             </div>
@@ -102,40 +105,112 @@ import { ApiService } from '../../services/api.service';
                 </div>
 
                 <div *ngIf="!isLoadingReqs" style="display: flex; gap: 24px; flex-wrap: wrap;">
-                  <!-- SWE 1 Card -->
-                  <div class="document-card" *ngIf="reqs.swe1.length > 0" style="width: 320px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                  <!-- SYS 1 Card -->
+                  <div class="document-card" *ngIf="reqs.sys1 && reqs.sys1.length > 0" style="width: 300px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #f0fdf4);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                       <div style="display: flex; gap: 12px; align-items: flex-start;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
                         <div>
-                          <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">SWE.1 Requirements</div>
-                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">System / HLR</div>
+                          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">SYS.1 Requirements</div>
+                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Requirements Elicitation</div>
                         </div>
                       </div>
-                      <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ANALYZED</span>
+                      <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">MANDATORY</span>
                     </div>
                     
-                    <div style="display: flex; gap: 24px; margin-bottom: 24px;">
+                    <div style="display: flex; gap: 24px; margin-bottom: 20px;">
                       <div>
                         <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
-                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">{{ reqs.swe1.length }}</div>
-                      </div>
-                      <div>
-                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Conflicts</div>
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">0</div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">{{ reqs.sys1.length }}</div>
                       </div>
                     </div>
                     
-                    <div style="border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; color: #64748b;">
-                          S
-                        </div>
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.75rem; color: var(--text-secondary);">System Level 1</span>
+                      <button class="btn btn-secondary btn-sm" (click)="activeTab = 'sys1'" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0;">
+                        View Details →
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- SYS 2 Card -->
+                  <div class="document-card" *ngIf="reqs.sys2 && reqs.sys2.length > 0" style="width: 300px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #eff6ff);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                      <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
                         <div>
-                          <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">System</div>
-                          <div style="font-size: 0.65rem; color: var(--text-secondary);">Extracted dataset</div>
+                          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">SYS.2 Requirements</div>
+                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">System Req Analysis</div>
                         </div>
                       </div>
+                      <span class="badge" style="background: #dbeafe; color: #1e40af; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">OPTIONAL</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                      <div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">{{ reqs.sys2.length }}</div>
+                      </div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.75rem; color: var(--text-secondary);">System Level 2</span>
+                      <button class="btn btn-secondary btn-sm" (click)="activeTab = 'sys2'" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0;">
+                        View Details →
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- SYS 3 Card -->
+                  <div class="document-card" *ngIf="reqs.sys3 && reqs.sys3.length > 0" style="width: 300px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #faf5ff);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                      <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                        <div>
+                          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">SYS.3 Requirements</div>
+                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">System Arch Design</div>
+                        </div>
+                      </div>
+                      <span class="badge" style="background: #f3e8ff; color: #6b21a8; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">OPTIONAL</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                      <div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">{{ reqs.sys3.length }}</div>
+                      </div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.75rem; color: var(--text-secondary);">System Level 3</span>
+                      <button class="btn btn-secondary btn-sm" (click)="activeTab = 'sys3'" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0;">
+                        View Details →
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- SWE 1 Card -->
+                  <div class="document-card" *ngIf="reqs.swe1 && reqs.swe1.length > 0" style="width: 300px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                      <div style="display: flex; gap: 12px; align-items: flex-start;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                        <div>
+                          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">SWE.1 Requirements</div>
+                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Software Req Analysis</div>
+                        </div>
+                      </div>
+                      <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">SOFTWARE</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                      <div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">{{ reqs.swe1.length }}</div>
+                      </div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.75rem; color: var(--text-secondary);">Software Level 1</span>
                       <button class="btn btn-secondary btn-sm" (click)="activeTab = 'swe1'" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0;">
                         View Details →
                       </button>
@@ -143,52 +218,41 @@ import { ApiService } from '../../services/api.service';
                   </div>
                   
                   <!-- SWE 2 Card -->
-                  <div class="document-card" *ngIf="reqs.swe2.length > 0" style="width: 320px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #fffbeb);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                  <div class="document-card" *ngIf="reqs.swe2 && reqs.swe2.length > 0" style="width: 300px; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #fffbeb);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                       <div style="display: flex; gap: 12px; align-items: flex-start;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
                         <div>
-                          <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">SWE.2 Requirements</div>
-                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Software / LLR</div>
+                          <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">SWE.2 Requirements</div>
+                          <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Software Arch Design</div>
                         </div>
                       </div>
-                      <span class="badge" style="background: #fef3c7; color: #b45309; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">ANALYZING</span>
+                      <span class="badge" style="background: #fef3c7; color: #b45309; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px;">SOFTWARE</span>
                     </div>
                     
-                    <div style="margin-bottom: 24px;">
-                      <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">
-                        <span>Processing Dataset...</span>
-                        <span>100%</span>
-                      </div>
-                      <div style="height: 6px; background: #fde68a; border-radius: 3px; overflow: hidden;">
-                        <div style="height: 100%; width: 100%; background: #f59e0b; border-radius: 3px;"></div>
+                    <div style="display: flex; gap: 24px; margin-bottom: 20px;">
+                      <div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">{{ reqs.swe2.length }}</div>
                       </div>
                     </div>
                     
-                    <div style="border-top: 1px solid rgba(0,0,0,0.05); padding-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                      <div style="display: flex; align-items: center; gap: 8px;">
-                        <div style="width: 24px; height: 24px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; color: #64748b;">
-                          S
-                        </div>
-                        <div>
-                          <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">System</div>
-                          <div style="font-size: 0.65rem; color: var(--text-secondary);">Extracted dataset</div>
-                        </div>
-                      </div>
+                    <div style="border-top: 1px solid rgba(0,0,0,0.05); padding-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.75rem; color: var(--text-secondary);">Software Level 2</span>
                       <button class="btn btn-secondary btn-sm" (click)="activeTab = 'swe2'" style="border: none; background: none; color: var(--text-secondary); font-weight: 600; padding: 0;">
-                        View Details
+                        View Details →
                       </button>
                     </div>
                   </div>
                   
-                  <div *ngIf="reqs.swe1.length === 0 && reqs.swe2.length === 0" style="color: var(--text-secondary); font-size: 0.9rem;">
+                  <div *ngIf="(!reqs.sys1 || reqs.sys1.length === 0) && (!reqs.sys2 || reqs.sys2.length === 0) && (!reqs.sys3 || reqs.sys3.length === 0) && (!reqs.swe1 || reqs.swe1.length === 0) && (!reqs.swe2 || reqs.swe2.length === 0)" style="color: var(--text-secondary); font-size: 0.9rem;">
                     No requirements extracted for this project.
                   </div>
                 </div>
               </div>
               
-              <!-- Requirement Lists (SWE1 & SWE2) -->
-              <div *ngIf="activeTab === 'swe1' || activeTab === 'swe2'" style="padding: 0;">
+              <!-- Requirement Lists (SYS1, SYS2, SYS3, SWE1, SWE2) -->
+              <div *ngIf="activeTab === 'sys1' || activeTab === 'sys2' || activeTab === 'sys3' || activeTab === 'swe1' || activeTab === 'swe2'" style="padding: 0;">
                 <div *ngIf="isLoadingReqs" style="padding: 40px; text-align: center; color: var(--text-secondary);">
                   Loading requirements...
                 </div>
@@ -203,36 +267,19 @@ import { ApiService } from '../../services/api.service';
                       </tr>
                     </thead>
                     <tbody>
-                      <ng-container *ngIf="activeTab === 'swe1'">
-                        <tr *ngFor="let r of reqs.swe1" style="border-bottom: 1px solid var(--border-color);">
-                          <td style="padding: 16px 24px; font-weight: 600; color: var(--color-primary); white-space: nowrap; vertical-align: top;">{{ r.id }}</td>
-                          <td style="padding: 16px 24px; color: var(--text-primary); vertical-align: top;">{{ r.text }}</td>
-                          <td style="padding: 16px 24px; vertical-align: top;">
-                            <span *ngIf="r.analysis?.status === 'PASS'" class="badge" style="background: #dcfce7; color: #16a34a; font-size: 0.7rem;">PASS</span>
-                            <span *ngIf="r.analysis?.status === 'FAIL'" class="badge" style="background: #fee2e2; color: #dc2626; font-size: 0.7rem;">FAIL</span>
-                            <span *ngIf="r.analysis?.status === 'REVIEW'" class="badge" style="background: #fef3c7; color: #d97706; font-size: 0.7rem;">REVIEW</span>
-                            <span *ngIf="!r.analysis?.status" class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.7rem;">UNTESTED</span>
-                          </td>
-                        </tr>
-                        <tr *ngIf="reqs.swe1.length === 0">
-                          <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-secondary);">No SWE.1 requirements found.</td>
-                        </tr>
-                      </ng-container>
-                      <ng-container *ngIf="activeTab === 'swe2'">
-                        <tr *ngFor="let r of reqs.swe2" style="border-bottom: 1px solid var(--border-color);">
-                          <td style="padding: 16px 24px; font-weight: 600; color: var(--color-primary); white-space: nowrap; vertical-align: top;">{{ r.id }}</td>
-                          <td style="padding: 16px 24px; color: var(--text-primary); vertical-align: top;">{{ r.text }}</td>
-                          <td style="padding: 16px 24px; vertical-align: top;">
-                            <span *ngIf="r.analysis?.status === 'PASS'" class="badge" style="background: #dcfce7; color: #16a34a; font-size: 0.7rem;">PASS</span>
-                            <span *ngIf="r.analysis?.status === 'FAIL'" class="badge" style="background: #fee2e2; color: #dc2626; font-size: 0.7rem;">FAIL</span>
-                            <span *ngIf="r.analysis?.status === 'REVIEW'" class="badge" style="background: #fef3c7; color: #d97706; font-size: 0.7rem;">REVIEW</span>
-                            <span *ngIf="!r.analysis?.status" class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.7rem;">UNTESTED</span>
-                          </td>
-                        </tr>
-                        <tr *ngIf="reqs.swe2.length === 0">
-                          <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-secondary);">No SWE.2 requirements found.</td>
-                        </tr>
-                      </ng-container>
+                      <tr *ngFor="let r of reqs[activeTab] || []" style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 16px 24px; font-weight: 600; color: var(--color-primary); white-space: nowrap; vertical-align: top;">{{ r.id }}</td>
+                        <td style="padding: 16px 24px; color: var(--text-primary); vertical-align: top;">{{ r.text }}</td>
+                        <td style="padding: 16px 24px; vertical-align: top;">
+                          <span *ngIf="r.analysis?.status === 'PASS'" class="badge" style="background: #dcfce7; color: #16a34a; font-size: 0.7rem;">PASS</span>
+                          <span *ngIf="r.analysis?.status === 'FAIL'" class="badge" style="background: #fee2e2; color: #dc2626; font-size: 0.7rem;">FAIL</span>
+                          <span *ngIf="r.analysis?.status === 'REVIEW'" class="badge" style="background: #fef3c7; color: #d97706; font-size: 0.7rem;">REVIEW</span>
+                          <span *ngIf="!r.analysis?.status" class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.7rem;">UNTESTED</span>
+                        </td>
+                      </tr>
+                      <tr *ngIf="!reqs[activeTab] || reqs[activeTab].length === 0">
+                        <td colspan="3" style="text-align: center; padding: 40px; color: var(--text-secondary);">No {{ activeTab | uppercase }} requirements found.</td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -277,7 +324,7 @@ import { ApiService } from '../../services/api.service';
                      </div>
                    </div>
                  </div>
-              </div>
+               </div>
 
             </div>
           </div>
@@ -302,48 +349,96 @@ import { ApiService } from '../../services/api.service';
 
     <!-- Upload Modal -->
     <div class="modal-backdrop" *ngIf="showUploadModal">
-      <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-card" style="max-width: 650px;">
         <div class="modal-header">
           <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">Upload New Project</h3>
           <button type="button" class="modal-close" (click)="closeUploadModal()">✕</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
           <div class="form-group">
             <label class="form-label">Project Name <span style="color: var(--color-danger);">*</span></label>
-            <input type="text" [(ngModel)]="newProject.name" placeholder="e.g. BCM Requirements v2.1" style="width: 100%;">
+            <input type="text" [(ngModel)]="newProject.name" placeholder="e.g. ADAS System Requirements v1.0" style="width: 100%;">
           </div>
-          <div class="form-group" style="margin-top: 16px;">
+          <div class="form-group" style="margin-top: 14px;">
             <label class="form-label">Description (Optional)</label>
-            <textarea [(ngModel)]="newProject.description" placeholder="Brief description of this project..." rows="3" style="width: 100%; resize: vertical; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-family: inherit; font-size: 0.9rem;"></textarea>
+            <textarea [(ngModel)]="newProject.description" placeholder="Brief description of this project..." rows="2" style="width: 100%; resize: vertical; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 0.85rem;"></textarea>
           </div>
           
-          <div style="display: flex; gap: 16px; margin-top: 20px;">
+          <!-- Mandatory SYS.1 Section -->
+          <div style="margin-top: 16px; padding: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+            <label class="form-label" style="color: #166534; font-weight: 700; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span>SYS.1 / Requirements Elicitation <span style="color: var(--color-danger);">* (Mandatory)</span></span>
+              <span class="badge" style="background: #166534; color: #fff; font-size: 0.6rem; font-weight: 700; padding: 2px 6px;">MANDATORY</span>
+            </label>
+            <div class="dropzone" [class.has-file]="newProject.sys1File" style="height: 80px; padding: 12px; position: relative; background: #ffffff;" (click)="sys1Input.click()">
+              <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+                <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all; color: var(--text-primary);">
+                  {{ newProject.sys1File ? '📄 ' + newProject.sys1File.name : 'Click to upload SYS.1 CSV/XLSX file' }}
+                </div>
+              </div>
+              <input #sys1Input type="file" (change)="onFileSelected($event, 'sys1')" style="display: none;" accept=".csv,.xlsx">
+            </div>
+          </div>
+
+          <!-- Optional Requirements Levels -->
+          <div style="margin-top: 16px; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">
+            Optional Requirement Hierarchy Levels
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
+            <!-- SYS.2 Upload -->
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">SYS.2 / System Req Analysis</label>
+              <div class="dropzone" [class.has-file]="newProject.sys2File" style="height: 70px; padding: 10px; position: relative;" (click)="sys2Input.click()">
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  <div class="dropzone-text" style="font-size: 0.75rem; text-align: center; word-break: break-all;">
+                    {{ newProject.sys2File ? newProject.sys2File.name : 'Upload SYS.2 CSV/XLSX' }}
+                  </div>
+                </div>
+                <input #sys2Input type="file" (change)="onFileSelected($event, 'sys2')" style="display: none;" accept=".csv,.xlsx">
+              </div>
+            </div>
+
+            <!-- SYS.3 Upload -->
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">SYS.3 / System Arch Design</label>
+              <div class="dropzone" [class.has-file]="newProject.sys3File" style="height: 70px; padding: 10px; position: relative;" (click)="sys3Input.click()">
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  <div class="dropzone-text" style="font-size: 0.75rem; text-align: center; word-break: break-all;">
+                    {{ newProject.sys3File ? newProject.sys3File.name : 'Upload SYS.3 CSV/XLSX' }}
+                  </div>
+                </div>
+                <input #sys3Input type="file" (change)="onFileSelected($event, 'sys3')" style="display: none;" accept=".csv,.xlsx">
+              </div>
+            </div>
+
             <!-- SWE.1 Upload -->
-            <div style="flex: 1;">
-              <label class="form-label">SWE 1 / HLR Document <span style="color: var(--color-danger);">*</span></label>
-              <div class="dropzone" [class.has-file]="newProject.swe1File" style="height: 100px; padding: 16px; position: relative;" (click)="swe1Input.click()">
-                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
-                  <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all;">
-                    {{ newProject.swe1File ? newProject.swe1File.name : 'Click to upload CSV/XLSX' }}
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">SWE.1 / Software Req Analysis</label>
+              <div class="dropzone" [class.has-file]="newProject.swe1File" style="height: 70px; padding: 10px; position: relative;" (click)="swe1Input.click()">
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  <div class="dropzone-text" style="font-size: 0.75rem; text-align: center; word-break: break-all;">
+                    {{ newProject.swe1File ? newProject.swe1File.name : 'Upload SWE.1 CSV/XLSX' }}
                   </div>
                 </div>
                 <input #swe1Input type="file" (change)="onFileSelected($event, 'swe1')" style="display: none;" accept=".csv,.xlsx">
               </div>
             </div>
-            
+
             <!-- SWE.2 Upload -->
-            <div style="flex: 1;">
-              <label class="form-label">SWE 2 / LLR Document <span style="font-weight: normal; color: var(--text-secondary);">(Optional)</span></label>
-              <div class="dropzone" [class.has-file]="newProject.swe2File" style="height: 100px; padding: 16px; position: relative;" (click)="swe2Input.click()">
-                <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
-                  <div class="dropzone-text" style="font-size: 0.8rem; text-align: center; word-break: break-all;">
-                    {{ newProject.swe2File ? newProject.swe2File.name : 'Click to upload CSV/XLSX' }}
+            <div>
+              <label class="form-label" style="font-size: 0.8rem;">SWE.2 / Software Arch Design</label>
+              <div class="dropzone" [class.has-file]="newProject.swe2File" style="height: 70px; padding: 10px; position: relative;" (click)="swe2Input.click()">
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  <div class="dropzone-text" style="font-size: 0.75rem; text-align: center; word-break: break-all;">
+                    {{ newProject.swe2File ? newProject.swe2File.name : 'Upload SWE.2 CSV/XLSX' }}
                   </div>
                 </div>
                 <input #swe2Input type="file" (change)="onFileSelected($event, 'swe2')" style="display: none;" accept=".csv,.xlsx">
               </div>
             </div>
           </div>
+
           <div *ngIf="uploadedStatus" class="alert alert-success" style="margin-top: 16px; padding: 12px; background: #e6f4ea; color: var(--color-success); border-radius: 6px; font-size: 0.85rem;">
             {{ uploadedStatus }}
           </div>
@@ -351,9 +446,9 @@ import { ApiService } from '../../services/api.service';
             {{ uploadError }}
           </div>
           
-          <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+          <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
             <button class="btn btn-secondary" (click)="closeUploadModal()" [disabled]="isUploading">{{ uploadedStatus ? 'Close' : 'Cancel' }}</button>
-            <button class="btn btn-primary" (click)="uploadProject()" [disabled]="isUploading || !newProject.name || !newProject.swe1File">
+            <button class="btn btn-primary" (click)="uploadProject()" [disabled]="isUploading || !newProject.name || !newProject.sys1File">
               {{ isUploading ? 'Uploading...' : 'Create Project' }}
             </button>
           </div>
@@ -424,7 +519,7 @@ import { ApiService } from '../../services/api.service';
     .modal-card {
       background: #ffffff;
       border-radius: 12px;
-      width: 500px;
+      width: 650px;
       max-width: 90vw;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -466,12 +561,15 @@ export class ProjectsComponent implements OnInit {
   selectedProject: any = null;
   
   reqs = {
+    sys1: [] as any[],
+    sys2: [] as any[],
+    sys3: [] as any[],
     swe1: [] as any[],
     swe2: [] as any[]
   };
   projectHistory: any[] = [];
   isLoadingReqs = false;
-  activeTab: 'overview' | 'swe1' | 'swe2' | 'trace' = 'overview';
+  activeTab: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' = 'overview';
   
   showUploadModal = false;
   isUploading = false;
@@ -479,6 +577,9 @@ export class ProjectsComponent implements OnInit {
   newProject = {
     name: '',
     description: '',
+    sys1File: null as File | null,
+    sys2File: null as File | null,
+    sys3File: null as File | null,
     swe1File: null as File | null,
     swe2File: null as File | null
   };
@@ -523,7 +624,7 @@ export class ProjectsComponent implements OnInit {
     this.selectedProject = project;
     this.isLoadingReqs = true;
     this.activeTab = 'overview';
-    this.reqs = { swe1: [], swe2: [] };
+    this.reqs = { sys1: [], sys2: [], sys3: [], swe1: [], swe2: [] };
     this.projectHistory = [];
     this.cdr.detectChanges();
     
@@ -575,7 +676,7 @@ export class ProjectsComponent implements OnInit {
   }
 
   openUploadModal() {
-    this.newProject = { name: '', description: '', swe1File: null, swe2File: null };
+    this.newProject = { name: '', description: '', sys1File: null, sys2File: null, sys3File: null, swe1File: null, swe2File: null };
     this.uploadedStatus = '';
     this.uploadError = '';
     this.showUploadModal = true;
@@ -589,22 +690,28 @@ export class ProjectsComponent implements OnInit {
     }
   }
 
-  onFileSelected(event: any, type: 'swe1' | 'swe2') {
+  onFileSelected(event: any, type: 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2') {
     const file = event.target.files[0];
     if (file) {
-      if (type === 'swe1') {
-        this.newProject.swe1File = file;
+      if (type === 'sys1') {
+        this.newProject.sys1File = file;
         if (!this.newProject.name) {
           this.newProject.name = file.name.replace(/\.[^/.]+$/, '');
         }
-      } else {
+      } else if (type === 'sys2') {
+        this.newProject.sys2File = file;
+      } else if (type === 'sys3') {
+        this.newProject.sys3File = file;
+      } else if (type === 'swe1') {
+        this.newProject.swe1File = file;
+      } else if (type === 'swe2') {
         this.newProject.swe2File = file;
       }
     }
   }
 
   uploadProject() {
-    if (!this.newProject.name || !this.newProject.swe1File) return;
+    if (!this.newProject.name || !this.newProject.sys1File) return;
     
     this.isUploading = true;
     this.uploadedStatus = '';
@@ -613,7 +720,10 @@ export class ProjectsComponent implements OnInit {
     this.apiService.createProject(
       this.newProject.name,
       this.newProject.description,
-      this.newProject.swe1File,
+      this.newProject.sys1File,
+      this.newProject.sys2File || undefined,
+      this.newProject.sys3File || undefined,
+      this.newProject.swe1File || undefined,
       this.newProject.swe2File || undefined
     ).subscribe({
       next: (res) => {

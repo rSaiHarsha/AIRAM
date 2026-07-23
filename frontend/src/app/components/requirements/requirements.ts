@@ -176,6 +176,9 @@ import { ApiService } from '../../services/api.service';
         
         <div style="padding: 0 24px;">
           <div class="tabs-nav">
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys3'" (click)="activeTab = 'sys3'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys3')">SYS 3 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe1')">SWE 1 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe2')">SWE 2 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
@@ -735,7 +738,7 @@ JSON Schema:
   isTraceabilityRun = false;
   
   // Tab state for output table
-  activeTab: 'swe1' | 'swe2' | 'traceability' = 'swe1';
+  activeTab: 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'traceability' = 'sys1';
   
   private timerSubscription: any;
 

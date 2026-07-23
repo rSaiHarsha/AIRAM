@@ -92,6 +92,9 @@ def analyze_quality(
 async def run_requirements_analysis_job(
     run_id: str,
     run_type: str,
+    sys1_reqs_raw: list = None,
+    sys2_reqs_raw: list = None,
+    sys3_reqs_raw: list = None,
     swe1_reqs_raw: list = None,
     swe2_reqs_raw: list = None,
     guideline_id: str = None,
@@ -123,57 +126,53 @@ async def run_requirements_analysis_job(
         # Initialize LLMManager using passed model
         llm_manager = LLMManager(model_name=model_name, analysis_model_name=model_name)
         print(f"[TRACE] LLM initialized. API key present: {llm_manager.client.api_key != 'mock-key'}", flush=True)
-        swe1_reqs_raw = swe1_reqs_raw or []
-        swe2_reqs_raw = swe2_reqs_raw or []
-        print(f"[TRACE] Loaded SWE1: {len(swe1_reqs_raw)} rows, SWE2: {len(swe2_reqs_raw)} rows", flush=True)
         
-        # Debug: print first parsed row keys to verify header mapping
-        if swe1_reqs_raw:
-            print(f"[TRACE] SWE1 first row keys: {list(swe1_reqs_raw[0].keys())}", flush=True)
-            print(f"[TRACE] SWE1 first row id: {swe1_reqs_raw[0].get('id', 'MISSING')}", flush=True)
-        if swe2_reqs_raw:
-            print(f"[TRACE] SWE2 first row keys: {list(swe2_reqs_raw[0].keys())}", flush=True)
-            print(f"[TRACE] SWE2 first row covers value: {swe2_reqs_raw[0].get('covers', swe2_reqs_raw[0].get('Covers', swe2_reqs_raw[0].get('Mapped_SWE1_ID', 'MISSING')))}", flush=True)
+        def make_req_objects(raw_list, category_name):
+            reqs = []
+            for idx, item in enumerate(raw_list or []):
+                req = Requirement(
+                    name=item.get("id", f"{category_name.upper()}-{idx+1}"),
+                    content=item.get("text", ""),
+                    state=item.get("state", item.get("State", "")),
+                    asil=item.get("asil", item.get("ASIL", "")),
+                    rationale=item.get("rationale", item.get("Rationale", "")),
+                    covers=item.get("covers", item.get("Covers", item.get("Mapped_SWE1_ID", item.get("mapped_swe1_id", ""))))
+                )
+                req.category = category_name
+                reqs.append(req)
+            return reqs
+
+        sys1_reqs = make_req_objects(sys1_reqs_raw, "sys1")
+        sys2_reqs = make_req_objects(sys2_reqs_raw, "sys2")
+        sys3_reqs = make_req_objects(sys3_reqs_raw, "sys3")
+        swe1_reqs = make_req_objects(swe1_reqs_raw, "swe1")
+        swe2_reqs = make_req_objects(swe2_reqs_raw, "swe2")
         
-        # Convert lists to Requirement objects compatible with POC analyzer
-        swe1_reqs = []
-        for idx, item in enumerate(swe1_reqs_raw):
-            swe1_reqs.append(Requirement(
-                name=item.get("id", f"REQ-{idx+1}"),
-                content=item.get("text", ""),
-                state=item.get("state", item.get("State", "")),
-                asil=item.get("asil", item.get("ASIL", "")),
-                rationale=item.get("rationale", item.get("Rationale", "")),
-                covers=item.get("covers", item.get("Mapped_SWE1_ID", item.get("mapped_swe1_id", "")))
-            ))
-            swe1_reqs[-1].category = "swe1"
-            
-        swe2_reqs = []
-        for idx, item in enumerate(swe2_reqs_raw):
-            swe2_reqs.append(Requirement(
-                name=item.get("id", f"REQ-{idx+1}"),
-                content=item.get("text", ""),
-                state=item.get("state", item.get("State", "")),
-                asil=item.get("asil", item.get("ASIL", "")),
-                rationale=item.get("rationale", item.get("Rationale", "")),
-                covers=item.get("covers", item.get("Covers", item.get("Mapped_SWE1_ID", item.get("mapped_swe1_id", ""))))
-            ))
-            swe2_reqs[-1].category = "swe2"
-        
-        print(f"[TRACE] Built {len(swe1_reqs)} SWE1 Requirement objects, {len(swe2_reqs)} SWE2 Requirement objects", flush=True)
-        if swe2_reqs:
-            print(f"[TRACE] SWE2[0] name={swe2_reqs[0].name}, covers='{swe2_reqs[0].covers}'", flush=True)
+        print(f"[TRACE] Loaded SYS1: {len(sys1_reqs)}, SYS2: {len(sys2_reqs)}, SYS3: {len(sys3_reqs)}, SWE1: {len(swe1_reqs)}, SWE2: {len(swe2_reqs)}", flush=True)
         
         # Determine what we are analyzing
         analysis_items = []
         mode = "quality"
         
         if run_type == "traceability":
-            analysis_items = swe1_reqs
+            if sys1_reqs:
+                primary_parent_reqs = sys1_reqs
+                child_reqs = sys2_reqs + sys3_reqs + swe1_reqs + swe2_reqs
+            elif sys2_reqs:
+                primary_parent_reqs = sys2_reqs
+                child_reqs = sys3_reqs + swe1_reqs + swe2_reqs
+            elif swe1_reqs:
+                primary_parent_reqs = swe1_reqs
+                child_reqs = swe2_reqs
+            else:
+                primary_parent_reqs = sys3_reqs or swe2_reqs
+                child_reqs = []
+                
+            analysis_items = primary_parent_reqs
             mode = "traceability"
         else:
-            # For quality or combined analysis, process all requirements
-            analysis_items = swe1_reqs + swe2_reqs
+            # For quality or combined analysis, process all requirements across all levels
+            analysis_items = sys1_reqs + sys2_reqs + sys3_reqs + swe1_reqs + swe2_reqs
             mode = "quality"
             
         total_rows = len(analysis_items)
@@ -201,7 +200,7 @@ async def run_requirements_analysis_job(
             qa_mod.CURRENT_RULES = None
             
         # Loop and analyze row-by-row
-        covered_swe2_ids = set()
+        covered_child_ids = set()
         for idx, r in enumerate(analysis_items):
             print(f"[TRACE] Processing row {idx+1}/{total_rows}: {r.name}", flush=True)
             
@@ -258,20 +257,20 @@ async def run_requirements_analysis_job(
             # Analyze using LLM or local fallbacks based on mode
             if mode == "traceability":
                 print(f"[TRACE]   Using LLM for {r.name}...", flush=True)
-                result = await asyncio.to_thread(analyze_traceability_from_swe1_with_llm, r, swe2_reqs, llm_manager)
+                result = await asyncio.to_thread(analyze_traceability_from_swe1_with_llm, r, child_reqs, llm_manager)
                 print(f"[TRACE]   LLM returned: status={result.get('status')}, linked_ids={result.get('linked_swe2_ids', [])}", flush=True)
                 status = result.get("status", "FAIL")
                 rationale = result.get("rationale", "No explanation provided.")
                 linked_ids = result.get("linked_swe2_ids", [])
-                linked_swe2s = [s2 for s2 in swe2_reqs if s2.name in linked_ids]
+                linked_children = [c for c in child_reqs if c.name in linked_ids]
                 
                 # Format outputs
-                swe2_ids_str = ", ".join([s2.name for s2 in linked_swe2s]) if linked_swe2s else None
-                swe2_texts_str = "\n".join([f"• {s2.name}: {s2.content}" for s2 in linked_swe2s]) if linked_swe2s else None
+                child_ids_str = ", ".join([c.name for c in linked_children]) if linked_children else None
+                child_texts_str = "\n".join([f"• {c.name}: {c.content}" for c in linked_children]) if linked_children else None
                 
                 # Track covered
-                for s2 in linked_swe2s:
-                    covered_swe2_ids.add(s2.name)
+                for c in linked_children:
+                    covered_child_ids.add(c.name)
                 
                 # Run traceability correction if enabled and status is FAIL/REVIEW
                 corrected_req = None
@@ -279,7 +278,7 @@ async def run_requirements_analysis_job(
                     print(f"[TRACE]   Running traceability correction for {r.name}...", flush=True)
                     corrected_req = await asyncio.to_thread(
                         correct_traceability_requirement,
-                        r, linked_swe2s, status, rationale, swe2_reqs, llm_manager,
+                        r, linked_children, status, rationale, child_reqs, llm_manager,
                         custom_context_correction
                     )
                     if corrected_req:
@@ -293,8 +292,8 @@ async def run_requirements_analysis_job(
                     corrected_req=corrected_req,
                     swe1_id=r.name,
                     swe1_text=r.content,
-                    req_id=swe2_ids_str,
-                    input_req=swe2_texts_str
+                    req_id=child_ids_str,
+                    input_req=child_texts_str
                 )
             else:
                 # Call quality auditor
@@ -319,36 +318,36 @@ async def run_requirements_analysis_job(
             await asyncio.sleep(0.01)
             
         if mode == "traceability":
-            # Process orphaned SWE.2 requirements
+            # Process orphaned child requirements
             orphan_count = 0
-            for s2 in swe2_reqs:
-                if s2.name not in covered_swe2_ids:
+            for c in child_reqs:
+                if c.name not in covered_child_ids:
                     orphan_count += 1
-                    row_id = create_placeholder_result(run_id, s2.name, s2.content, category="traceability")
+                    row_id = create_placeholder_result(run_id, c.name, c.content, category="traceability")
                     
                     # Run orphan correction if enabled
                     orphan_corrected = None
                     if correct_trace:
-                        print(f"[TRACE]   Running orphan correction for {s2.name}...", flush=True)
+                        print(f"[TRACE]   Running orphan correction for {c.name}...", flush=True)
                         orphan_corrected = await asyncio.to_thread(
                             correct_orphaned_swe2,
-                            s2, swe1_reqs, llm_manager,
+                            c, primary_parent_reqs, llm_manager,
                             custom_context_correction
                         )
                         if orphan_corrected:
-                            print(f"[TRACE]   Orphan correction generated for {s2.name}: {orphan_corrected[:80]}...", flush=True)
+                            print(f"[TRACE]   Orphan correction generated for {c.name}: {orphan_corrected[:80]}...", flush=True)
                     
                     update_execution_result_by_id(
                         row_id=row_id,
                         status="FAIL",
-                        failed_rule="Orphan LLD",
-                        rationale="Orphaned LLD: No linked SWE.1 requirement found.",
+                        failed_rule="Orphan Requirement",
+                        rationale="Orphaned Item: No linked parent requirement found.",
                         corrected_req=orphan_corrected,
                         swe1_id=None,
                         swe1_text=None,
                         category="traceability"
                     )
-            print(f"[TRACE] Orphaned SWE.2 requirements: {orphan_count}", flush=True)
+            print(f"[TRACE] Orphaned child requirements: {orphan_count}", flush=True)
                     
         update_execution_progress(run_id, current_row=total_rows, total_rows=total_rows, status="completed")
         if run_id in ACTIVE_JOBS:

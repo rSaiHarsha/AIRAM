@@ -130,7 +130,7 @@ def init_db():
             project_id TEXT NOT NULL,
             req_id TEXT NOT NULL,
             content TEXT NOT NULL,
-            req_type TEXT NOT NULL, -- 'swe1' or 'swe2'
+            req_type TEXT NOT NULL, -- 'sys1', 'sys2', 'sys3', 'swe1', or 'swe2'
             FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
         )
     """)

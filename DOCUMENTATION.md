@@ -518,9 +518,9 @@ ReQualiTrace_Studio/
 
 | Method | Endpoint | Description | Input |
 |---|---|---|---|
-| `POST` | `/api/projects` | Create a new project with SWE.1/SWE.2 files | `name`, `description`, `swe1_file`, `swe2_file` |
+| `POST` | `/api/projects` | Create a new project with SYS.1 (mandatory) & optional SYS.2/SYS.3/SWE.1/SWE.2 files | `name`, `description`, `sys1_file` (mandatory), `sys2_file`, `sys3_file`, `swe1_file`, `swe2_file` |
 | `GET` | `/api/projects` | List all projects | — |
-| `GET` | `/api/projects/{project_id}/requirements` | Get SWE.1 & SWE.2 requirements + latest analysis | — |
+| `GET` | `/api/projects/{project_id}/requirements` | Get SYS.1, SYS.2, SYS.3, SWE.1, & SWE.2 requirements + latest analysis | — |
 | `DELETE` | `/api/projects/{project_id}` | Delete a project & all associated data | — |
 
 #### Guidelines Endpoints

@@ -131,14 +131,23 @@ private baseUrl = window.location.hostname === 'localhost'
   }
 
   // Projects API
-  createProject(name: string, description: string, swe1File: File, swe2File?: File): Observable<any> {
+  createProject(
+    name: string, 
+    description: string, 
+    sys1File: File, 
+    sys2File?: File, 
+    sys3File?: File, 
+    swe1File?: File, 
+    swe2File?: File
+  ): Observable<any> {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('description', description);
-    formData.append('swe1_file', swe1File);
-    if (swe2File) {
-      formData.append('swe2_file', swe2File);
-    }
+    formData.append('sys1_file', sys1File);
+    if (sys2File) formData.append('sys2_file', sys2File);
+    if (sys3File) formData.append('sys3_file', sys3File);
+    if (swe1File) formData.append('swe1_file', swe1File);
+    if (swe2File) formData.append('swe2_file', swe2File);
     return this.http.post(`${this.baseUrl}/api/projects`, formData);
   }
 

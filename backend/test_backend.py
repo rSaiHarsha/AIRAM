@@ -59,10 +59,10 @@ async def run_tests():
     # 4. Test SWE.1 and SWE.2 requirement parsing and traceability analysis
     print("\n[Test 4] Testing requirements quality & traceability analysis...")
     
-    # Mock HLR (SWE.1) CSV content
-    hlr_csv = "id,text\nHLR-1,The powertrain system shall deliver 150kW peak power.\nHLR-2,The battery cooling system shall active control temperature.\n"
-    # Mock LLR (SWE.2) CSV content
-    llr_csv = "id,text\nLLR-1,The MCU software shall monitor peak power to stay under 150kW.\nLLR-2,The driver seat adjustability should be robust.\n"
+    # Mock SYS.1 (Requirements Elicitation) dataset
+    sys1_reqs = [{"id": "SYS1-1", "text": "The powertrain system shall deliver 150kW peak power."}, {"id": "SYS1-2", "text": "The battery cooling system shall active control temperature."}]
+    # Mock SYS.2 (System Requirements Analysis) dataset
+    sys2_reqs = [{"id": "SYS2-1", "text": "The MCU software shall monitor peak power to stay under 150kW."}, {"id": "SYS2-2", "text": "The driver seat adjustability should be robust."}]
     
     run_id = "test-run-1234"
     run_type = "traceability"
@@ -72,10 +72,8 @@ async def run_tests():
         run_requirements_analysis_job(
             run_id=run_id,
             run_type=run_type,
-            swe1_content=hlr_csv.encode("utf-8"),
-            swe1_filename="swe1_reqs.csv",
-            swe2_content=llr_csv.encode("utf-8"),
-            swe2_filename="swe2_reqs.csv",
+            sys1_reqs_raw=sys1_reqs,
+            sys2_reqs_raw=sys2_reqs,
             guideline_id=None,
             use_rag=False,
             model_name="nvidia/llama-3.3-nemotron-super-49b-v1.5"

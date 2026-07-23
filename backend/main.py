@@ -219,17 +219,44 @@ async def remove_rag_collection(collection_name: str):
 async def add_project(
     name: str = Form(...),
     description: str = Form(""),
-    swe1_file: UploadFile = File(...),
+    sys1_file: UploadFile = File(None),
+    sys2_file: UploadFile = File(None),
+    sys3_file: UploadFile = File(None),
+    swe1_file: UploadFile = File(None),
     swe2_file: UploadFile = File(None)
 ):
+    # Support sys1_file as mandatory primary, or fallback to swe1_file if sys1_file is missing
+    primary_file = sys1_file or swe1_file
+    if not primary_file:
+        raise HTTPException(status_code=400, detail="SYS.1 (Requirements Elicitation) file is required.")
+
     project_id = str(uuid.uuid4())
     create_project(project_id, name, description)
     
-    swe1_content = await swe1_file.read()
-    swe1_reqs = parse_requirements_file(swe1_content, swe1_file.filename)
-    if swe1_reqs:
-        save_project_requirements(project_id, swe1_reqs, "swe1")
-        
+    if sys1_file:
+        sys1_content = await sys1_file.read()
+        sys1_reqs = parse_requirements_file(sys1_content, sys1_file.filename)
+        if sys1_reqs:
+            save_project_requirements(project_id, sys1_reqs, "sys1")
+
+    if sys2_file:
+        sys2_content = await sys2_file.read()
+        sys2_reqs = parse_requirements_file(sys2_content, sys2_file.filename)
+        if sys2_reqs:
+            save_project_requirements(project_id, sys2_reqs, "sys2")
+
+    if sys3_file:
+        sys3_content = await sys3_file.read()
+        sys3_reqs = parse_requirements_file(sys3_content, sys3_file.filename)
+        if sys3_reqs:
+            save_project_requirements(project_id, sys3_reqs, "sys3")
+            
+    if swe1_file:
+        swe1_content = await swe1_file.read()
+        swe1_reqs = parse_requirements_file(swe1_content, swe1_file.filename)
+        if swe1_reqs:
+            save_project_requirements(project_id, swe1_reqs, "swe1")
+            
     if swe2_file:
         swe2_content = await swe2_file.read()
         swe2_reqs = parse_requirements_file(swe2_content, swe2_file.filename)
@@ -255,6 +282,9 @@ async def get_project_reqs(project_id: str):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
         
+    sys1_reqs = get_project_requirements_from_db(project_id, "sys1")
+    sys2_reqs = get_project_requirements_from_db(project_id, "sys2")
+    sys3_reqs = get_project_requirements_from_db(project_id, "sys3")
     swe1_reqs = get_project_requirements_from_db(project_id, "swe1")
     swe2_reqs = get_project_requirements_from_db(project_id, "swe2")
     
@@ -278,6 +308,9 @@ async def get_project_reqs(project_id: str):
         return out
             
     return {
+        "sys1": build_req_dict(sys1_reqs),
+        "sys2": build_req_dict(sys2_reqs),
+        "sys3": build_req_dict(sys3_reqs),
         "swe1": build_req_dict(swe1_reqs),
         "swe2": build_req_dict(swe2_reqs)
     }
@@ -300,6 +333,9 @@ async def start_analysis(
     project = get_project_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    sys1_reqs_raw = get_project_requirements_from_db(project_id, "sys1")
+    sys2_reqs_raw = get_project_requirements_from_db(project_id, "sys2")
+    sys3_reqs_raw = get_project_requirements_from_db(project_id, "sys3")
     swe1_reqs_raw = get_project_requirements_from_db(project_id, "swe1")
     swe2_reqs_raw = get_project_requirements_from_db(project_id, "swe2")
     
@@ -312,6 +348,9 @@ async def start_analysis(
         run_requirements_analysis_job(
             run_id=run_id,
             run_type=run_type,
+            sys1_reqs_raw=sys1_reqs_raw,
+            sys2_reqs_raw=sys2_reqs_raw,
+            sys3_reqs_raw=sys3_reqs_raw,
             swe1_reqs_raw=swe1_reqs_raw,
             swe2_reqs_raw=swe2_reqs_raw,
             guideline_id=guideline_id,
