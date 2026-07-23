@@ -1265,11 +1265,24 @@ python test_backend.py
 | Backend | `cd backend && python main.py` | `http://localhost:8000` |
 | Frontend | `cd frontend && npm start` | `http://localhost:4200` |
 
-### Cloud Deployment
+### Cloud Deployment (Render.com)
+
+This application is configured for deployment on **Render.com**. 
+A `render.yaml` Blueprint file is provided at the root of the repository to automate deployment.
+
+**Render Configuration:**
+- **Backend (Web Service):** Runs using Python 3.10+, installs `requirements.txt`, and starts the FastAPI server using `uvicorn`.
+- **Frontend (Static Site):** Runs using Node 18+, builds the Angular app with `npx ng build`, and serves the `dist/frontend` directory as a static site.
+
+**Deployment Steps:**
+1. Connect your GitHub repository to Render.
+2. Render will automatically detect the `render.yaml` file.
+3. Review and apply the Blueprint.
+4. Add the required environment variables in the Render Dashboard (e.g., `OPENAI_API_KEY`, `NVIDIA_NIM_API_KEY`).
 
 The frontend `ApiService` includes automatic base URL detection:
 - When running on `localhost`, it connects to `http://localhost:8000`
-- Otherwise, it connects to `https://aaram.onrender.com` (Render deployment)
+- Otherwise, it connects to your production backend URL (e.g., `https://aaram.onrender.com`)
 
 ### Prerequisites
 
