@@ -44,7 +44,7 @@ from backend.database import (
     trigger_render_sync
 )
 from pydantic import BaseModel
-from backend.rag_service import train_document_stream, search_guideline_chunks, delete_rag_collection, embed_project_requirements
+from backend.rag_service import train_document_stream, search_guideline_chunks, delete_rag_collection
 from backend.analyzer_service import run_requirements_analysis_job, ACTIVE_JOBS
 from backend.file_parser import parse_requirements_file
 
@@ -271,14 +271,12 @@ async def add_project(
         swe1_reqs = parse_requirements_file(swe1_content, swe1_file.filename)
         if swe1_reqs:
             save_project_requirements(project_id, swe1_reqs, "swe1")
-            embed_project_requirements(project_id, swe1_reqs)
             
     if swe2_file:
         swe2_content = await swe2_file.read()
         swe2_reqs = parse_requirements_file(swe2_content, swe2_file.filename)
         if swe2_reqs:
             save_project_requirements(project_id, swe2_reqs, "swe2")
-            embed_project_requirements(project_id, swe2_reqs)
             
     return {"status": "success", "project_id": project_id}
 
@@ -325,7 +323,6 @@ async def append_project_docs(
         if swe1_reqs:
             count = append_project_requirements(project_id, swe1_reqs, "swe1")
             appended_stats["swe1"] = count
-            embed_project_requirements(project_id, swe1_reqs)
             
     if swe2_file:
         swe2_content = await swe2_file.read()
@@ -333,7 +330,6 @@ async def append_project_docs(
         if swe2_reqs:
             count = append_project_requirements(project_id, swe2_reqs, "swe2")
             appended_stats["swe2"] = count
-            embed_project_requirements(project_id, swe2_reqs)
             
     trigger_render_sync()
     return {"status": "success", "project_id": project_id, "appended_stats": appended_stats}
@@ -491,25 +487,22 @@ async def start_analysis(
 async def pause_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "paused"
-        update_execution_status(run_id, "paused")
-        return {"status": "paused", "run_id": run_id}
-    raise HTTPException(status_code=404, detail="Execution run not found or inactive")
+    update_execution_status(run_id, "paused")
+    return {"status": "paused", "run_id": run_id}
 
 @app.post("/api/analysis/{run_id}/resume")
 async def resume_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "running"
-        update_execution_status(run_id, "running")
-        return {"status": "running", "run_id": run_id}
-    raise HTTPException(status_code=404, detail="Execution run not found or inactive")
+    update_execution_status(run_id, "running")
+    return {"status": "running", "run_id": run_id}
 
 @app.post("/api/analysis/{run_id}/stop")
 async def stop_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "stopped"
-        update_execution_status(run_id, "stopped")
-        return {"status": "stopped", "run_id": run_id}
-    raise HTTPException(status_code=404, detail="Execution run not found or inactive")
+    update_execution_status(run_id, "stopped")
+    return {"status": "stopped", "run_id": run_id}
 
 @app.get("/api/analysis/{run_id}/status")
 async def get_analysis_status(run_id: str):
@@ -545,28 +538,6 @@ async def delete_run(run_id: str):
     """Deletes an execution run history and its results from the database."""
     delete_execution_run(run_id)
     return {"status": "success", "run_id": run_id}
-
-class CopilotChatRequest(BaseModel):
-    project_id: str = None
-    user_message: str
-    history: list = []
-
-@app.post("/api/copilot/chat")
-async def copilot_chat(request: CopilotChatRequest):
-    try:
-        try:
-            from Copilot.copilot_engine import run_copilot_turn_stream
-        except ImportError:
-            from backend.Copilot.copilot_engine import run_copilot_turn_stream
-        
-        async def event_generator():
-            for event in run_copilot_turn_stream(request.project_id, request.user_message, request.history):
-                yield f"data: {json.dumps(event)}\n\n"
-                await asyncio.sleep(0.01) # Yield thread
-                
-        return StreamingResponse(event_generator(), media_type="text/event-stream")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

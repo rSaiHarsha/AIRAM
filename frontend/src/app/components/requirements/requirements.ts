@@ -1190,7 +1190,6 @@ JSON Schema:
         // rows always carry category='traceability'
         const looksLikeTraceability = res.length > 0 && res.some((r: any) => r.category === 'traceability');
         this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' : looksLikeTraceability;
-        this.activeTab = this.isTraceabilityRun ? 'traceability' : 'swe1';
 
         this.results = res.map((r: any) => {
           if (this.isTraceabilityRun && !r.parsed_swe2_list) {
@@ -1198,6 +1197,17 @@ JSON Schema:
           }
           return r;
         });
+
+        if (this.isTraceabilityRun) {
+          this.activeTab = 'traceability';
+        } else {
+          if (this.hasCategory('sys1')) this.activeTab = 'sys1';
+          else if (this.hasCategory('sys2')) this.activeTab = 'sys2';
+          else if (this.hasCategory('sys3')) this.activeTab = 'sys3';
+          else if (this.hasCategory('swe1')) this.activeTab = 'swe1';
+          else if (this.hasCategory('swe2')) this.activeTab = 'swe2';
+          else this.activeTab = 'swe1';
+        }
 
         // Reflect the run's real status so the progress bar and the
         // Pause/Resume/Stop controls appear correctly for the run just

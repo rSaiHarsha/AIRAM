@@ -8,10 +8,10 @@ import { ApiService } from '../../services/api.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="projects-container" style="padding: 16px; max-width: 1300px; margin: 0 auto; height: calc(100vh - 64px); display: flex; gap: 16px;">
+    <div class="projects-container" (document:keydown.escape)="exitFullscreen()" [style.max-width]="isFullscreen ? '100%' : '1300px'" style="padding: 16px; margin: 0 auto; height: calc(100vh - 64px); display: flex; gap: 16px;">
       
       <!-- Left Sidebar: Project List -->
-      <div class="sidebar card" style="width: 260px; flex-shrink: 0; padding: 0; display: flex; flex-direction: column; background: #fff;">
+      <div class="sidebar card" *ngIf="!isFullscreen" style="width: 260px; flex-shrink: 0; padding: 0; display: flex; flex-direction: column; background: #fff;">
         <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);">Available Projects</span>
           <button class="icon-btn-primary" (click)="openUploadModal()" title="New Project" style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 1.05rem; font-weight: 600;">
@@ -49,38 +49,86 @@ import { ApiService } from '../../services/api.service';
         <ng-container *ngIf="selectedProject; else noSelection">
           
           <!-- Top Header Card -->
-          <div class="card" style="padding: 16px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-              <span class="badge" style="background: #f1f5f9; color: #64748b; font-family: monospace; font-size: 0.68rem; border: 1px solid #e2e8f0; padding: 2px 7px; border-radius: 4px;">PRJ-{{ selectedProject.id }}</span>
-              <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.65rem; display: flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px;">
-                <div style="width: 5px; height: 5px; background: #16a34a; border-radius: 50%;"></div>
-                Analysis Active
-              </span>
-            </div>
+          <div class="card" style="padding: 24px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 0;">
             
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
               <div>
-                <h1 style="margin: 0 0 6px 0; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">{{ selectedProject.name }}</h1>
-                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); max-width: 600px; line-height: 1.5;">{{ selectedProject.description || 'Comprehensive analysis and traceability matrix for this project. Tracking functional requirements against system architecture constraints.' }}</p>
+                <h1 style="margin: 0 0 12px 0; font-size: 1.4rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;">{{ selectedProject.name }}</h1>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); max-width: 650px; line-height: 1.6;">{{ selectedProject.description || 'Comprehensive analysis and traceability matrix for this project. Tracking functional requirements against system architecture constraints.' }}</p>
               </div>
               
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn btn-secondary" (click)="openEditModal(selectedProject)" style="display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: 0.78rem; padding: 6px 12px;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <button class="btn btn-secondary" (click)="openEditModal(selectedProject)" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.8rem; padding: 8px 16px; border: 1px solid var(--border-color); background: #fff; border-radius: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   Edit Details
                 </button>
-                <button class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.78rem; padding: 6px 12px;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <button class="btn btn-secondary" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.8rem; padding: 8px 16px; border: 1px solid var(--border-color); background: #fff; border-radius: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   Export Report
                 </button>
-                <button class="btn btn-primary" (click)="openAppendModal()" title="Add / Upload Documents" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border-radius: 6px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <button class="btn btn-primary" (click)="openAppendModal()" title="Share / Upload" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 6px; background-color: #2563eb; color: white; border: none;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
                 </button>
-                <button class="btn btn-danger" (click)="deleteProject(selectedProject)" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.78rem; padding: 6px 12px; background-color: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <button class="btn btn-danger" (click)="deleteProject(selectedProject)" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.8rem; padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                   Delete Project
                 </button>
               </div>
+            </div>
+
+            <!-- Metadata Bar -->
+            <div style="display: flex; gap: 32px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+              
+              <!-- Created -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  Created
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  {{ selectedProject.created_at | date:'MMM d, yyyy' }}
+                </div>
+              </div>
+              
+              <div style="width: 1px; background-color: var(--border-color);"></div>
+
+              <!-- Last Updated -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  Last Updated
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  {{ selectedProject.created_at | date:'MMM d, yyyy, h:mm a' }}
+                </div>
+              </div>
+
+              <div style="width: 1px; background-color: var(--border-color);"></div>
+
+              <!-- Documents -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Documents
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  {{ (reqs.sys1?.length ? 1 : 0) + (reqs.sys2?.length ? 1 : 0) + (reqs.sys3?.length ? 1 : 0) + (reqs.swe1?.length ? 1 : 0) + (reqs.swe2?.length ? 1 : 0) }}
+                </div>
+              </div>
+
+              <div style="width: 1px; background-color: var(--border-color);"></div>
+
+              <!-- Total Requirements -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                  Total Requirements
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  {{ (reqs.sys1?.length || 0) + (reqs.sys2?.length || 0) + (reqs.sys3?.length || 0) + (reqs.swe1?.length || 0) + (reqs.swe2?.length || 0) }}
+                </div>
+              </div>
+
             </div>
           </div>
           
@@ -88,7 +136,7 @@ import { ApiService } from '../../services/api.service';
           <div class="card" style="padding: 0; flex: 1; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
             
             <!-- Tabs Nav -->
-            <div style="padding: 0 16px; border-bottom: 1px solid var(--border-color); background: #f8fafc;">
+            <div style="padding: 0 16px; border-bottom: 1px solid var(--border-color); background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
               <div class="tabs-nav" style="display: flex; gap: 16px; margin-top: 6px; overflow-x: auto;">
                 <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">Overview</button>
                 <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'">SYS.1 Reqs ({{reqs.sys1?.length || 0}})</button>
@@ -98,6 +146,12 @@ import { ApiService } from '../../services/api.service';
                 <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'">SWE.2 Reqs ({{reqs.swe2?.length || 0}})</button>
                 <button class="tab-btn" [class.active]="activeTab === 'trace'" (click)="activeTab = 'trace'">Traceability</button>
               </div>
+
+              <!-- Fullscreen Button -->
+              <button class="icon-btn-primary" (click)="toggleFullscreen()" title="Toggle Fullscreen" style="background: none; border: none; color: #2563eb; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; margin-left: 16px;">
+                <svg *ngIf="!isFullscreen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                <svg *ngIf="isFullscreen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>
+              </button>
             </div>
             
             <!-- Tab Content -->
@@ -761,6 +815,17 @@ import { ApiService } from '../../services/api.service';
 })
 export class ProjectsComponent implements OnInit {
   @Output() viewRun = new EventEmitter<string>();
+  
+  isFullscreen = false;
+
+  toggleFullscreen() {
+    this.isFullscreen = !this.isFullscreen;
+  }
+
+  exitFullscreen() {
+    this.isFullscreen = false;
+  }
+
   projects: any[] = [];
   selectedProject: any = null;
   
