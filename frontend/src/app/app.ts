@@ -45,6 +45,8 @@ import { ApiService } from './services/api.service';
             </div>
           </div>
           
+          <div class="header-divider"></div>
+          
           <nav class="top-nav-tabs">
             <button class="nav-tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">
               Dashboard
@@ -58,8 +60,8 @@ import { ApiService } from './services/api.service';
             <button class="nav-tab" [class.active]="activeTab === 'rag'" (click)="setTab('rag')">
               RAG Configuration
             </button>
-            <button class="nav-tab copilot-tab" [class.active]="activeTab === 'copilot'" (click)="setTab('copilot')">
-              Argus Copilot
+            <button class="nav-tab" [class.active]="activeTab === 'copilot'" (click)="setTab('copilot')">
+              <span style="margin-right: 6px;">✨</span> AIRAM Copilot
             </button>
           </nav>
         </div>
@@ -76,11 +78,12 @@ import { ApiService } from './services/api.service';
           </div>
 
           <div class="header-icons">
-            <button class="icon-btn" aria-label="Notifications">
+            <button class="icon-btn notification-btn" aria-label="Notifications">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
+              <span class="notification-badge">3</span>
             </button>
           </div>
         </div>
@@ -206,26 +209,11 @@ import { ApiService } from './services/api.service';
       border-top-right-radius: 3px;
     }
     
-    .copilot-tab {
-      background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(0, 201, 255, 0.1));
-      border: 1px solid rgba(13, 110, 253, 0.2);
-      border-radius: 6px;
-      padding: 6px 12px;
-      height: auto;
-      color: var(--color-primary);
-    }
-    .copilot-tab:hover {
-      background: linear-gradient(135deg, rgba(13, 110, 253, 0.15), rgba(0, 201, 255, 0.15));
-      color: #0b5ed7;
-    }
-    .copilot-tab.active::after {
-      display: none;
-    }
-    .copilot-tab.active {
-      background: linear-gradient(135deg, #0d6efd, #00c9ff);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+    .header-divider {
+      width: 1px;
+      height: 28px;
+      background-color: var(--border-color);
+      margin: 0 4px;
     }
     
     .header-right {
@@ -254,45 +242,53 @@ import { ApiService } from './services/api.service';
       color: var(--text-primary);
       background-color: #f1f5f9;
     }
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      overflow: hidden;
-      cursor: pointer;
-      border: 1px solid var(--border-color);
+    .notification-btn {
+      position: relative;
     }
-    .user-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .notification-badge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background-color: var(--color-primary);
+      color: white;
+      font-size: 0.6rem;
+      font-weight: 700;
+      border-radius: 50%;
+      width: 14px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid white;
     }
     
     .backend-status-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
-      border-radius: 16px;
-      font-size: 0.7rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
       font-weight: 700;
-      border: 1px solid transparent;
+      border: 1px solid #e2e8f0;
       background-color: #f8fafc;
-      color: var(--text-secondary);
+      color: #475569;
       user-select: none;
       pointer-events: auto;
     }
     .backend-status-badge.connected {
-      background-color: #f1f5f9;
-      color: #334155;
+      background-color: #f8fafc;
+      color: #475569;
     }
     .backend-status-badge.disconnected {
       background-color: #fee2e2;
       color: #991b1b;
+      border-color: #fca5a5;
     }
     .backend-status-badge.connecting {
       background-color: #dbeafe;
       color: #1e40af;
+      border-color: #bfdbfe;
     }
     .status-indicator-dot {
       width: 6px;
