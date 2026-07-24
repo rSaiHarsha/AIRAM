@@ -217,6 +217,13 @@ def init_db():
         )
     """)
     
+    if IS_POSTGRES:
+        for tbl in ["execution_results", "project_requirements", "chunks"]:
+            try:
+                cursor.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 1))")
+            except Exception:
+                conn.rollback()
+    
     conn.commit()
     conn.close()
 
@@ -409,10 +416,24 @@ def update_execution_minimized(run_id: str, minimized: int):
 def save_execution_result(run_id: str, req_id: str, input_req: str, status: str, failed_rule: str, rationale: str, corrected_req: str, swe1_id: str = None, swe1_text: str = None, category: str = None):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
-    )
+    if IS_POSTGRES:
+        try:
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+            )
+        except Exception:
+            conn.rollback()
+            cursor.execute("SELECT setval(pg_get_serial_sequence('execution_results', 'id'), COALESCE((SELECT MAX(id) FROM execution_results), 1))")
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+            )
+    else:
+        cursor.execute(
+            "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+        )
     conn.commit()
     conn.close()
 
@@ -420,11 +441,20 @@ def create_placeholder_result(run_id: str, req_id: str, input_req: str, category
     conn = get_connection()
     cursor = conn.cursor()
     if IS_POSTGRES:
-        cursor.execute(
-            "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
-            (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
-        )
-        last_id = cursor.fetchone()["id"]
+        try:
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+                (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+            )
+            last_id = cursor.fetchone()["id"]
+        except Exception:
+            conn.rollback()
+            cursor.execute("SELECT setval(pg_get_serial_sequence('execution_results', 'id'), COALESCE((SELECT MAX(id) FROM execution_results), 1))")
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+                (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+            )
+            last_id = cursor.fetchone()["id"]
     else:
         cursor.execute(
             "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
