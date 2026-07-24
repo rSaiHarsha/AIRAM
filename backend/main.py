@@ -539,6 +539,22 @@ async def delete_run(run_id: str):
     delete_execution_run(run_id)
     return {"status": "success", "run_id": run_id}
 
+class CopilotRequest(BaseModel):
+    project_id: str | None = None
+    user_message: str
+    history: list = []
+
+@app.post("/api/copilot/chat")
+def copilot_chat(req: CopilotRequest):
+    from Copilot.copilot_engine import run_copilot_turn_stream
+    import json
+    
+    def sse_generator():
+        for event in run_copilot_turn_stream(req.project_id, req.user_message, req.history):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))

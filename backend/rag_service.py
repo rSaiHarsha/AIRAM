@@ -138,3 +138,51 @@ def delete_rag_collection(collection_name: str):
     except Exception as e:
         print(f"Failed to delete collection {collection_name}: {e}")
 
+def embed_project_requirements(project_id: str, requirements: list):
+    """Embeds project requirements into the global project_requirements collection."""
+    if not requirements:
+        return
+        
+    collection_name = "project_requirements"
+    rag_engine.setup_collection(collection_name, recreate=False)
+    
+    docs = []
+    for req in requirements:
+        req_id = req.get("id") or "UNKNOWN"
+        text = req.get("text", "")
+        if not text:
+            continue
+            
+        doc = {
+            "id": str(uuid.uuid4()),
+            "title": req_id,
+            "text": text,
+            "source": project_id,
+            "metadata": {
+                "project_id": project_id,
+                "req_id": req_id,
+                "req_type": req.get("type", "UNKNOWN")
+            }
+        }
+        docs.append(doc)
+        
+    for doc in docs:
+        vector = rag_engine._safe_get_embedding(doc["text"])
+        payload = {
+            "title": doc["title"],
+            "text": doc["text"],
+            "source": doc["source"],
+            "collection": collection_name,
+            "metadata": doc["metadata"]
+        }
+        
+        if rag_engine.qdrant_client:
+            try:
+                from qdrant_client.models import PointStruct
+                rag_engine.qdrant_client.upsert(
+                    collection_name=collection_name,
+                    points=[PointStruct(id=doc["id"], vector=vector, payload=payload)]
+                )
+            except Exception as e:
+                print(f"Qdrant upload failed for requirement {doc['title']}: {e}")
+

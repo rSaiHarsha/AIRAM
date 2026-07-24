@@ -5,6 +5,7 @@ import { DashboardComponent } from './components/dashboard/dashboard';
 import { RequirementsComponent } from './components/requirements/requirements';
 import { ProjectsComponent } from './components/projects/projects';
 import { RAGConfigComponent } from './components/rag-config/rag-config';
+import { CopilotComponent } from './components/copilot/copilot';
 import { ApiService } from './services/api.service';
 
 @Component({
@@ -16,7 +17,8 @@ import { ApiService } from './services/api.service';
     DashboardComponent,
     RequirementsComponent,
     ProjectsComponent,
-    RAGConfigComponent
+    RAGConfigComponent,
+    CopilotComponent
   ],
   template: `
     <!-- Top Navigation Header (No Sidebar) -->
@@ -43,6 +45,8 @@ import { ApiService } from './services/api.service';
             </div>
           </div>
           
+          <div class="header-divider"></div>
+          
           <nav class="top-nav-tabs">
             <button class="nav-tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">
               Dashboard
@@ -56,6 +60,9 @@ import { ApiService } from './services/api.service';
             <button class="nav-tab" [class.active]="activeTab === 'rag'" (click)="setTab('rag')">
               RAG Configuration
             </button>
+            <button class="nav-tab" [class.active]="activeTab === 'copilot'" (click)="setTab('copilot')">
+              <span style="margin-right: 6px;">✨</span> AIRAM Copilot
+            </button>
           </nav>
         </div>
         
@@ -68,15 +75,6 @@ import { ApiService } from './services/api.service';
                title="Backend: {{ backendUrl }}">
             <span class="status-indicator-dot"></span>
             <span class="status-text">{{ backendStatus | uppercase }}</span>
-          </div>
-
-          <div class="header-icons">
-            <button class="icon-btn" aria-label="Notifications">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-            </button>
           </div>
         </div>
       </div>
@@ -107,6 +105,11 @@ import { ApiService } from './services/api.service';
         #ragConfigComp
         [hidden]="activeTab !== 'rag'">
       </app-rag-config>
+      
+      <app-copilot
+        #copilotComp
+        [hidden]="activeTab !== 'copilot'">
+      </app-copilot>
     </main>
   `,
   styles: [`
@@ -118,9 +121,9 @@ import { ApiService } from './services/api.service';
       z-index: 1000;
     }
     .header-container {
-      max-width: 1200px;
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 40px;
       height: 64px;
       display: flex;
       justify-content: space-between;
@@ -196,71 +199,46 @@ import { ApiService } from './services/api.service';
       border-top-right-radius: 3px;
     }
     
+    .header-divider {
+      width: 1px;
+      height: 28px;
+      background-color: var(--border-color);
+      margin: 0 4px;
+    }
+    
     .header-right {
       display: flex;
       align-items: center;
       gap: 24px;
-    }
-    .header-icons {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .icon-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-      padding: 4px;
-      border-radius: 50%;
-    }
-    .icon-btn:hover {
-      color: var(--text-primary);
-      background-color: #f1f5f9;
-    }
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      overflow: hidden;
-      cursor: pointer;
-      border: 1px solid var(--border-color);
-    }
-    .user-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
     
     .backend-status-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
-      border-radius: 16px;
-      font-size: 0.7rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
       font-weight: 700;
-      border: 1px solid transparent;
+      border: 1px solid #e2e8f0;
       background-color: #f8fafc;
-      color: var(--text-secondary);
+      color: #475569;
       user-select: none;
       pointer-events: auto;
     }
     .backend-status-badge.connected {
-      background-color: #f1f5f9;
-      color: #334155;
+      background-color: #f8fafc;
+      color: #475569;
     }
     .backend-status-badge.disconnected {
       background-color: #fee2e2;
       color: #991b1b;
+      border-color: #fca5a5;
     }
     .backend-status-badge.connecting {
       background-color: #dbeafe;
       color: #1e40af;
+      border-color: #bfdbfe;
     }
     .status-indicator-dot {
       width: 6px;

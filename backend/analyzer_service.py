@@ -168,6 +168,14 @@ async def run_requirements_analysis_job(
                         p.trace_child_level = child_level
                         p.trace_child_reqs = child_reqs
                         analysis_items.append(p)
+                else:
+                    # Inject a single dummy requirement to indicate failure in UI
+                    dummy = Requirement(name=f"MISSING_{parent_level.upper()}_OR_{child_level.upper()}", content="Dependency missing. Cannot perform traceability.", state="Missing", asil="-", rationale="-")
+                    dummy.trace_parent_level = parent_level
+                    dummy.trace_child_level = child_level
+                    dummy.trace_child_reqs = []
+                    dummy.is_missing_dependency = True
+                    analysis_items.append(dummy)
             mode = "traceability"
         else:
             # For quality or combined analysis, process all requirements across all levels
@@ -261,6 +269,19 @@ async def run_requirements_analysis_job(
                 parent_level = getattr(r, "trace_parent_level", "sys1")
                 child_level = getattr(r, "trace_child_level", "sys2")
                 child_reqs = getattr(r, "trace_child_reqs", [])
+                
+                if getattr(r, "is_missing_dependency", False):
+                    update_execution_result_by_id(
+                        row_id=row_id,
+                        status="FAIL",
+                        failed_rule="Missing Dependency",
+                        rationale=f"Cannot execute traceability analysis for {parent_level.upper()} to {child_level.upper()} because one or both sets of requirements are missing.",
+                        corrected_req=None,
+                        swe1_id="-",
+                        swe1_text="-",
+                        category=f"traceability:{parent_level}_to_{child_level}"
+                    )
+                    continue
                 
                 print(f"[TRACE]   Using LLM for {r.name} ({parent_level}->{child_level})...", flush=True)
                 result = await asyncio.to_thread(analyze_traceability_generic_with_llm, r, child_reqs, parent_level, child_level, llm_manager)
