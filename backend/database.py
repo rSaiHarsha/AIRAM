@@ -70,9 +70,28 @@ class ConnectionWrapper:
         cur.execute(query, params)
         return cur
 
+def format_iso_timestamp(val):
+    if not val:
+        return val
+    if isinstance(val, str):
+        if not val.endswith("Z"):
+            return val.replace(" ", "T") + "Z"
+        return val
+    if hasattr(val, "isoformat"):
+        iso_str = val.isoformat()
+        if not iso_str.endswith("Z"):
+            return iso_str + "Z"
+        return iso_str
+    return str(val)
+
 def get_connection():
     if IS_POSTGRES:
-        conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
+        db_url = os.environ.get("DATABASE_URL", "")
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        if "sslmode" not in db_url:
+            db_url += "?sslmode=require" if "?" not in db_url else "&sslmode=require"
+        conn = psycopg2.connect(db_url)
         return ConnectionWrapper(conn, True)
     else:
         conn = sqlite3.connect(DATABASE_PATH, timeout=20.0)
@@ -228,7 +247,12 @@ def get_all_guidelines():
     result = []
     for r in rows:
         d = dict(r)
-        d['content'] = json.loads(d['content']) if d.get('content') else {}
+        if "created_at" in d and d["created_at"]:
+            d["created_at"] = format_iso_timestamp(d["created_at"])
+        if d.get("content"):
+            d['content'] = json.loads(d['content']) if isinstance(d['content'], str) else d['content']
+        else:
+            d['content'] = {}
         result.append(d)
     return result
 
@@ -238,7 +262,10 @@ def get_guideline_content(guideline_id: str):
     cursor.execute("SELECT content FROM guidelines WHERE id = ?", (guideline_id,))
     row = cursor.fetchone()
     conn.close()
-    return json.loads(row["content"]) if row else None
+    if not row:
+        return None
+    content_val = row["content"]
+    return json.loads(content_val) if isinstance(content_val, str) else content_val
 
 def get_guideline_details(guideline_id: str):
     conn = get_connection()
@@ -247,10 +274,11 @@ def get_guideline_details(guideline_id: str):
     row = cursor.fetchone()
     conn.close()
     if row:
+        content_val = row["content"]
         return {
             "id": row["id"],
             "name": row["name"],
-            "content": json.loads(row["content"])
+            "content": json.loads(content_val) if isinstance(content_val, str) else content_val
         }
     return None
 
@@ -294,11 +322,11 @@ def get_chunking_metrics():
     cursor.execute("SELECT COUNT(*) as total_chunks, SUM(token_count) as total_tokens, AVG(token_count) as avg_tokens FROM chunks")
     row = cursor.fetchone()
     conn.close()
-    if row and row["total_chunks"] > 0:
+    if row and row["total_chunks"] and int(row["total_chunks"]) > 0:
         return {
-            "total_chunks": row["total_chunks"],
-            "total_tokens": row["total_tokens"],
-            "avg_tokens": round(row["avg_tokens"], 1)
+            "total_chunks": int(row["total_chunks"]),
+            "total_tokens": int(row["total_tokens"] or 0),
+            "avg_tokens": round(float(row["avg_tokens"] or 0), 1)
         }
     return {"total_chunks": 0, "total_tokens": 0, "avg_tokens": 0}
 
@@ -348,15 +376,18 @@ def get_execution_run(run_id: str) -> dict:
     row = cursor.fetchone()
     conn.close()
     if row:
+        row_dict = dict(row)
+        if "timestamp" in row_dict and row_dict["timestamp"]:
+            row_dict["timestamp"] = format_iso_timestamp(row_dict["timestamp"])
         return {
-            "run_id": row["run_id"],
-            "timestamp": row["timestamp"],
-            "type": row["type"],
-            "status": row["status"],
-            "minimized": row["minimized"],
-            "current_row": row["current_row"],
-            "total_rows": row["total_rows"],
-            "guideline_name": dict(row).get("guideline_name")
+            "run_id": row_dict["run_id"],
+            "timestamp": row_dict["timestamp"],
+            "type": row_dict["type"],
+            "status": row_dict["status"],
+            "minimized": row_dict["minimized"],
+            "current_row": row_dict["current_row"],
+            "total_rows": row_dict["total_rows"],
+            "guideline_name": row_dict.get("guideline_name")
         }
     return None
 
@@ -464,7 +495,7 @@ def get_previous_executions(limit: int = 10, offset: int = 0):
     for r in rows:
         row_dict = dict(r)
         if "timestamp" in row_dict and row_dict["timestamp"]:
-            row_dict["timestamp"] = row_dict["timestamp"].replace(" ", "T") + "Z"
+            row_dict["timestamp"] = format_iso_timestamp(row_dict["timestamp"])
             
         t = (row_dict.get("type") or "").lower()
         has_corrections = (row_dict.get("correction_count", 0) or 0) > 0
@@ -610,7 +641,11 @@ def get_project_requirements_from_db(project_id: str, req_type: str):
     
     results = []
     for r in rows:
-        results.append(json.loads(r["content"]))
+        content_val = r["content"]
+        if isinstance(content_val, str):
+            results.append(json.loads(content_val))
+        else:
+            results.append(content_val)
     return results
 
 def get_all_projects():
@@ -624,7 +659,7 @@ def get_all_projects():
     for r in rows:
         row_dict = dict(r)
         if "created_at" in row_dict and row_dict["created_at"]:
-            row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
+            row_dict["created_at"] = format_iso_timestamp(row_dict["created_at"])
         results.append(row_dict)
     return results
 
@@ -638,7 +673,7 @@ def get_project_by_id(project_id: str):
     if row:
         row_dict = dict(row)
         if "created_at" in row_dict and row_dict["created_at"]:
-            row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
+            row_dict["created_at"] = format_iso_timestamp(row_dict["created_at"])
         return row_dict
     return None
 
