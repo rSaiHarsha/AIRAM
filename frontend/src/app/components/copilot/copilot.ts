@@ -27,16 +27,25 @@ interface Message {
             </svg>
           </div>
           <div>
-            <h2>Argus Copilot</h2>
+            <h2>AIRAM Copilot</h2>
             <p>Ask anything about your requirements, traceability, or impact analysis.</p>
           </div>
         </div>
         
-        <div class="project-selector">
-          <select [(ngModel)]="selectedProjectId" (change)="onProjectChange()">
-            <option [ngValue]="null">Select Project Context (Global)</option>
-            <option *ngFor="let p of projects" [value]="p.id">{{ p.name }}</option>
-          </select>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="project-selector">
+            <select [(ngModel)]="selectedProjectId" (change)="onProjectChange()">
+              <option [ngValue]="null">Select Project Context (Global)</option>
+              <option *ngFor="let p of projects" [value]="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+          <button class="new-thread-btn" (click)="startNewThread()" title="Start New Thread">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Thread
+          </button>
         </div>
       </div>
 
@@ -61,7 +70,7 @@ interface Message {
           
           <div class="message-bubble-wrapper">
             <div class="bot-message-header" *ngIf="msg.role === 'bot'">
-              <span class="bot-name">Argus Copilot</span>
+              <span class="bot-name">AIRAM Copilot</span>
               <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
             </div>
             <div class="message-bubble" [innerHTML]="formatMessage(msg.content)"></div>
@@ -74,7 +83,7 @@ interface Message {
           </div>
           <div class="message-bubble-wrapper">
             <div class="bot-message-header">
-              <span class="bot-name">Argus Copilot</span>
+              <span class="bot-name">AIRAM Copilot</span>
             </div>
             <div class="message-bubble">
               <div *ngFor="let step of thinkingSteps" class="thinking-step" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -159,6 +168,13 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
   
   onProjectChange() {
     // Optionally clear chat or just change context
+  }
+
+  startNewThread() {
+    this.messages = [];
+    this.thinkingSteps = [];
+    this.isLoading = false;
+    this.currentInput = '';
   }
 
   scrollToBottom(): void {
