@@ -487,25 +487,22 @@ async def start_analysis(
 async def pause_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "paused"
-        update_execution_status(run_id, "paused")
-        return {"status": "paused", "run_id": run_id}
-    raise HTTPException(status_code=404, detail="Execution run not found or inactive")
+    update_execution_status(run_id, "paused")
+    return {"status": "paused", "run_id": run_id}
 
 @app.post("/api/analysis/{run_id}/resume")
 async def resume_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "running"
-        update_execution_status(run_id, "running")
-        return {"status": "running", "run_id": run_id}
-    raise HTTPException(status_code=404, detail="Execution run not found or inactive")
+    update_execution_status(run_id, "running")
+    return {"status": "running", "run_id": run_id}
 
 @app.post("/api/analysis/{run_id}/stop")
 async def stop_analysis(run_id: str):
     if run_id in ACTIVE_JOBS:
         ACTIVE_JOBS[run_id]["status"] = "stopped"
-        update_execution_status(run_id, "stopped")
-        return {"status": "stopped", "run_id": run_id}
-    raise HTTPException(status_code=404, detail="Execution run not found or inactive")
+    update_execution_status(run_id, "stopped")
+    return {"status": "stopped", "run_id": run_id}
 
 @app.get("/api/analysis/{run_id}/status")
 async def get_analysis_status(run_id: str):
