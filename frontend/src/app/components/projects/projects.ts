@@ -725,6 +725,11 @@ import { ApiService } from '../../services/api.service';
     
     .tabs-nav {
       display: flex;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .tabs-nav::-webkit-scrollbar {
+      display: none;
     }
     .tab-btn {
       background: transparent;

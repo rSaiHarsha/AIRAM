@@ -63,13 +63,13 @@ import { ApiService } from '../../services/api.service';
               <label class="form-label">Select Analysis Actions</label>
               <div class="checkbox-group" style="display: flex; gap: 16px; flex-wrap: wrap;">
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.analyse" [disabled]="actions.correct"> Quality Analysis
+                  <input type="checkbox" [(ngModel)]="actions.analyse" [disabled]="actions.correct" (ngModelChange)="onAnalyseToggle($event)"> Quality Analysis
                 </label>
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.correct" (ngModelChange)="onCorrectionToggle($event)"> Quality Correction
                 </label>
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.trace" [disabled]="actions.correctTrace"> Traceability Analysis (SWE.2 to SWE.1)
+                  <input type="checkbox" [(ngModel)]="actions.trace" [disabled]="actions.correctTrace" (ngModelChange)="onTraceToggle($event)"> Traceability Analysis (SWE.2 to SWE.1)
                 </label>
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.correctTrace" (ngModelChange)="onTraceCorrectionToggle($event)"> Traceability Correction
@@ -1011,10 +1011,26 @@ JSON Schema:
 
 
 
+  onAnalyseToggle(checked: boolean) {
+    if (checked) {
+      this.actions.trace = false;
+      this.actions.correctTrace = false;
+    }
+  }
+
   onCorrectionToggle(checked: boolean) {
     if (checked) {
       // Correction requires analysis — auto-enable it
       this.actions.analyse = true;
+      this.actions.trace = false;
+      this.actions.correctTrace = false;
+    }
+  }
+
+  onTraceToggle(checked: boolean) {
+    if (checked) {
+      this.actions.analyse = false;
+      this.actions.correct = false;
     }
   }
 
@@ -1022,6 +1038,8 @@ JSON Schema:
     if (checked) {
       // Traceability correction requires traceability analysis — auto-enable it
       this.actions.trace = true;
+      this.actions.analyse = false;
+      this.actions.correct = false;
     }
   }
 
