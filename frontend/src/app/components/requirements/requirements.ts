@@ -15,8 +15,16 @@ import { ApiService } from '../../services/api.service';
       </div>
 
       <div class="card" style="margin-bottom: 24px;">
-        <div class="card-title" style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 20px;">
-          Workspace Setup
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+          <div class="icon-box">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Workspace Setup</h3>
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">Configure your analysis workspace</div>
+          </div>
         </div>
         
         <div class="grid grid-2" style="align-items: stretch; gap: 24px;">
@@ -24,10 +32,15 @@ import { ApiService } from '../../services/api.service';
           <div style="display: flex; flex-direction: column; gap: 16px;">
             <div class="form-group">
               <label class="form-label">Select Project <span style="font-weight: normal; color: var(--color-primary);">*</span></label>
-              <select [(ngModel)]="selectedProjectId" style="width: 100%;">
-                <option value="" disabled>-- Select a Project --</option>
-                <option *ngFor="let p of projects" [value]="p.id">{{ p.name }} ({{ p.created_at | date:'short' }})</option>
-              </select>
+              <div class="custom-select-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <select class="form-control" [(ngModel)]="selectedProjectId">
+                  <option value="" disabled>-- Select a Project --</option>
+                  <option *ngFor="let p of projects" [value]="p.id">{{ p.name }} ({{ p.created_at | date:'short' }})</option>
+                </select>
+              </div>
               <div *ngIf="projects.length === 0" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
                 No projects found. Go to the Projects tab to create one.
               </div>
@@ -36,9 +49,14 @@ import { ApiService } from '../../services/api.service';
             <!-- Analysis Model selector -->
             <div class="form-group">
               <label class="form-label">Analysis Model</label>
-              <select [(ngModel)]="selectedAnalysisModel" style="width: 100%;">
-                <option value="nvidia/llama-3.3-nemotron-super-49b-v1.5">Llama 3.3 Nemotron 49B (NVIDIA)</option>
-              </select>
+              <div class="custom-select-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                <select class="form-control" [(ngModel)]="selectedAnalysisModel">
+                  <option value="nvidia/llama-3.3-nemotron-super-49b-v1.5">Llama 3.3 Nemotron 49B (NVIDIA)</option>
+                </select>
+              </div>
             </div>
             
             <div class="form-group">
@@ -65,9 +83,18 @@ import { ApiService } from '../../services/api.service';
             <div class="form-group">
               <label class="form-label">Mode</label>
               <div class="segmented-control">
-                <div class="segment" [class.active]="rulesMode === 'strict'" (click)="rulesMode = 'strict'">Strict Rules</div>
-                <div class="segment" [class.active]="rulesMode === 'rag'" (click)="rulesMode = 'rag'">RAG Engine</div>
-                <div class="segment" [class.active]="rulesMode === 'custom'" (click)="rulesMode = 'custom'">Custom LLM</div>
+                <div class="segment" [class.active]="rulesMode === 'strict'" (click)="rulesMode = 'strict'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  Strict Rules
+                </div>
+                <div class="segment" [class.active]="rulesMode === 'rag'" (click)="rulesMode = 'rag'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+                  RAG Engine
+                </div>
+                <div class="segment" [class.active]="rulesMode === 'custom'" (click)="rulesMode = 'custom'">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  Custom LLM
+                </div>
               </div>
             </div>
 
@@ -85,8 +112,11 @@ import { ApiService } from '../../services/api.service';
                 <!-- Custom Multi-select Dropdown -->
                 <div class="custom-dropdown" style="flex: 1; position: relative;">
                   <!-- Dropdown Toggle Button -->
-                  <div class="dropdown-toggle" (click)="toggleDropdown()" style="display: flex; justify-content: space-between; align-items: center; min-height: 38px; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85rem; user-select: none;">
-                    <span>{{ getSelectedCountText() }}</span>
+                  <div class="dropdown-toggle" (click)="toggleDropdown()" style="display: flex; justify-content: space-between; align-items: center; min-height: 42px; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; background: #fff; cursor: pointer; font-size: 0.85rem; user-select: none;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                      <span style="color: var(--text-primary);">{{ getSelectedCountText() }}</span>
+                    </div>
                     <span style="font-size: 0.8rem; color: var(--text-secondary);">▼</span>
                   </div>
                   
@@ -115,8 +145,9 @@ import { ApiService } from '../../services/api.service';
                   </div>
                 </div>
 
-                <button type="button" class="btn btn-secondary" (click)="openUploadModal()" style="padding: 0 14px; font-size: 0.85rem; height: 38px; display: inline-flex; align-items: center; gap: 4px;">
-                  🔧 Manage
+                <button type="button" class="btn btn-outline" (click)="openUploadModal()" style="padding: 0 16px; font-size: 0.85rem; min-height: 42px; display: inline-flex; align-items: center; gap: 6px; color: var(--color-primary); border-color: #bfdbfe;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  Manage
                 </button>
               </div>
             </div>
@@ -131,30 +162,40 @@ import { ApiService } from '../../services/api.service';
             
             <div style="flex-grow: 1;"></div>
             
-            <div class="execution-controls" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-              <div class="btn-group" style="display: flex; gap: 8px;">
-                <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!selectedProjectId" style="flex: 1;">
-                  🚀 Start Execution
+            <div class="execution-controls" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+              <div class="btn-group" style="display: flex; gap: 12px; margin-bottom: 24px;">
+                <button class="btn btn-primary" (click)="startRun()" *ngIf="!isRunning" [disabled]="!selectedProjectId" style="flex: 1; min-height: 44px; font-size: 1rem; border-radius: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Start Execution
                 </button>
-                <button class="btn btn-warning" (click)="pauseRun()" *ngIf="isRunning && !isPaused" style="flex: 1;">
-                  ⏸️ Pause
+                <button class="btn btn-pause" (click)="pauseRun()" *ngIf="isRunning && !isPaused" style="flex: 1; min-height: 44px; font-size: 1rem; border-radius: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Pause
                 </button>
-                <button class="btn btn-success" (click)="resumeRun()" *ngIf="isRunning && isPaused" style="flex: 1;">
-                  ▶️ Resume
+                <button class="btn btn-primary" (click)="resumeRun()" *ngIf="isRunning && isPaused" style="flex: 1; min-height: 44px; font-size: 1rem; border-radius: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Resume
                 </button>
-                <button class="btn btn-danger" (click)="stopRun()" *ngIf="isRunning" style="flex: 1;">
-                  🛑 Stop
+                <button class="btn btn-danger" (click)="stopRun()" *ngIf="isRunning" style="flex: 1; min-height: 44px; font-size: 1rem; border-radius: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10h6v4H9z" /></svg>
+                  Stop
                 </button>
               </div>
 
-              <div *ngIf="isRunning || isFinished" class="progress-bar-container" style="margin-top: 16px;">
-                <div class="progress-meta" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px;">
-                  <span>Run ID: <code style="color: var(--text-primary);">{{ activeRunId }}</code></span>
-                  <span *ngIf="isRunning">Processing Row: {{ currentRow }}/{{ totalRows }}</span>
+              <div *ngIf="isRunning || isFinished" class="progress-bar-container">
+                <div class="progress-meta" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                    Run ID: <code style="color: var(--text-primary); font-family: monospace;">{{ activeRunId }}</code>
+                  </span>
+                  <span *ngIf="isRunning" style="display: flex; align-items: center; gap: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                    Processing Row: {{ currentRow }}/{{ totalRows }}
+                  </span>
                   <span *ngIf="isFinished">Run Status: <strong style="color: var(--text-primary);">{{ runStatus | uppercase }}</strong></span>
                 </div>
-                <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-                  <div [class.bg-running]="runStatus === 'running'" [class.bg-paused]="runStatus === 'paused'" [style.width.%]="getProgressPercent()" style="height: 100%; transition: width 0.2s ease-in-out;"></div>
+                <div style="height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                  <div [class.bg-running]="runStatus === 'running'" [class.bg-paused]="runStatus === 'paused'" [style.width.%]="getProgressPercent()" style="height: 100%; transition: width 0.3s ease-in-out; border-radius: 5px; background: var(--color-primary);"></div>
                 </div>
               </div>
             </div>
@@ -164,18 +205,39 @@ import { ApiService } from '../../services/api.service';
 
       <!-- Main Results Datatable -->
       <div class="card" *ngIf="results.length > 0" style="padding: 0;">
-        <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="font-weight: 600; font-size: 1.05rem;">📋 Analysis Matrix Results</div>
+        <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="icon-box">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--text-primary);">Analysis Matrix Results</h3>
+              <div style="font-size: 0.85rem; color: var(--text-secondary);">View and manage your analysis results</div>
+            </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary btn-sm" (click)="clearResults()">🧹 Clear Results</button>
-            <button class="btn btn-secondary btn-sm" (click)="exportResults()">📥 Export CSV</button>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn btn-outline-danger" (click)="deleteCurrentRun()" *ngIf="activeRunId && activeRunId !== 'Initializing...'" style="padding: 8px 16px; border-radius: 6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              Delete Run
+            </button>
+            <button class="btn btn-outline" (click)="clearResults()" style="padding: 8px 16px; border-radius: 6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              Clear Results
+            </button>
+            <button class="btn btn-outline" (click)="exportResults()" style="padding: 8px 16px; border-radius: 6px; color: #16a34a; border-color: #bbf7d0; background-color: #f0fdf4;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Export CSV
+            </button>
           </div>
         </div>
         
         <div style="padding: 0 24px;">
           <div class="tabs-nav">
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys3'" (click)="activeTab = 'sys3'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys3')">SYS 3 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe1')">SWE 1 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe2')">SWE 2 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
@@ -735,7 +797,7 @@ JSON Schema:
   isTraceabilityRun = false;
   
   // Tab state for output table
-  activeTab: 'swe1' | 'swe2' | 'traceability' = 'swe1';
+  activeTab: 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'traceability' = 'sys1';
   
   private timerSubscription: any;
 
@@ -1325,5 +1387,21 @@ JSON Schema:
     this.totalRows = 0;
     this.currentPage = 1;
     this.cdr.detectChanges();
+  }
+
+  deleteCurrentRun() {
+    if (!this.activeRunId || this.activeRunId === 'Initializing...') return;
+    if (confirm('Are you sure you want to delete this execution run history and its results?')) {
+      const runToDelete = this.activeRunId;
+      this.apiService.deleteRun(runToDelete).subscribe({
+        next: () => {
+          this.clearResults();
+          this.loadHistory();
+        },
+        error: (err) => {
+          alert('Failed to delete execution run: ' + (err.error?.detail || err.message));
+        }
+      });
+    }
   }
 }

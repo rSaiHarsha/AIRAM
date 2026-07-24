@@ -35,8 +35,12 @@ from backend.database import (
     get_all_projects,
     get_project_by_id,
     save_project_requirements,
+    append_project_requirements,
+    update_project_requirement,
+    delete_project_requirements,
     get_project_requirements_from_db,
     delete_project,
+    update_project,
     trigger_render_sync
 )
 from pydantic import BaseModel
@@ -219,17 +223,44 @@ async def remove_rag_collection(collection_name: str):
 async def add_project(
     name: str = Form(...),
     description: str = Form(""),
-    swe1_file: UploadFile = File(...),
+    sys1_file: UploadFile = File(None),
+    sys2_file: UploadFile = File(None),
+    sys3_file: UploadFile = File(None),
+    swe1_file: UploadFile = File(None),
     swe2_file: UploadFile = File(None)
 ):
+    # Support sys1_file as mandatory primary, or fallback to swe1_file if sys1_file is missing
+    primary_file = sys1_file or swe1_file
+    if not primary_file:
+        raise HTTPException(status_code=400, detail="SYS.1 (Requirements Elicitation) file is required.")
+
     project_id = str(uuid.uuid4())
     create_project(project_id, name, description)
     
-    swe1_content = await swe1_file.read()
-    swe1_reqs = parse_requirements_file(swe1_content, swe1_file.filename)
-    if swe1_reqs:
-        save_project_requirements(project_id, swe1_reqs, "swe1")
-        
+    if sys1_file:
+        sys1_content = await sys1_file.read()
+        sys1_reqs = parse_requirements_file(sys1_content, sys1_file.filename)
+        if sys1_reqs:
+            save_project_requirements(project_id, sys1_reqs, "sys1")
+
+    if sys2_file:
+        sys2_content = await sys2_file.read()
+        sys2_reqs = parse_requirements_file(sys2_content, sys2_file.filename)
+        if sys2_reqs:
+            save_project_requirements(project_id, sys2_reqs, "sys2")
+
+    if sys3_file:
+        sys3_content = await sys3_file.read()
+        sys3_reqs = parse_requirements_file(sys3_content, sys3_file.filename)
+        if sys3_reqs:
+            save_project_requirements(project_id, sys3_reqs, "sys3")
+            
+    if swe1_file:
+        swe1_content = await swe1_file.read()
+        swe1_reqs = parse_requirements_file(swe1_content, swe1_file.filename)
+        if swe1_reqs:
+            save_project_requirements(project_id, swe1_reqs, "swe1")
+            
     if swe2_file:
         swe2_content = await swe2_file.read()
         swe2_reqs = parse_requirements_file(swe2_content, swe2_file.filename)
@@ -237,6 +268,87 @@ async def add_project(
             save_project_requirements(project_id, swe2_reqs, "swe2")
             
     return {"status": "success", "project_id": project_id}
+
+@app.post("/api/projects/{project_id}/append")
+async def append_project_docs(
+    project_id: str,
+    sys1_file: UploadFile = File(None),
+    sys2_file: UploadFile = File(None),
+    sys3_file: UploadFile = File(None),
+    swe1_file: UploadFile = File(None),
+    swe2_file: UploadFile = File(None)
+):
+    """Appends new requirements to an existing project."""
+    project = get_project_by_id(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+        
+    appended_stats = {}
+    
+    if sys1_file:
+        sys1_content = await sys1_file.read()
+        sys1_reqs = parse_requirements_file(sys1_content, sys1_file.filename)
+        if sys1_reqs:
+            count = append_project_requirements(project_id, sys1_reqs, "sys1")
+            appended_stats["sys1"] = count
+
+    if sys2_file:
+        sys2_content = await sys2_file.read()
+        sys2_reqs = parse_requirements_file(sys2_content, sys2_file.filename)
+        if sys2_reqs:
+            count = append_project_requirements(project_id, sys2_reqs, "sys2")
+            appended_stats["sys2"] = count
+
+    if sys3_file:
+        sys3_content = await sys3_file.read()
+        sys3_reqs = parse_requirements_file(sys3_content, sys3_file.filename)
+        if sys3_reqs:
+            count = append_project_requirements(project_id, sys3_reqs, "sys3")
+            appended_stats["sys3"] = count
+            
+    if swe1_file:
+        swe1_content = await swe1_file.read()
+        swe1_reqs = parse_requirements_file(swe1_content, swe1_file.filename)
+        if swe1_reqs:
+            count = append_project_requirements(project_id, swe1_reqs, "swe1")
+            appended_stats["swe1"] = count
+            
+    if swe2_file:
+        swe2_content = await swe2_file.read()
+        swe2_reqs = parse_requirements_file(swe2_content, swe2_file.filename)
+        if swe2_reqs:
+            count = append_project_requirements(project_id, swe2_reqs, "swe2")
+            appended_stats["swe2"] = count
+            
+    trigger_render_sync()
+    return {"status": "success", "project_id": project_id, "appended_stats": appended_stats}
+
+@app.put("/api/projects/{project_id}/requirements/{req_type}/{req_id}")
+async def update_req(project_id: str, req_type: str, req_id: str, body: dict):
+    if "text" not in body:
+        raise HTTPException(status_code=400, detail="Missing 'text' in request body")
+        
+    success = update_project_requirement(project_id, req_type, req_id, body["text"])
+    if not success:
+        raise HTTPException(status_code=404, detail="Requirement not found")
+        
+    trigger_render_sync()
+    return {"status": "success", "message": "Requirement updated successfully"}
+
+class DeleteReqsModel(BaseModel):
+    req_ids: list[str]
+
+@app.post("/api/projects/{project_id}/requirements/{req_type}/delete")
+async def delete_reqs(project_id: str, req_type: str, payload: DeleteReqsModel):
+    if not payload.req_ids:
+        raise HTTPException(status_code=400, detail="No requirement IDs provided")
+        
+    deleted_count = delete_project_requirements(project_id, req_type, payload.req_ids)
+    if deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No requirements found to delete")
+        
+    trigger_render_sync()
+    return {"status": "success", "deleted_count": deleted_count}
 
 @app.get("/api/projects")
 async def list_projects():
@@ -249,12 +361,30 @@ async def remove_project(project_id: str):
     trigger_render_sync()
     return {"status": "success", "project_id": project_id}
 
+class ProjectUpdateModel(BaseModel):
+    name: str
+    description: str | None = ""
+
+@app.put("/api/projects/{project_id}")
+async def edit_project(project_id: str, payload: ProjectUpdateModel):
+    """Updates a project's name and description."""
+    proj = get_project_by_id(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not payload.name or not payload.name.strip():
+        raise HTTPException(status_code=400, detail="Project name cannot be empty")
+    update_project(project_id, payload.name.strip(), payload.description or "")
+    return {"status": "success", "project_id": project_id}
+
 @app.get("/api/projects/{project_id}/requirements")
 async def get_project_reqs(project_id: str):
     project = get_project_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
         
+    sys1_reqs = get_project_requirements_from_db(project_id, "sys1")
+    sys2_reqs = get_project_requirements_from_db(project_id, "sys2")
+    sys3_reqs = get_project_requirements_from_db(project_id, "sys3")
     swe1_reqs = get_project_requirements_from_db(project_id, "swe1")
     swe2_reqs = get_project_requirements_from_db(project_id, "swe2")
     
@@ -278,6 +408,9 @@ async def get_project_reqs(project_id: str):
         return out
             
     return {
+        "sys1": build_req_dict(sys1_reqs),
+        "sys2": build_req_dict(sys2_reqs),
+        "sys3": build_req_dict(sys3_reqs),
         "swe1": build_req_dict(swe1_reqs),
         "swe2": build_req_dict(swe2_reqs)
     }
@@ -300,6 +433,9 @@ async def start_analysis(
     project = get_project_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    sys1_reqs_raw = get_project_requirements_from_db(project_id, "sys1")
+    sys2_reqs_raw = get_project_requirements_from_db(project_id, "sys2")
+    sys3_reqs_raw = get_project_requirements_from_db(project_id, "sys3")
     swe1_reqs_raw = get_project_requirements_from_db(project_id, "swe1")
     swe2_reqs_raw = get_project_requirements_from_db(project_id, "swe2")
     
@@ -307,11 +443,20 @@ async def start_analysis(
     correct_quality_bool = correct_quality.lower() == "true"
     correct_trace_bool = correct_trace.lower() == "true"
     
+    actual_run_type = run_type
+    if run_type == "quality":
+        actual_run_type = "quality_correction" if correct_quality_bool else "quality_analysis"
+    elif run_type == "traceability":
+        actual_run_type = "traceability_correction" if correct_trace_bool else "traceability_analysis"
+    
     # Run the job in the background
     asyncio.create_task(
         run_requirements_analysis_job(
             run_id=run_id,
-            run_type=run_type,
+            run_type=actual_run_type,
+            sys1_reqs_raw=sys1_reqs_raw,
+            sys2_reqs_raw=sys2_reqs_raw,
+            sys3_reqs_raw=sys3_reqs_raw,
             swe1_reqs_raw=swe1_reqs_raw,
             swe2_reqs_raw=swe2_reqs_raw,
             guideline_id=guideline_id,

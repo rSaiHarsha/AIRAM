@@ -168,14 +168,9 @@ body {
   gap: 6px;
 }
 
-/* Badge dot */
+/* Badge dot disabled for clean badge presentation */
 .badge::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
+  display: none;
 }
 
 .badge-pass {
@@ -271,6 +266,10 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 /* File Upload Drag & Drop Area */
 .dropzone {
   border: 2px dashed #cbd5e1;
@@ -358,5 +357,188 @@ tr:hover td {
 /* Global utility for hiding elements */
 [hidden] {
   display: none !important;
+}
+
+/* UI Redesign Classes (Workspace Setup) */
+.icon-box {
+  width: 40px;
+  height: 40px;
+  background-color: #eff6ff;
+  color: var(--color-primary);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-box svg {
+  width: 20px;
+  height: 20px;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.custom-select-wrapper svg {
+  position: absolute;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.custom-select-wrapper select {
+  padding-left: 38px;
+  width: 100%;
+}
+
+.action-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.action-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.action-card.active {
+  border-color: var(--color-primary);
+  background-color: #eff6ff;
+  box-shadow: 0 4px 12px rgba(0, 82, 204, 0.1);
+}
+
+.action-card .card-checkbox {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.action-card.active .card-checkbox {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.action-card.active .card-checkbox::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
+.action-card-icon {
+  margin: 8px 0 16px 28px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-card-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.action-card-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+/* Specific Action Card Icon Colors */
+.card-quality-analysis .action-card-icon { background: #f3e8ff; color: #9333ea; }
+.card-quality-correction .action-card-icon { background: #dcfce7; color: #16a34a; }
+.card-trace-analysis .action-card-icon { background: #e0f2fe; color: #0284c7; }
+.card-trace-correction .action-card-icon { background: #ffedd5; color: #ea580c; }
+
+/* Segmented Control */
+.segmented-control {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.segment {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.segment:hover:not(.active) {
+  background: #e2e8f0;
+  color: var(--text-primary);
+}
+
+.segment.active {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* New Buttons */
+.btn-pause {
+  background: #eff6ff;
+  color: var(--color-primary);
+  border: 1px solid #bfdbfe;
+}
+.btn-pause:hover {
+  background: #e0f2fe;
+}
+.btn-outline-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+.btn-outline-danger:hover {
+  background: #fef2f2;
+}
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+.btn-outline:hover {
+  background: #f8fafc;
 }
 
