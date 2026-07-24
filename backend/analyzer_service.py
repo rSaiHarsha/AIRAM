@@ -170,7 +170,7 @@ async def run_requirements_analysis_job(
                         analysis_items.append(p)
                 else:
                     # Inject a single dummy requirement to indicate failure in UI
-                    dummy = Requirement(name=f"MISSING_{parent_level.upper()}_OR_{child_level.upper()}", content="Dependency missing. Cannot perform traceability.")
+                    dummy = Requirement(name=f"MISSING_{parent_level.upper()}_OR_{child_level.upper()}", content="Dependency missing. Cannot perform traceability.", state="Missing", asil="-", rationale="-")
                     dummy.trace_parent_level = parent_level
                     dummy.trace_child_level = child_level
                     dummy.trace_child_reqs = []

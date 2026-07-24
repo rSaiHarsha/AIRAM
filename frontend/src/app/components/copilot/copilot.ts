@@ -39,13 +39,6 @@ interface Message {
               <option *ngFor="let p of projects" [value]="p.id">{{ p.name }}</option>
             </select>
           </div>
-          <button class="new-thread-btn" (click)="startNewThread()" title="Start New Thread">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            New Thread
-          </button>
         </div>
       </div>
 
@@ -129,10 +122,8 @@ interface Message {
           <button *ngIf="!isLoading" class="send-btn" (click)="sendMessage()" [disabled]="!currentInput.trim()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
           </button>
-          <button *ngIf="isLoading" class="send-btn stop-btn" (click)="stopGeneration()" title="Stop Generation">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="6" y="6" width="12" height="12"></rect>
-            </svg>
+          <button *ngIf="isLoading" class="send-btn stop-btn-input" (click)="stopGeneration()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"></rect></svg>
           </button>
         </div>
       </div>
@@ -143,16 +134,27 @@ interface Message {
 export class CopilotComponent implements OnInit, AfterViewChecked {
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
   
-  messages: Message[] = [];
-  currentInput = '';
-  isLoading = false;
-  thinkingSteps: string[] = [];
-  abortController: AbortController | null = null;
-  
   projects: any[] = [];
-  selectedProjectId: string | null = null;
 
   constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
+
+  get messages() { return this.api.copilotMessages; }
+  set messages(val) { this.api.copilotMessages = val; }
+
+  get currentInput() { return this.api.copilotCurrentInput; }
+  set currentInput(val) { this.api.copilotCurrentInput = val; }
+
+  get isLoading() { return this.api.copilotIsLoading; }
+  set isLoading(val) { this.api.copilotIsLoading = val; }
+
+  get thinkingSteps() { return this.api.copilotThinkingSteps; }
+  set thinkingSteps(val) { this.api.copilotThinkingSteps = val; }
+
+  get abortController() { return this.api.copilotAbortController; }
+  set abortController(val) { this.api.copilotAbortController = val; }
+
+  get selectedProjectId() { return this.api.copilotProjectId; }
+  set selectedProjectId(val) { this.api.copilotProjectId = val; }
 
   ngOnInit() {
     this.loadProjects();
@@ -176,22 +178,6 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
     // Optionally clear chat or just change context
   }
 
-  startNewThread() {
-    this.messages = [];
-    this.thinkingSteps = [];
-    this.isLoading = false;
-    this.currentInput = '';
-    this.stopGeneration();
-  }
-
-  stopGeneration() {
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
-    }
-    this.isLoading = false;
-  }
-
   scrollToBottom(): void {
     try {
       this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
@@ -201,6 +187,24 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
   sendSuggestion(text: string) {
     this.currentInput = text;
     this.sendMessage();
+  }
+
+  isAborted = false;
+
+  stopGeneration() {
+    if (this.abortController) {
+      this.isAborted = true;
+      this.abortController.abort();
+      this.isLoading = false;
+      this.messages.push({
+        role: 'bot',
+        content: 'Generation stopped.',
+        timestamp: new Date()
+      });
+      this.thinkingSteps = [];
+      this.cdr.detectChanges();
+      setTimeout(() => this.scrollToBottom(), 50);
+    }
   }
 
   sendMessage() {
@@ -214,6 +218,7 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
     });
     this.currentInput = '';
     this.isLoading = true;
+    this.isAborted = false;
     this.thinkingSteps = [];
     this.abortController = new AbortController();
 
@@ -244,7 +249,7 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
         console.error(err);
         this.messages.push({
           role: 'bot',
-          content: 'Sorry, I encountered an error communicating with the server.',
+          content: this.isAborted ? 'Generation stopped.' : 'Sorry, I encountered an error communicating with the server.',
           timestamp: new Date()
         });
         this.thinkingSteps = [];

@@ -72,27 +72,6 @@
   border-color: #0d6efd;
 }
 
-.new-thread-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--text-main);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.new-thread-btn:hover {
-  background: var(--surface-hover);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
 .chat-history {
   flex: 1;
   overflow-y: auto;
@@ -332,6 +311,14 @@
 .send-btn:disabled {
   background: var(--gray-400);
   cursor: not-allowed;
+}
+
+.stop-btn-input {
+  background: #333333;
+}
+
+.stop-btn-input:hover {
+  background: #000000;
 }
 
 .suggestions {

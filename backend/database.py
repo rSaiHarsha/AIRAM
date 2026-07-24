@@ -142,21 +142,27 @@ def init_db():
             project_name TEXT
         )
     """)
+    conn.commit()
+    
     add_col = "ADD COLUMN IF NOT EXISTS" if IS_POSTGRES else "ADD COLUMN"
     try:
         cursor.execute(f"ALTER TABLE execution_runs {add_col} current_row INTEGER DEFAULT 0")
+        conn.commit()
     except Exception:
         conn.rollback()
     try:
         cursor.execute(f"ALTER TABLE execution_runs {add_col} total_rows INTEGER DEFAULT 0")
+        conn.commit()
     except Exception:
         conn.rollback()
     try:
         cursor.execute(f"ALTER TABLE execution_runs {add_col} guideline_name TEXT")
+        conn.commit()
     except Exception:
         conn.rollback()
     try:
         cursor.execute(f"ALTER TABLE execution_runs {add_col} project_name TEXT")
+        conn.commit()
     except Exception:
         conn.rollback()
         
@@ -184,10 +190,12 @@ def init_db():
     # Safely migrate existing databases
     try:
         cursor.execute(f"ALTER TABLE execution_results {add_col} swe1_text TEXT")
+        conn.commit()
     except Exception:
         conn.rollback()
     try:
         cursor.execute(f"ALTER TABLE execution_results {add_col} category TEXT")
+        conn.commit()
     except Exception:
         conn.rollback()
         
@@ -223,7 +231,7 @@ def init_db():
                 cursor.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 1))")
             except Exception:
                 conn.rollback()
-    
+
     conn.commit()
     conn.close()
 

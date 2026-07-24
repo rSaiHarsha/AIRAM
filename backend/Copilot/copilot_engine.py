@@ -57,13 +57,15 @@ from database import (
     get_all_projects,
     get_project_by_id,
     get_project_requirements_from_db,
+    update_project_requirement,
+    append_project_requirements,
 )
 from rag_service import rag_engine
 
 llm = LLMManager()
 
-COPILOT_SYSTEM_PROMPT = """You are the AIRAM Copilot. You have tools to search and retrieve:
-- Requirements (SWE.1/SWE.2) by ID or semantic search
+COPILOT_SYSTEM_PROMPT = """You are the AIRAM Copilot. You have tools to search, retrieve, and modify:
+- Requirements (SWE.1/SWE.2) by ID or semantic search, and edit or add requirements
 - Quality analysis results and failed rules
 - Traceability links, coverage %, and orphaned requirements
 - Guideline documents (INCOSE/EARS/custom rules)
@@ -210,7 +212,9 @@ def _retry_call(create_fn, *, max_retries=3, base_delay=1.0, **kwargs):
                 time.sleep(base_delay * (2 ** attempt) + random.uniform(0, 0.5))
                 continue
             raise
-    raise last_err
+    if last_err is not None:
+        raise last_err
+    raise ValueError("max_retries must be > 0")
 
 
 # ---------------------------------------------------------------------------
@@ -313,6 +317,26 @@ def get_requirement_by_id(req_id: str, project_id: str = None) -> str:
             if req.get("id") == req_id or req.get("req_id") == req_id:
                 return json.dumps(req, indent=2)
     return _no_data(f"Requirement {req_id} not found in project {project_id}.")
+
+
+def edit_requirement(req_id: str, new_text: str, req_type: str, project_id: str = None) -> str:
+    if not project_id:
+        return _no_data("project_id is required to edit a requirement.")
+    success = update_project_requirement(project_id, req_type, req_id, new_text)
+    if success is False:
+        return _no_data(f"Failed to update requirement {req_id}. It may not exist in project {project_id} under type {req_type}.")
+    return f"Successfully updated requirement {req_id}."
+
+
+def add_requirement(req_id: str, text: str, req_type: str, project_id: str = None) -> str:
+    if not project_id:
+        return _no_data("project_id is required to add a requirement.")
+    req_obj = {"id": req_id, "text": text}
+    try:
+        append_project_requirements(project_id, [req_obj], req_type)
+        return f"Successfully added requirement {req_id}."
+    except Exception as e:
+        return _no_data(f"Failed to add requirement: {e}")
 
 
 def get_traceability_for_req(req_id: str, project_id: str = None) -> str:
@@ -489,6 +513,8 @@ def get_project_summary(project_id: str) -> str:
 TOOL_REGISTRY = {
     "search_requirements": search_requirements,
     "get_requirement_by_id": get_requirement_by_id,
+    "edit_requirement": edit_requirement,
+    "add_requirement": add_requirement,
     "get_traceability_for_req": get_traceability_for_req,
     "find_orphans": find_orphans,
     "get_traceability_coverage": get_traceability_coverage,
@@ -524,6 +550,40 @@ TOOL_SCHEMAS = [
                 "type": "object",
                 "properties": {"req_id": {"type": "string"}, "project_id": {"type": "string"}},
                 "required": ["req_id", "project_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_requirement",
+            "description": "Edit the text of an existing requirement.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "req_id": {"type": "string", "description": "The requirement ID to edit"},
+                    "new_text": {"type": "string", "description": "The new text for the requirement"},
+                    "req_type": {"type": "string", "description": "The type of the requirement (e.g. 'swe1', 'swe2')"},
+                    "project_id": {"type": "string"}
+                },
+                "required": ["req_id", "new_text", "req_type", "project_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_requirement",
+            "description": "Add a new requirement to the project.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "req_id": {"type": "string", "description": "The new requirement ID"},
+                    "text": {"type": "string", "description": "The text of the requirement"},
+                    "req_type": {"type": "string", "description": "The type of the requirement (e.g. 'swe1', 'swe2')"},
+                    "project_id": {"type": "string"}
+                },
+                "required": ["req_id", "text", "req_type", "project_id"],
             },
         },
     },
@@ -731,7 +791,11 @@ def run_copilot_turn_stream(project_id: str, user_message: str, history: list):
     use_tools = needs_tools(user_message)
     print(f"[Copilot Router] Needs tools: {use_tools}", flush=True)
 
-    messages = build_messages(history, user_message, system_prompt=COPILOT_SYSTEM_PROMPT)
+    active_prompt = COPILOT_SYSTEM_PROMPT
+    if project_id:
+        active_prompt += f"\n\nCRITICAL CONTEXT:\nThe user is currently viewing project ID: '{project_id}'. Unless they explicitly specify a different project, assume all their questions and tool calls refer to this project. Do NOT ask them for a project ID, use '{project_id}' automatically."
+
+    messages = build_messages(history, user_message, system_prompt=active_prompt)
 
     had_tool_calls = False
     last_tool_results: list = []

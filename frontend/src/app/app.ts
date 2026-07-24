@@ -76,16 +76,6 @@ import { ApiService } from './services/api.service';
             <span class="status-indicator-dot"></span>
             <span class="status-text">{{ backendStatus | uppercase }}</span>
           </div>
-
-          <div class="header-icons">
-            <button class="icon-btn notification-btn" aria-label="Notifications">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span class="notification-badge">3</span>
-            </button>
-          </div>
         </div>
       </div>
     </header>
@@ -131,9 +121,9 @@ import { ApiService } from './services/api.service';
       z-index: 1000;
     }
     .header-container {
-      max-width: 1200px;
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 40px;
       height: 64px;
       display: flex;
       justify-content: space-between;
@@ -220,46 +210,6 @@ import { ApiService } from './services/api.service';
       display: flex;
       align-items: center;
       gap: 24px;
-    }
-    .header-icons {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .icon-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-      padding: 4px;
-      border-radius: 50%;
-    }
-    .icon-btn:hover {
-      color: var(--text-primary);
-      background-color: #f1f5f9;
-    }
-    .notification-btn {
-      position: relative;
-    }
-    .notification-badge {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background-color: var(--color-primary);
-      color: white;
-      font-size: 0.6rem;
-      font-weight: 700;
-      border-radius: 50%;
-      width: 14px;
-      height: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid white;
     }
     
     .backend-status-badge {

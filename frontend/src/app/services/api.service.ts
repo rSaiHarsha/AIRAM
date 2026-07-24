@@ -10,7 +10,15 @@ export class ApiService {
   private baseUrl = window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
     : 'https://aaram.onrender.com';
-  
+    
+  // Copilot State (Persisted across tab navigation)
+  copilotMessages: any[] = [];
+  copilotThinkingSteps: string[] = [];
+  copilotIsLoading: boolean = false;
+  copilotAbortController: AbortController | null = null;
+  copilotProjectId: string | null = null;
+  copilotCurrentInput: string = '';
+
   constructor(private http: HttpClient, private zone: NgZone) {}
 
   getBaseUrl(): string {
