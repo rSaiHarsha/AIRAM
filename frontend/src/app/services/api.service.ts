@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
@@ -7,11 +7,11 @@ import { Observable } from 'rxjs';
 })
 export class ApiService {
   
-private baseUrl = window.location.hostname === 'localhost'
+  private baseUrl = window.location.hostname === 'localhost'
     ? 'http://localhost:8000'
     : 'https://aaram.onrender.com';
   
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private zone: NgZone) {}
 
   getBaseUrl(): string {
     return this.baseUrl;
@@ -251,5 +251,82 @@ private baseUrl = window.location.hostname === 'localhost'
 
   deleteRun(runId: string): Observable<any> {
     return this.http.delete(`${this.baseUrl}/api/analysis/${runId}`);
+  }
+
+  // Copilot Feature
+  sendCopilotMessage(projectId: string | null, userMessage: string, history: any[] = []): Observable<any> {
+    return new Observable(subscriber => {
+      fetch(`${this.baseUrl}/api/copilot/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          project_id: projectId,
+          user_message: userMessage,
+          history: history
+        })
+      })
+      .then(async response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (!response.body) {
+          subscriber.error('No response body returned from server.');
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        const processLine = (line: string) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(trimmed.substring(6));
+              this.zone.run(() => {
+                subscriber.next(data);
+                if (data.type === 'final' || data.type === 'error') {
+                  subscriber.complete();
+                }
+              });
+              if (data.type === 'final' || data.type === 'error') {
+                return true;
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data', e);
+            }
+          }
+          return false;
+        };
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (processLine(line)) return;
+          }
+        }
+
+        if (buffer.trim()) {
+          processLine(buffer);
+        }
+
+        this.zone.run(() => {
+          subscriber.complete();
+        });
+      })
+      .catch(error => {
+        this.zone.run(() => {
+          subscriber.error(error);
+        });
+      });
+    });
   }
 }
