@@ -63,13 +63,13 @@ import { ApiService } from '../../services/api.service';
               <label class="form-label">Select Analysis Actions</label>
               <div class="checkbox-group" style="display: flex; gap: 16px; flex-wrap: wrap;">
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.analyse" [disabled]="actions.correct"> Quality Analysis
+                  <input type="checkbox" [(ngModel)]="actions.analyse" [disabled]="actions.correct" (ngModelChange)="onAnalyseToggle($event)"> Quality Analysis
                 </label>
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.correct" (ngModelChange)="onCorrectionToggle($event)"> Quality Correction
                 </label>
                 <label class="checkbox-lbl">
-                  <input type="checkbox" [(ngModel)]="actions.trace" [disabled]="actions.correctTrace"> Traceability Analysis (SWE.2 to SWE.1)
+                  <input type="checkbox" [(ngModel)]="actions.trace" [disabled]="actions.correctTrace" (ngModelChange)="onTraceToggle($event)"> Traceability Analysis (Adjacent Layers)
                 </label>
                 <label class="checkbox-lbl">
                   <input type="checkbox" [(ngModel)]="actions.correctTrace" (ngModelChange)="onTraceCorrectionToggle($event)"> Traceability Correction
@@ -256,10 +256,11 @@ import { ApiService } from '../../services/api.service';
                 <th *ngIf="hasCorrections()">Corrected Requirement</th>
               </tr>
               <tr *ngIf="isTraceabilityRun">
-                <th>SWE.1 ID</th>
-                <th>SWE.1 Requirement</th>
-                <th>SWE.2 ID</th>
-                <th>SWE.2 Requirement</th>
+                <th>Parent ID</th>
+                <th>Parent Requirement</th>
+                <th>Child ID</th>
+                <th>Child Requirement</th>
+                <th>Trace Level</th>
                 <th>Status</th>
                 <th>Rationale / Reasoning</th>
                 <th *ngIf="hasTraceCorrections()">Corrected Requirement</th>
@@ -326,6 +327,7 @@ import { ApiService } from '../../services/api.service';
                           <span *ngIf="getSwe2List(row).length > 1" style="font-weight: 600; color: #15803d;">• </span>{{ swe2.text }}
                         </div>
                       </td>
+                      <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="font-weight: 600; font-family: monospace; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.category?.replace('traceability:', '') || '-' }}</td>
                       <td *ngIf="i === 0" [attr.rowspan]="splitCorrectedReq(row.corrected_req).length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
                         <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
                           {{ row.status }}
@@ -345,6 +347,7 @@ import { ApiService } from '../../services/api.service';
                       <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="max-width: 250px; font-size: 0.85rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.swe1_text || '-' }}</td>
                       <td style="font-weight: 600; max-width: 150px; font-size: 0.85rem; white-space: pre-wrap; color: #15803d; border-bottom: 1px solid var(--border-color);">{{ swe2.id }}</td>
                       <td style="max-width: 350px; font-size: 0.85rem; white-space: pre-wrap; border-bottom: 1px solid var(--border-color);">{{ swe2.text }}</td>
+                      <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="font-weight: 600; font-family: monospace; border-bottom: 1px solid var(--border-color); vertical-align: middle;">{{ row.category?.replace('traceability:', '') || '-' }}</td>
                       <td *ngIf="i === 0" [attr.rowspan]="getSwe2List(row).length" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
                         <span class="badge" [class.badge-pass]="row.status === 'PASS'" [class.badge-review]="row.status === 'REVIEW' || row.status === 'FAIL'">
                           {{ row.status }}
@@ -1011,10 +1014,26 @@ JSON Schema:
 
 
 
+  onAnalyseToggle(checked: boolean) {
+    if (checked) {
+      this.actions.trace = false;
+      this.actions.correctTrace = false;
+    }
+  }
+
   onCorrectionToggle(checked: boolean) {
     if (checked) {
       // Correction requires analysis — auto-enable it
       this.actions.analyse = true;
+      this.actions.trace = false;
+      this.actions.correctTrace = false;
+    }
+  }
+
+  onTraceToggle(checked: boolean) {
+    if (checked) {
+      this.actions.analyse = false;
+      this.actions.correct = false;
     }
   }
 
@@ -1022,6 +1041,8 @@ JSON Schema:
     if (checked) {
       // Traceability correction requires traceability analysis — auto-enable it
       this.actions.trace = true;
+      this.actions.analyse = false;
+      this.actions.correct = false;
     }
   }
 
@@ -1288,7 +1309,7 @@ JSON Schema:
 
   get filteredResults(): any[] {
     if (this.isTraceabilityRun) {
-      return this.results.filter(r => r.category === 'traceability' || r.category == null);
+      return this.results.filter(r => (r.category && r.category.startsWith('traceability')) || r.category == null);
     }
     return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'swe1' && r.category == null));
   }
@@ -1296,6 +1317,9 @@ JSON Schema:
   hasCategory(category: string): boolean {
     if (category === 'swe1' && !this.isTraceabilityRun) {
       return this.results.some(r => r.category === category || r.category == null);
+    }
+    if (category === 'traceability') {
+      return this.results.some(r => r.category && r.category.startsWith('traceability'));
     }
     return this.results.some(r => r.category === category);
   }

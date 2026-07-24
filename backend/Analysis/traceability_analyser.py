@@ -5,25 +5,28 @@ from Analysis.quality_analyser import clean_and_parse_json
 
 
 
-def analyze_traceability_from_swe1_with_llm(r_swe1: Requirement, swe2_reqs: list, llm) -> dict:
-    """Calls Nvidia NIM API to analyze which SWE.2 requirements trace to a given SWE.1 requirement."""
+def analyze_traceability_generic_with_llm(parent_req: Requirement, child_reqs: list, parent_level: str, child_level: str, llm) -> dict:
+    """Calls Nvidia NIM API to analyze which child requirements trace to a given parent requirement."""
     if not llm or not llm.client.api_key or llm.client.api_key == "mock-key":
-        return {"status": "FAIL", "linked_swe2_ids": [], "rationale": "No LLM API key configured for semantic search."}
+        return {"status": "FAIL", "linked_child_ids": [], "rationale": "No LLM API key configured for semantic search."}
 
-    # Build list of SWE.2 requirements for prompt context
-    srs_list_str = "\n".join([f"- {srs.name}: {srs.content}" for srs in swe2_reqs[:100]]) # Limit to prevent context blowup
+    # Build list of child requirements for prompt context
+    srs_list_str = "\n".join([f"- {req.name}: {req.content}" for req in child_reqs[:100]]) # Limit to prevent context blowup
     
+    parent_level_fmt = parent_level.upper()
+    child_level_fmt = child_level.upper()
+
     system_prompt = (
-        "You are an automotive safety and systems engineer. Evaluate which of the following Low-Level Software Requirements (SWE.2) "
-        "properly trace to and satisfy the High-Level Requirement (SWE.1) listed below. "
+        f"You are an automotive safety and systems engineer. Evaluate which of the following Low-Level Requirements ({child_level_fmt}) "
+        f"properly trace to and satisfy the High-Level Requirement ({parent_level_fmt}) listed below. "
         "Respond ONLY in a structured JSON format containing the following fields:\n"
         "{\n"
         '  "status": "PASS" | "FAIL" | "REVIEW",\n'
-        '  "linked_swe2_ids": ["SWE2_0001", "SWE2_0002", ...] or [],\n'
+        '  "linked_child_ids": ["ID1", "ID2", ...] or [],\n'
         '  "rationale": "Reason why they trace or do not trace"\n'
         "}"
     )
-    user_content = f"SWE.2 Requirements available:\n{srs_list_str}\n\nSWE.1 Requirement to match:\nID: {r_swe1.name}\nContent: {r_swe1.content}"
+    user_content = f"{child_level_fmt} Requirements available:\n{srs_list_str}\n\n{parent_level_fmt} Requirement to match:\nID: {parent_req.name}\nContent: {parent_req.content}"
     
     try:
         messages = [
@@ -34,20 +37,20 @@ def analyze_traceability_from_swe1_with_llm(r_swe1: Requirement, swe2_reqs: list
         res_data = clean_and_parse_json(response.choices[0].message.content)
         
         status_raw = res_data.get("status", "REVIEW").upper()
-        linked_ids = res_data.get("linked_swe2_ids", [])
+        linked_ids = res_data.get("linked_child_ids", res_data.get("linked_swe2_ids", []))
         if not isinstance(linked_ids, list):
             linked_ids = [linked_ids] if linked_ids else []
             
         return {
             "status": "PASS" if status_raw in ["PASS", "PASSED"] and len(linked_ids) > 0 else ("REVIEW" if status_raw == "REVIEW" else "FAIL"),
-            "linked_swe2_ids": linked_ids,
+            "linked_child_ids": linked_ids,
             "rationale": res_data.get("rationale", "No rationale provided by LLM.")
         }
     except Exception as e:
         print(f"Nvidia NIM API traceability call failed: {e}")
         return {
             "status": "FAIL",
-            "linked_swe2_ids": [],
+            "linked_child_ids": [],
             "rationale": f"LLM analysis failed: {str(e)}"
         }
 
@@ -68,10 +71,10 @@ def compare_traceability(swe1_reqs: List[Requirement], swe2_reqs: List[Requireme
 
     for r1 in swe1_reqs:
         # Call LLM for semantic links
-        result = analyze_traceability_from_swe1_with_llm(r1, swe2_reqs, llm)
+        result = analyze_traceability_generic_with_llm(r1, swe2_reqs, "swe1", "swe2", llm)
         status = result.get("status", "FAIL")
         rationale = result.get("rationale", "No explanation provided.")
-        linked_ids = result.get("linked_swe2_ids", [])
+        linked_ids = result.get("linked_child_ids", [])
         linked_swe2s = [s2 for s2 in swe2_reqs if s2.name in linked_ids]
         
         if linked_swe2s:
@@ -121,40 +124,45 @@ def compare_traceability(swe1_reqs: List[Requirement], swe2_reqs: List[Requireme
 
 
 def correct_traceability_requirement(
-    r_swe1: Requirement,
-    linked_swe2s: list,
+    parent_req: Requirement,
+    linked_children: list,
     analysis_status: str,
     analysis_rationale: str,
-    swe2_reqs: list,
+    child_reqs: list,
+    parent_level: str,
+    child_level: str,
     llm,
     custom_context: str = None
 ) -> str:
     """
-    Generates or rewrites SWE.2 (LLR) requirements to improve traceability coverage
-    for a given SWE.1 (HLR) requirement that has FAIL or REVIEW status.
+    Generates or rewrites child requirements to improve traceability coverage
+    for a given parent requirement that has FAIL or REVIEW status.
     
     Returns corrected/new requirement text (newline-separated if multiple).
     """
     if not llm or not llm.client.api_key or llm.client.api_key == "mock-key":
         return None
 
-    # Build context of existing linked SWE.2s (if any)
+    parent_level_fmt = parent_level.upper()
+    child_level_fmt = child_level.upper()
+
+    # Build context of existing linked children (if any)
     linked_context = ""
-    if linked_swe2s:
-        linked_context = "\n".join([f"- {s2.name}: {s2.content}" for s2 in linked_swe2s])
-        linked_context = f"\nCurrently linked SWE.2 requirements:\n{linked_context}"
+    if linked_children:
+        linked_context = "\n".join([f"- {c.name}: {c.content}" for c in linked_children])
+        linked_context = f"\nCurrently linked {child_level_fmt} requirements:\n{linked_context}"
 
     system_prompt = (
         "You are a Senior Automotive Systems Engineer and Requirements Expert.\n"
         "Based on the traceability analysis results, your task is to generate or rewrite "
-        "Low-Level Software Requirements (SWE.2 / LLR) that properly trace to and satisfy "
-        "the given High-Level Requirement (SWE.1 / HLR).\n\n"
+        f"Low-Level Requirements ({child_level_fmt} / LLR) that properly trace to and satisfy "
+        f"the given High-Level Requirement ({parent_level_fmt} / HLR).\n\n"
         "You MUST adhere to these strict rules:\n"
         "1. Return ONLY valid JSON exactly matching the schema below.\n"
         "2. Do NOT include any explanation or markdown formatting outside the JSON.\n"
         "3. Each corrected requirement must be a complete, standalone requirement.\n"
         "4. Use EARS syntax patterns (ubiquitous, event-driven, state-driven) where applicable.\n"
-        "5. Split into multiple requirements if the SWE.1 contains multiple aspects that need separate LLR coverage.\n"
+        f"5. Split into multiple requirements if the {parent_level_fmt} contains multiple aspects that need separate LLR coverage.\n"
         "6. Each requirement must be atomic, unambiguous, and verifiable.\n\n"
         "JSON Schema:\n"
         "{\n"
@@ -170,23 +178,23 @@ def correct_traceability_requirement(
         )
 
     user_content = (
-        f"SWE.1 High-Level Requirement:\n"
-        f"ID: {r_swe1.name}\n"
-        f"Content: {r_swe1.content}\n\n"
+        f"{parent_level_fmt} High-Level Requirement:\n"
+        f"ID: {parent_req.name}\n"
+        f"Content: {parent_req.content}\n\n"
         f"Traceability Analysis Result: {analysis_status}\n"
         f"Analysis Rationale: {analysis_rationale}"
         f"{linked_context}\n\n"
     )
 
-    if analysis_status == "FAIL" and not linked_swe2s:
+    if analysis_status == "FAIL" and not linked_children:
         user_content += (
-            "This SWE.1 requirement has NO linked SWE.2 requirements. "
-            "Generate new SWE.2 Low-Level Requirements that would properly decompose and trace to this SWE.1."
+            f"This {parent_level_fmt} requirement has NO linked {child_level_fmt} requirements. "
+            f"Generate new {child_level_fmt} Low-Level Requirements that would properly decompose and trace to this {parent_level_fmt}."
         )
     else:
         user_content += (
-            "The existing SWE.2 linkage is incomplete or has issues. "
-            "Rewrite or generate additional SWE.2 requirements to fully satisfy and trace to this SWE.1."
+            f"The existing {child_level_fmt} linkage is incomplete or has issues. "
+            f"Rewrite or generate additional {child_level_fmt} requirements to fully satisfy and trace to this {parent_level_fmt}."
         )
 
     try:
