@@ -109,7 +109,7 @@ MAX_TOOL_HOPS = 4
 MAX_HISTORY_MESSAGES = 12  # bound context growth across a long chat session
 
 SMALL_TOOL_MODEL = "meta/llama-3.1-8b-instruct"
-LARGE_SYNTHESIS_MODEL = "google/gemma-4-31b-it"
+LARGE_SYNTHESIS_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
 
 NO_DATA_MARKER = "[NO_DATA]"
 THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
