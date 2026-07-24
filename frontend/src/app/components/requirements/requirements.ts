@@ -803,8 +803,7 @@ JSON Schema:
   
   isTraceabilityRun = false;
   
-  // Tab state for output table
-  activeTab: 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'traceability' = 'sys1';
+  activeTab: string = 'sys1';
   
   private timerSubscription: any;
 
@@ -1065,7 +1064,7 @@ JSON Schema:
     if (this.actions.trace || this.actions.correctTrace) {
       runType = 'traceability';
       this.isTraceabilityRun = true;
-      this.activeTab = 'traceability:sys1_to_sys2' as any;
+      this.activeTab = 'traceability:sys1_to_sys2';
     } else {
       this.isTraceabilityRun = false;
       this.activeTab = 'swe1';
@@ -1212,9 +1211,9 @@ JSON Schema:
         // using the quality-analysis table structure.
         //
         // Now we fall back to inspecting the actual row shape: traceability
-        // rows always carry category='traceability'
-        const looksLikeTraceability = res.length > 0 && res.some((r: any) => r.category === 'traceability');
-        this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' : looksLikeTraceability;
+        // rows always carry category starting with 'traceability:'
+        const looksLikeTraceability = res.length > 0 && res.some((r: any) => r.category && r.category.startsWith('traceability:'));
+        this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' || matchedRun.type === 'traceability_analysis' : looksLikeTraceability;
 
         this.results = res.map((r: any) => {
           if (this.isTraceabilityRun && !r.parsed_swe2_list) {
@@ -1224,7 +1223,11 @@ JSON Schema:
         });
 
         if (this.isTraceabilityRun) {
-          this.activeTab = 'traceability';
+          if (this.hasCategory('traceability:sys1_to_sys2')) this.activeTab = 'traceability:sys1_to_sys2';
+          else if (this.hasCategory('traceability:sys2_to_sys3')) this.activeTab = 'traceability:sys2_to_sys3';
+          else if (this.hasCategory('traceability:sys3_to_swe1')) this.activeTab = 'traceability:sys3_to_swe1';
+          else if (this.hasCategory('traceability:swe1_to_swe2')) this.activeTab = 'traceability:swe1_to_swe2';
+          else this.activeTab = 'traceability:sys1_to_sys2';
         } else {
           if (this.hasCategory('sys1')) this.activeTab = 'sys1';
           else if (this.hasCategory('sys2')) this.activeTab = 'sys2';
