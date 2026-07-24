@@ -50,10 +50,21 @@ from backend.file_parser import parse_requirements_file
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        print(f"[Warning] DB initialization error during startup: {e}")
     yield
 
 app = FastAPI(title="AIRAM Backend", lifespan=lifespan)
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "AIRAM / ReQualiTrace Backend API"}
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
 
 # Enable CORS for Angular frontend
 app.add_middleware(
@@ -533,4 +544,5 @@ async def delete_run(run_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

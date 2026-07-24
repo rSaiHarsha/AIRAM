@@ -5,24 +5,105 @@ import json
 DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "airam.db")
 OLD_DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requalitrace.db")
 
-# Automatically migrate database if old one exists
-if not os.path.exists(DATABASE_PATH) and os.path.exists(OLD_DATABASE_PATH):
-    try:
-        import shutil
-        shutil.copy2(OLD_DATABASE_PATH, DATABASE_PATH)
-        print(f"[database] Migrated old database to {DATABASE_PATH}")
-    except Exception as e:
-        print(f"[database] Failed to migrate database: {e}")
+IS_POSTGRES = bool(os.environ.get("DATABASE_URL"))
+if IS_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+else:
+    # Automatically migrate database if old one exists
+    if not os.path.exists(DATABASE_PATH) and os.path.exists(OLD_DATABASE_PATH):
+        try:
+            import shutil
+            shutil.copy2(OLD_DATABASE_PATH, DATABASE_PATH)
+            print(f"[database] Migrated old database to {DATABASE_PATH}")
+        except Exception as e:
+            print(f"[database] Failed to migrate database: {e}")
+
+class CursorWrapper:
+    def __init__(self, cursor, is_postgres):
+        self._cursor = cursor
+        self.is_postgres = is_postgres
+
+    def execute(self, query, params=()):
+        if self.is_postgres:
+            query = query.replace("?", "%s")
+        self._cursor.execute(query, params)
+        return self
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self):
+        return None if self.is_postgres else self._cursor.lastrowid
+
+class ConnectionWrapper:
+    def __init__(self, conn, is_postgres):
+        self._conn = conn
+        self.is_postgres = is_postgres
+
+    def cursor(self):
+        if self.is_postgres:
+            cur = self._conn.cursor(cursor_factory=RealDictCursor)
+        else:
+            cur = self._conn.cursor()
+        return CursorWrapper(cur, self.is_postgres)
+
+    def commit(self):
+        self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+    def close(self):
+        self._conn.close()
+        
+    def execute(self, query, params=()):
+        cur = self.cursor()
+        cur.execute(query, params)
+        return cur
+
+def format_iso_timestamp(val):
+    if not val:
+        return val
+    if isinstance(val, str):
+        if not val.endswith("Z"):
+            return val.replace(" ", "T") + "Z"
+        return val
+    if hasattr(val, "isoformat"):
+        iso_str = val.isoformat()
+        if not iso_str.endswith("Z"):
+            return iso_str + "Z"
+        return iso_str
+    return str(val)
 
 def get_connection():
-    conn = sqlite3.connect(DATABASE_PATH, timeout=20.0)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.row_factory = sqlite3.Row
-    return conn
+    if IS_POSTGRES:
+        db_url = os.environ.get("DATABASE_URL", "")
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        if "sslmode" not in db_url:
+            db_url += "?sslmode=require" if "?" not in db_url else "&sslmode=require"
+        conn = psycopg2.connect(db_url)
+        return ConnectionWrapper(conn, True)
+    else:
+        conn = sqlite3.connect(DATABASE_PATH, timeout=20.0)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.row_factory = sqlite3.Row
+        return ConnectionWrapper(conn, False)
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
+    
+    auto_inc = "SERIAL" if IS_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
     
     # Guidelines Table
     cursor.execute("""
@@ -35,9 +116,9 @@ def init_db():
     """)
     
     # Chunks Table for progressive loading & metrics
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS chunks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {auto_inc},
             doc_name TEXT NOT NULL,
             chunk_index INTEGER NOT NULL,
             chunk_text TEXT NOT NULL,
@@ -61,30 +142,31 @@ def init_db():
             project_name TEXT
         )
     """)
+    add_col = "ADD COLUMN IF NOT EXISTS" if IS_POSTGRES else "ADD COLUMN"
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN current_row INTEGER DEFAULT 0")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} current_row INTEGER DEFAULT 0")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN total_rows INTEGER DEFAULT 0")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} total_rows INTEGER DEFAULT 0")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN guideline_name TEXT")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} guideline_name TEXT")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_runs ADD COLUMN project_name TEXT")
+        cursor.execute(f"ALTER TABLE execution_runs {add_col} project_name TEXT")
     except Exception:
-        pass
+        conn.rollback()
         
     # Migrate old execution runs to have a default project name
     cursor.execute("UPDATE execution_runs SET project_name = 'old tests' WHERE project_name IS NULL")
     
     # Execution Results Table
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS execution_results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {auto_inc},
             run_id TEXT NOT NULL,
             req_id TEXT,
             input_req TEXT,
@@ -101,13 +183,13 @@ def init_db():
     
     # Safely migrate existing databases
     try:
-        cursor.execute("ALTER TABLE execution_results ADD COLUMN swe1_text TEXT")
+        cursor.execute(f"ALTER TABLE execution_results {add_col} swe1_text TEXT")
     except Exception:
-        pass
+        conn.rollback()
     try:
-        cursor.execute("ALTER TABLE execution_results ADD COLUMN category TEXT")
+        cursor.execute(f"ALTER TABLE execution_results {add_col} category TEXT")
     except Exception:
-        pass
+        conn.rollback()
         
     # Migrate old categories
     cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
@@ -124,9 +206,9 @@ def init_db():
     """)
     
     # Project Requirements Table
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS project_requirements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {auto_inc},
             project_id TEXT NOT NULL,
             req_id TEXT NOT NULL,
             content TEXT NOT NULL,
@@ -135,6 +217,13 @@ def init_db():
         )
     """)
     
+    if IS_POSTGRES:
+        for tbl in ["execution_results", "project_requirements", "chunks"]:
+            try:
+                cursor.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 1))")
+            except Exception:
+                conn.rollback()
+    
     conn.commit()
     conn.close()
 
@@ -142,10 +231,16 @@ def init_db():
 def save_guidelines(guideline_id: str, name: str, data: dict):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT OR REPLACE INTO guidelines (id, name, content) VALUES (?, ?, ?)",
-        (guideline_id, name, json.dumps(data))
-    )
+    if IS_POSTGRES:
+        cursor.execute(
+            "INSERT INTO guidelines (id, name, content) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, content = EXCLUDED.content",
+            (guideline_id, name, json.dumps(data))
+        )
+    else:
+        cursor.execute(
+            "INSERT OR REPLACE INTO guidelines (id, name, content) VALUES (?, ?, ?)",
+            (guideline_id, name, json.dumps(data))
+        )
     conn.commit()
     conn.close()
 
@@ -159,7 +254,12 @@ def get_all_guidelines():
     result = []
     for r in rows:
         d = dict(r)
-        d['content'] = json.loads(d['content']) if d.get('content') else {}
+        if "created_at" in d and d["created_at"]:
+            d["created_at"] = format_iso_timestamp(d["created_at"])
+        if d.get("content"):
+            d['content'] = json.loads(d['content']) if isinstance(d['content'], str) else d['content']
+        else:
+            d['content'] = {}
         result.append(d)
     return result
 
@@ -169,7 +269,10 @@ def get_guideline_content(guideline_id: str):
     cursor.execute("SELECT content FROM guidelines WHERE id = ?", (guideline_id,))
     row = cursor.fetchone()
     conn.close()
-    return json.loads(row["content"]) if row else None
+    if not row:
+        return None
+    content_val = row["content"]
+    return json.loads(content_val) if isinstance(content_val, str) else content_val
 
 def get_guideline_details(guideline_id: str):
     conn = get_connection()
@@ -178,10 +281,11 @@ def get_guideline_details(guideline_id: str):
     row = cursor.fetchone()
     conn.close()
     if row:
+        content_val = row["content"]
         return {
             "id": row["id"],
             "name": row["name"],
-            "content": json.loads(row["content"])
+            "content": json.loads(content_val) if isinstance(content_val, str) else content_val
         }
     return None
 
@@ -225,21 +329,27 @@ def get_chunking_metrics():
     cursor.execute("SELECT COUNT(*) as total_chunks, SUM(token_count) as total_tokens, AVG(token_count) as avg_tokens FROM chunks")
     row = cursor.fetchone()
     conn.close()
-    if row and row["total_chunks"] > 0:
+    if row and row["total_chunks"] and int(row["total_chunks"]) > 0:
         return {
-            "total_chunks": row["total_chunks"],
-            "total_tokens": row["total_tokens"],
-            "avg_tokens": round(row["avg_tokens"], 1)
+            "total_chunks": int(row["total_chunks"]),
+            "total_tokens": int(row["total_tokens"] or 0),
+            "avg_tokens": round(float(row["avg_tokens"] or 0), 1)
         }
     return {"total_chunks": 0, "total_tokens": 0, "avg_tokens": 0}
 
 def save_execution_run(run_id: str, run_type: str, status: str, guideline_name: str = None, project_name: str = None):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT OR REPLACE INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?)",
-        (run_id, run_type, status, guideline_name, project_name)
-    )
+    if IS_POSTGRES:
+        cursor.execute(
+            "INSERT INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (run_id) DO UPDATE SET type = EXCLUDED.type, status = EXCLUDED.status, guideline_name = EXCLUDED.guideline_name, project_name = EXCLUDED.project_name",
+            (run_id, run_type, status, guideline_name, project_name)
+        )
+    else:
+        cursor.execute(
+            "INSERT OR REPLACE INTO execution_runs (run_id, type, status, guideline_name, project_name) VALUES (?, ?, ?, ?, ?)",
+            (run_id, run_type, status, guideline_name, project_name)
+        )
     conn.commit()
     conn.close()
 
@@ -273,15 +383,18 @@ def get_execution_run(run_id: str) -> dict:
     row = cursor.fetchone()
     conn.close()
     if row:
+        row_dict = dict(row)
+        if "timestamp" in row_dict and row_dict["timestamp"]:
+            row_dict["timestamp"] = format_iso_timestamp(row_dict["timestamp"])
         return {
-            "run_id": row["run_id"],
-            "timestamp": row["timestamp"],
-            "type": row["type"],
-            "status": row["status"],
-            "minimized": row["minimized"],
-            "current_row": row["current_row"],
-            "total_rows": row["total_rows"],
-            "guideline_name": dict(row).get("guideline_name")
+            "run_id": row_dict["run_id"],
+            "timestamp": row_dict["timestamp"],
+            "type": row_dict["type"],
+            "status": row_dict["status"],
+            "minimized": row_dict["minimized"],
+            "current_row": row_dict["current_row"],
+            "total_rows": row_dict["total_rows"],
+            "guideline_name": row_dict.get("guideline_name")
         }
     return None
 
@@ -303,21 +416,51 @@ def update_execution_minimized(run_id: str, minimized: int):
 def save_execution_result(run_id: str, req_id: str, input_req: str, status: str, failed_rule: str, rationale: str, corrected_req: str, swe1_id: str = None, swe1_text: str = None, category: str = None):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
-    )
+    if IS_POSTGRES:
+        try:
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+            )
+        except Exception:
+            conn.rollback()
+            cursor.execute("SELECT setval(pg_get_serial_sequence('execution_results', 'id'), COALESCE((SELECT MAX(id) FROM execution_results), 1))")
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+            )
+    else:
+        cursor.execute(
+            "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category)
+        )
     conn.commit()
     conn.close()
 
 def create_placeholder_result(run_id: str, req_id: str, input_req: str, category: str = None) -> int:
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
-    )
-    last_id = cursor.lastrowid
+    if IS_POSTGRES:
+        try:
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+                (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+            )
+            last_id = cursor.fetchone()["id"]
+        except Exception:
+            conn.rollback()
+            cursor.execute("SELECT setval(pg_get_serial_sequence('execution_results', 'id'), COALESCE((SELECT MAX(id) FROM execution_results), 1))")
+            cursor.execute(
+                "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+                (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+            )
+            last_id = cursor.fetchone()["id"]
+    else:
+        cursor.execute(
+            "INSERT INTO execution_results (run_id, req_id, input_req, status, failed_rule, rationale, corrected_req, swe1_id, swe1_text, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (run_id, req_id, input_req, "PROCESSING", None, "Analyzing requirement... waiting for LLM response", None, None, None, category)
+        )
+        last_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return last_id
@@ -382,7 +525,7 @@ def get_previous_executions(limit: int = 10, offset: int = 0):
     for r in rows:
         row_dict = dict(r)
         if "timestamp" in row_dict and row_dict["timestamp"]:
-            row_dict["timestamp"] = row_dict["timestamp"].replace(" ", "T") + "Z"
+            row_dict["timestamp"] = format_iso_timestamp(row_dict["timestamp"])
             
         t = (row_dict.get("type") or "").lower()
         has_corrections = (row_dict.get("correction_count", 0) or 0) > 0
@@ -528,7 +671,11 @@ def get_project_requirements_from_db(project_id: str, req_type: str):
     
     results = []
     for r in rows:
-        results.append(json.loads(r["content"]))
+        content_val = r["content"]
+        if isinstance(content_val, str):
+            results.append(json.loads(content_val))
+        else:
+            results.append(content_val)
     return results
 
 def get_all_projects():
@@ -542,7 +689,7 @@ def get_all_projects():
     for r in rows:
         row_dict = dict(r)
         if "created_at" in row_dict and row_dict["created_at"]:
-            row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
+            row_dict["created_at"] = format_iso_timestamp(row_dict["created_at"])
         results.append(row_dict)
     return results
 
@@ -556,7 +703,7 @@ def get_project_by_id(project_id: str):
     if row:
         row_dict = dict(row)
         if "created_at" in row_dict and row_dict["created_at"]:
-            row_dict["created_at"] = row_dict["created_at"].replace(" ", "T") + "Z"
+            row_dict["created_at"] = format_iso_timestamp(row_dict["created_at"])
         return row_dict
     return None
 
