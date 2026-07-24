@@ -13,7 +13,7 @@ for p in env_paths:
         break
 
 class LLMManager:
-    def __init__(self, model_name="nvidia/llama-3.3-nemotron-super-49b-v1.5", rag_model_name="nvidia/llama-3.3-nemotron-super-49b-v1.5", analysis_model_name="nvidia/llama-3.3-nemotron-super-49b-v1.5"):
+    def __init__(self, model_name="meta/llama-3.3-70b-instruct", rag_model_name="meta/llama-3.3-70b-instruct", analysis_model_name="meta/llama-3.3-70b-instruct"):
         # Check Streamlit secrets first, fallback to environment variable
         api_key = None
         try:

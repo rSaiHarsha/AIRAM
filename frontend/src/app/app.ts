@@ -5,6 +5,7 @@ import { DashboardComponent } from './components/dashboard/dashboard';
 import { RequirementsComponent } from './components/requirements/requirements';
 import { ProjectsComponent } from './components/projects/projects';
 import { RAGConfigComponent } from './components/rag-config/rag-config';
+import { CopilotComponent } from './components/copilot/copilot';
 import { ApiService } from './services/api.service';
 
 @Component({
@@ -16,7 +17,8 @@ import { ApiService } from './services/api.service';
     DashboardComponent,
     RequirementsComponent,
     ProjectsComponent,
-    RAGConfigComponent
+    RAGConfigComponent,
+    CopilotComponent
   ],
   template: `
     <!-- Top Navigation Header (No Sidebar) -->
@@ -55,6 +57,9 @@ import { ApiService } from './services/api.service';
             </button>
             <button class="nav-tab" [class.active]="activeTab === 'rag'" (click)="setTab('rag')">
               RAG Configuration
+            </button>
+            <button class="nav-tab copilot-tab" [class.active]="activeTab === 'copilot'" (click)="setTab('copilot')">
+              Argus Copilot
             </button>
           </nav>
         </div>
@@ -107,6 +112,11 @@ import { ApiService } from './services/api.service';
         #ragConfigComp
         [hidden]="activeTab !== 'rag'">
       </app-rag-config>
+      
+      <app-copilot
+        #copilotComp
+        [hidden]="activeTab !== 'copilot'">
+      </app-copilot>
     </main>
   `,
   styles: [`
@@ -194,6 +204,28 @@ import { ApiService } from './services/api.service';
       background-color: var(--color-primary);
       border-top-left-radius: 3px;
       border-top-right-radius: 3px;
+    }
+    
+    .copilot-tab {
+      background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(0, 201, 255, 0.1));
+      border: 1px solid rgba(13, 110, 253, 0.2);
+      border-radius: 6px;
+      padding: 6px 12px;
+      height: auto;
+      color: var(--color-primary);
+    }
+    .copilot-tab:hover {
+      background: linear-gradient(135deg, rgba(13, 110, 253, 0.15), rgba(0, 201, 255, 0.15));
+      color: #0b5ed7;
+    }
+    .copilot-tab.active::after {
+      display: none;
+    }
+    .copilot-tab.active {
+      background: linear-gradient(135deg, #0d6efd, #00c9ff);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
     }
     
     .header-right {
