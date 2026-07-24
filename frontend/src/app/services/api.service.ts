@@ -254,7 +254,7 @@ export class ApiService {
   }
 
   // Copilot Feature
-  sendCopilotMessage(projectId: string | null, userMessage: string, history: any[] = []): Observable<any> {
+  sendCopilotMessage(projectId: string | null, userMessage: string, history: any[] = [], signal?: AbortSignal): Observable<any> {
     return new Observable(subscriber => {
       fetch(`${this.baseUrl}/api/copilot/chat`, {
         method: 'POST',
@@ -265,7 +265,8 @@ export class ApiService {
           project_id: projectId,
           user_message: userMessage,
           history: history
-        })
+        }),
+        signal: signal
       })
       .then(async response => {
         if (!response.ok) {
@@ -324,7 +325,11 @@ export class ApiService {
       })
       .catch(error => {
         this.zone.run(() => {
-          subscriber.error(error);
+          if (error.name === 'AbortError') {
+            subscriber.complete();
+          } else {
+            subscriber.error(error);
+          }
         });
       });
     });

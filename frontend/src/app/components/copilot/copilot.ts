@@ -126,8 +126,13 @@ interface Message {
             placeholder="Ask Copilot about requirements, traceability, or impact analysis..."
             [disabled]="isLoading"
           />
-          <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading || !currentInput.trim()">
+          <button *ngIf="!isLoading" class="send-btn" (click)="sendMessage()" [disabled]="!currentInput.trim()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+          <button *ngIf="isLoading" class="send-btn stop-btn" (click)="stopGeneration()" title="Stop Generation">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="6" width="12" height="12"></rect>
+            </svg>
           </button>
         </div>
       </div>
@@ -142,6 +147,7 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
   currentInput = '';
   isLoading = false;
   thinkingSteps: string[] = [];
+  abortController: AbortController | null = null;
   
   projects: any[] = [];
   selectedProjectId: string | null = null;
@@ -175,6 +181,15 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
     this.thinkingSteps = [];
     this.isLoading = false;
     this.currentInput = '';
+    this.stopGeneration();
+  }
+
+  stopGeneration() {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    this.isLoading = false;
   }
 
   scrollToBottom(): void {
@@ -200,6 +215,7 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
     this.currentInput = '';
     this.isLoading = true;
     this.thinkingSteps = [];
+    this.abortController = new AbortController();
 
     // Convert internal message history to what the API expects
     const apiHistory = this.messages.slice(0, -1).map(m => ({
@@ -207,7 +223,7 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
       content: m.content
     }));
 
-    this.api.sendCopilotMessage(this.selectedProjectId, text, apiHistory).subscribe({
+    this.api.sendCopilotMessage(this.selectedProjectId, text, apiHistory, this.abortController.signal).subscribe({
       next: (res) => {
         if (res.type === 'thinking') {
           this.thinkingSteps.push(res.message);
