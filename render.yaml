@@ -17,7 +17,7 @@ staticSites:
   - name: requalitrace-frontend
     environment: node
     buildCommand: "cd frontend && npm install && npx ng build"
-    publishPath: "frontend/dist/frontend"
+    publishPath: "frontend/dist/frontend/browser"
     routes:
       - type: rewrite
         source: /*

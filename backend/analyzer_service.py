@@ -23,7 +23,7 @@ from backend.database import (
 )
 from backend.rag_service import rag_engine
 from backend.file_parser import parse_requirements_file
-from Analysis.traceability_analyser import analyze_traceability_from_swe1_with_llm, correct_traceability_requirement, correct_orphaned_swe2
+from Analysis.traceability_analyser import analyze_traceability_generic_with_llm, correct_traceability_requirement, correct_orphaned_swe2
 
 # Active execution state tracker for single process fallback (still kept for backward compatibility, but DB is source of truth)
 ACTIVE_JOBS = {}  # run_id -> { "status": "running" | "paused" | "stopped", "current_row": int, "total_rows": int }
@@ -155,20 +155,19 @@ async def run_requirements_analysis_job(
         mode = "quality"
         
         if "traceability" in run_type:
-            if sys1_reqs:
-                primary_parent_reqs = sys1_reqs
-                child_reqs = sys2_reqs + sys3_reqs + swe1_reqs + swe2_reqs
-            elif sys2_reqs:
-                primary_parent_reqs = sys2_reqs
-                child_reqs = sys3_reqs + swe1_reqs + swe2_reqs
-            elif swe1_reqs:
-                primary_parent_reqs = swe1_reqs
-                child_reqs = swe2_reqs
-            else:
-                primary_parent_reqs = sys3_reqs or swe2_reqs
-                child_reqs = []
-                
-            analysis_items = primary_parent_reqs
+            pairs_to_trace = [
+                ("sys1", sys1_reqs, "sys2", sys2_reqs),
+                ("sys2", sys2_reqs, "sys3", sys3_reqs),
+                ("sys3", sys3_reqs, "swe1", swe1_reqs),
+                ("swe1", swe1_reqs, "swe2", swe2_reqs),
+            ]
+            for parent_level, parent_reqs, child_level, child_reqs in pairs_to_trace:
+                if parent_reqs and child_reqs:
+                    for p in parent_reqs:
+                        p.trace_parent_level = parent_level
+                        p.trace_child_level = child_level
+                        p.trace_child_reqs = child_reqs
+                        analysis_items.append(p)
             mode = "traceability"
         else:
             # For quality or combined analysis, process all requirements across all levels
@@ -226,16 +225,19 @@ async def run_requirements_analysis_job(
             
             # Determine initial placeholder keys
             if mode == "traceability":
-                row_id = create_placeholder_result(run_id, None, None, category="traceability")
+                parent_level = getattr(r, "trace_parent_level", "sys1")
+                child_level = getattr(r, "trace_child_level", "sys2")
+                cat = f"traceability:{parent_level}_to_{child_level}"
+                row_id = create_placeholder_result(run_id, None, None, category=cat)
                 update_execution_result_by_id(
                     row_id=row_id,
                     status="PROCESSING",
                     failed_rule=None,
-                    rationale=f"Analyzing trace for {r.name}... waiting for LLM/deterministic response",
+                    rationale=f"Analyzing trace for {r.name} ({parent_level}->{child_level})... waiting for LLM/deterministic response",
                     corrected_req=None,
                     swe1_id=r.name,
                     swe1_text=r.content,
-                    category="traceability"
+                    category=cat
                 )
             else:
                 row_id = create_placeholder_result(run_id, r.name, r.content, category=getattr(r, "category", None))
@@ -256,12 +258,16 @@ async def run_requirements_analysis_job(
                     
             # Analyze using LLM or local fallbacks based on mode
             if mode == "traceability":
-                print(f"[TRACE]   Using LLM for {r.name}...", flush=True)
-                result = await asyncio.to_thread(analyze_traceability_from_swe1_with_llm, r, child_reqs, llm_manager)
-                print(f"[TRACE]   LLM returned: status={result.get('status')}, linked_ids={result.get('linked_swe2_ids', [])}", flush=True)
+                parent_level = getattr(r, "trace_parent_level", "sys1")
+                child_level = getattr(r, "trace_child_level", "sys2")
+                child_reqs = getattr(r, "trace_child_reqs", [])
+                
+                print(f"[TRACE]   Using LLM for {r.name} ({parent_level}->{child_level})...", flush=True)
+                result = await asyncio.to_thread(analyze_traceability_generic_with_llm, r, child_reqs, parent_level, child_level, llm_manager)
+                print(f"[TRACE]   LLM returned: status={result.get('status')}, linked_ids={result.get('linked_child_ids', [])}", flush=True)
                 status = result.get("status", "FAIL")
                 rationale = result.get("rationale", "No explanation provided.")
-                linked_ids = result.get("linked_swe2_ids", [])
+                linked_ids = result.get("linked_child_ids", [])
                 linked_children = [c for c in child_reqs if c.name in linked_ids]
                 
                 # Format outputs
@@ -278,7 +284,7 @@ async def run_requirements_analysis_job(
                     print(f"[TRACE]   Running traceability correction for {r.name}...", flush=True)
                     corrected_req = await asyncio.to_thread(
                         correct_traceability_requirement,
-                        r, linked_children, status, rationale, child_reqs, llm_manager,
+                        r, linked_children, status, rationale, child_reqs, parent_level, child_level, llm_manager,
                         custom_context_correction
                     )
                     if corrected_req:
@@ -293,7 +299,8 @@ async def run_requirements_analysis_job(
                     swe1_id=r.name,
                     swe1_text=r.content,
                     req_id=child_ids_str,
-                    input_req=child_texts_str
+                    input_req=child_texts_str,
+                    category=f"traceability:{parent_level}_to_{child_level}"
                 )
             else:
                 # Call quality auditor
