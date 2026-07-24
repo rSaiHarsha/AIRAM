@@ -240,7 +240,11 @@ import { ApiService } from '../../services/api.service';
             <button class="tab-btn" [class.active]="activeTab === 'sys3'" (click)="activeTab = 'sys3'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys3')">SYS 3 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe1')">SWE 1 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe2')">SWE 2 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'traceability'" (click)="activeTab = 'traceability'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability')">Traceability</button>
+            
+            <button class="tab-btn" [class.active]="activeTab === 'traceability:sys1_to_sys2'" (click)="activeTab = 'traceability:sys1_to_sys2'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability:sys1_to_sys2')">SYS.1 to SYS.2</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability:sys2_to_sys3'" (click)="activeTab = 'traceability:sys2_to_sys3'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability:sys2_to_sys3')">SYS.2 to SYS.3</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability:sys3_to_swe1'" (click)="activeTab = 'traceability:sys3_to_swe1'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability:sys3_to_swe1')">SYS.3 to SWE.1</button>
+            <button class="tab-btn" [class.active]="activeTab === 'traceability:swe1_to_swe2'" (click)="activeTab = 'traceability:swe1_to_swe2'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability:swe1_to_swe2')">SWE.1 to SWE.2</button>
           </div>
         </div>
         
@@ -1061,7 +1065,7 @@ JSON Schema:
     if (this.actions.trace || this.actions.correctTrace) {
       runType = 'traceability';
       this.isTraceabilityRun = true;
-      this.activeTab = 'traceability';
+      this.activeTab = 'traceability:sys1_to_sys2' as any;
     } else {
       this.isTraceabilityRun = false;
       this.activeTab = 'swe1';
@@ -1309,6 +1313,9 @@ JSON Schema:
 
   get filteredResults(): any[] {
     if (this.isTraceabilityRun) {
+      if (this.activeTab && this.activeTab.startsWith('traceability:')) {
+        return this.results.filter(r => r.category === this.activeTab || r.category == null);
+      }
       return this.results.filter(r => (r.category && r.category.startsWith('traceability')) || r.category == null);
     }
     return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'swe1' && r.category == null));
