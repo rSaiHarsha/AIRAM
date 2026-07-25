@@ -1285,12 +1285,12 @@ JSON Schema:
 
   getParsedSwe2List(row: any): any[] {
     if (!row || !row.req_id || row.req_id === '-' || !row.req_id.trim()) {
-      return [{ id: '-', text: row?.input_req || '-' }];
+      return [{ id: '-', text: 'Nothing found' }];
     }
     
     const ids = row.req_id.split(',').map((id: string) => id.trim()).filter((id: string) => id.length > 0);
     if (ids.length === 0) {
-      return [{ id: '-', text: row.input_req || '-' }];
+      return [{ id: '-', text: 'Nothing found' }];
     }
     
     const lines = row.input_req ? row.input_req.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0) : [];
@@ -1314,7 +1314,7 @@ JSON Schema:
       parsedList.push({ id, text: text || '-' });
     }
     
-    return parsedList.length > 0 ? parsedList : [{ id: row.req_id, text: row.input_req || '-' }];
+    return parsedList.length > 0 ? parsedList : [{ id: row.req_id, text: 'Nothing found' }];
   }
 
 
