@@ -8,6 +8,7 @@ interface Message {
   content: string;
   timestamp: Date;
   imageBase64?: string;
+  imageFormat?: string;
   plantumlCode?: string;
   _showCode?: boolean;
 }
@@ -71,11 +72,11 @@ interface Message {
             </div>
             <div class="message-bubble" [innerHTML]="formatMessage(msg.content)"></div>
             <div *ngIf="msg.imageBase64" class="uml-image-container">
-              <img [src]="'data:image/png;base64,' + msg.imageBase64" alt="UML Diagram" class="uml-diagram-img" (click)="openImageFullscreen(msg.imageBase64)" />
-              <div *ngIf="msg.plantumlCode" class="plantuml-toggle">
-                <button class="btn-plantuml-toggle" (click)="msg._showCode = !msg._showCode">{{ msg._showCode ? 'Hide' : 'Show' }} PlantUML Source</button>
-                <pre *ngIf="msg._showCode" class="plantuml-source">{{ msg.plantumlCode }}</pre>
-              </div>
+              <img [src]="getImageSrc(msg)" alt="UML Diagram" class="uml-diagram-img" (click)="openImageFullscreen(msg.imageBase64!, msg.imageFormat)" />
+            </div>
+            <div *ngIf="msg.plantumlCode" class="plantuml-toggle">
+              <button class="btn-plantuml-toggle" (click)="msg._showCode = !msg._showCode">{{ msg._showCode ? 'Hide' : 'Show' }} PlantUML Source</button>
+              <pre *ngIf="msg._showCode" class="plantuml-source">{{ msg.plantumlCode }}</pre>
             </div>
           </div>
         </div>
@@ -280,8 +281,9 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
             role: 'bot',
             content: res.text || 'Here is the generated UML diagram:',
             timestamp: new Date(),
-            imageBase64: res.image_base64,
-            plantumlCode: res.plantuml_code
+            imageBase64: res.image_base64 || undefined,
+            imageFormat: res.image_format || 'png',
+            plantumlCode: res.plantuml_code || undefined
           });
           this.thinkingSteps = [];
         } else if (res.type === 'final' || res.type === 'error') {
@@ -412,14 +414,21 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
     return `<div class="message-content">${html}</div>`;
   }
 
-  openImageFullscreen(base64: string) {
+  getImageSrc(msg: Message): string {
+    if (!msg.imageBase64) return '';
+    const mime = msg.imageFormat === 'svg' ? 'image/svg+xml' : 'image/png';
+    return `data:${mime};base64,${msg.imageBase64}`;
+  }
+
+  openImageFullscreen(base64: string, format?: string) {
+    const mime = format === 'svg' ? 'image/svg+xml' : 'image/png';
     const win = window.open();
     if (win) {
       win.document.write(`
         <html>
           <head><title>UML Diagram</title></head>
           <body style="margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #1a1a2e;">
-            <img src="data:image/png;base64,${base64}" style="max-width: 95vw; max-height: 95vh; object-fit: contain; border-radius: 8px;" />
+            <img src="data:${mime};base64,${base64}" style="max-width: 95vw; max-height: 95vh; object-fit: contain; border-radius: 8px;" />
           </body>
         </html>
       `);

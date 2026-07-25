@@ -484,10 +484,13 @@ DIAGRAM_TYPES = {
         "label": "Sequence Diagram",
         "hint": (
             "Model the participants (actors/objects) and the ordered messages "
-            "exchanged between them. For conditional branches, use PlantUML syntax:\n"
-            "- `alt [condition] ... else [condition] ... end` (CRITICAL: NEVER use `else if`, `endif`, `endopt`, or `endalt`; conditional blocks MUST terminate with `end`)\n"
-            "- `opt [condition] ... end`\n"
-            "- `loop [condition] ... end`"
+            "exchanged between them. Keep it SIMPLE with max 5-6 participants.\n"
+            "CRITICAL PlantUML SYNTAX RULES for sequence diagrams:\n"
+            "- Start with @startuml and end with @enduml (NOT [startuml] or [enduml])\n"
+            "- Use `alt condition` / `else condition` / `end` for branches\n"
+            "- NEVER use `else if`, `endif`, `endopt`, `endalt`, or `endloop` — use ONLY `end`\n"
+            "- NEVER use `[startuml]` or `[enduml]` — only `@startuml` and `@enduml`\n"
+            "- Group related requirements into logical message flows rather than listing every single requirement"
         ),
     },
     "activity": {
@@ -511,19 +514,25 @@ def _build_uml_prompt(requirements_text: str, diagram_type: str) -> list:
         "/no_think\n"
         "You are a senior software architect who translates software "
         "engineering requirements into precise UML diagrams. "
-        "You respond with VALID PlantUML markup ONLY - no explanations, "
-        "no markdown code fences, no commentary before or after. "
-        "Your entire response must start with '@startuml' and end with "
-        "'@enduml'. Keep names concise, derive them directly from the "
-        "requirements, and make sure the PlantUML syntax is syntactically "
-        "correct so it renders without errors."
+        "You respond with VALID PlantUML markup ONLY — no explanations, "
+        "no markdown code fences, no commentary before or after.\n\n"
+        "MANDATORY RULES:\n"
+        "1. Your ENTIRE response must start with exactly `@startuml` and end with exactly `@enduml`.\n"
+        "2. NEVER use `[startuml]`, `[enduml]`, square bracket variants — ONLY use `@startuml` and `@enduml`.\n"
+        "3. Keep the diagram SIMPLE and CONCISE — max 6 participants/actors, group related items.\n"
+        "4. For sequence diagrams: use `alt`/`else`/`end` only. NEVER `else if`, `endif`, `endalt`, `endopt`.\n"
+        "5. Avoid `...` or `(similar patterns ...)` placeholders — only include concrete diagram elements.\n"
+        "6. Make sure every `alt`/`opt`/`loop`/`group` block has a matching `end`.\n"
+        "7. Keep names short (no long descriptive aliases).\n"
     )
 
     user_prompt = (
         f"Diagram type: {diagram_info['label']}\n"
         f"Modeling guidance: {diagram_info['hint']}\n\n"
         f"Software requirements:\n\"\"\"\n{requirements_text}\n\"\"\"\n\n"
-        "Generate the PlantUML source for this diagram now."
+        "Generate a SIMPLE, VALID PlantUML diagram that captures the key interactions. "
+        "Do NOT try to include every single requirement — group related ones into logical flows. "
+        "Output ONLY the PlantUML code starting with @startuml and ending with @enduml."
     )
 
     return [
@@ -538,11 +547,46 @@ def _sanitize_plantuml(puml: str, diagram_type: str) -> str:
     if not puml:
         return ""
 
+    # Fix bracket-style startuml/enduml (common LLM mistake)
+    puml = _re.sub(r'\[startuml\]', '@startuml', puml, flags=_re.IGNORECASE)
+    puml = _re.sub(r'\[enduml\]', '@enduml', puml, flags=_re.IGNORECASE)
+
+    # Remove "... (similar patterns ...)" placeholder lines
+    puml = _re.sub(r'^\s*\.\.\..*$', '', puml, flags=_re.MULTILINE)
+
     if diagram_type == "sequence":
         # Replace invalid `else if ...` with `else ...`
-        puml = _re.sub(r'^\s*else\s+if\b', 'else', puml, flags=_re.MULTILINE | _re.IGNORECASE)
-        # Replace invalid block terminators `endif`, `endopt`, `endalt`, `endloop` with `end`
-        puml = _re.sub(r'^\s*(?:endif|endopt|endalt|endloop)\b', 'end', puml, flags=_re.MULTILINE | _re.IGNORECASE)
+        puml = _re.sub(r'^(\s*)else\s+if\b', r'\1else', puml, flags=_re.MULTILINE | _re.IGNORECASE)
+        # Replace invalid block terminators with `end`
+        puml = _re.sub(r'^(\s*)(?:endif|endopt|endalt|endloop)\b.*$', r'\1end', puml, flags=_re.MULTILINE | _re.IGNORECASE)
+
+    # Ensure the file starts with @startuml and ends with @enduml
+    lines = puml.strip().split('\n')
+    if lines and not lines[0].strip().startswith('@startuml'):
+        lines.insert(0, '@startuml')
+    if lines and not lines[-1].strip().startswith('@enduml'):
+        lines.append('@enduml')
+
+    # Remove duplicate @startuml/@enduml
+    cleaned_lines = []
+    seen_start = False
+    seen_end = False
+    for line in lines:
+        stripped = line.strip().lower()
+        if stripped == '@startuml':
+            if seen_start:
+                continue
+            seen_start = True
+        if stripped == '@enduml':
+            if seen_end:
+                continue
+            seen_end = True
+        cleaned_lines.append(line)
+    
+    puml = '\n'.join(cleaned_lines)
+
+    # Remove empty lines between @startuml and first content
+    puml = _re.sub(r'(@startuml\n)(\s*\n)+', r'\1', puml)
 
     return puml
 
@@ -554,6 +598,12 @@ def _extract_plantuml(raw_text: str, diagram_type: str = "") -> str:
         return ""
 
     cleaned = _re.sub(r"<think>.*?</think>", "", raw_text, flags=_re.DOTALL | _re.IGNORECASE)
+    
+    # Also handle bracket-style tags before extraction
+    cleaned = cleaned.replace('[startuml]', '@startuml').replace('[enduml]', '@enduml')
+    cleaned = _re.sub(r'\[startuml\]', '@startuml', cleaned, flags=_re.IGNORECASE)
+    cleaned = _re.sub(r'\[enduml\]', '@enduml', cleaned, flags=_re.IGNORECASE)
+    
     fenced = _re.search(r"```(?:plantuml|puml)?\s*(.*?)```", cleaned, _re.DOTALL | _re.IGNORECASE)
     candidate = fenced.group(1) if fenced else cleaned
     match = _re.search(r"(@startuml.*?@enduml)", candidate, _re.DOTALL | _re.IGNORECASE)
@@ -561,14 +611,29 @@ def _extract_plantuml(raw_text: str, diagram_type: str = "") -> str:
     if match:
         puml = match.group(1).strip()
     else:
+        # Try to find content that looks like PlantUML even without proper tags
         stripped = candidate.strip()
-        puml = f"@startuml\n{stripped}\n@enduml" if stripped else ""
+        if stripped:
+            # Remove any leading/trailing non-PlantUML text
+            lines = stripped.split('\n')
+            puml_lines = []
+            in_diagram = False
+            for line in lines:
+                lstrip = line.strip().lower()
+                if lstrip.startswith('@startuml') or lstrip.startswith('actor ') or lstrip.startswith('participant ') or '->' in line or lstrip.startswith('alt ') or lstrip.startswith('start'):
+                    in_diagram = True
+                if in_diagram:
+                    puml_lines.append(line)
+            puml = "@startuml\n" + "\n".join(puml_lines) + "\n@enduml" if puml_lines else f"@startuml\n{stripped}\n@enduml"
+        else:
+            puml = ""
 
     return _sanitize_plantuml(puml, diagram_type)
 
 
 def _render_plantuml_png(plantuml_source: str) -> bytes:
-    """Render PlantUML source to PNG via public PlantUML server using standard library only."""
+    """Render PlantUML source to PNG via public PlantUML server.
+    Uses GET with PlantUML text encoding. Falls back to SVG if PNG fails."""
     import urllib.request
     import zlib
 
@@ -588,39 +653,60 @@ def _render_plantuml_png(plantuml_source: str) -> bytes:
             return '_'
         return '?'
 
-    compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
-    compressed = compressor.compress(plantuml_source.encode('utf-8')) + compressor.flush()
+    def _plantuml_encode(source: str) -> str:
+        compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
+        compressed = compressor.compress(source.encode('utf-8')) + compressor.flush()
+        res = []
+        i = 0
+        length = len(compressed)
+        while i < length:
+            b1 = compressed[i]
+            b2 = compressed[i + 1] if i + 1 < length else 0
+            b3 = compressed[i + 2] if i + 2 < length else 0
+            c1 = b1 >> 2
+            c2 = ((b1 & 0x3) << 4) | (b2 >> 4)
+            c3 = ((b2 & 0xF) << 2) | (b3 >> 6)
+            c4 = b3 & 0x3F
+            res.append(_encode_6bit(c1 & 0x3F))
+            res.append(_encode_6bit(c2 & 0x3F))
+            if i + 1 < length:
+                res.append(_encode_6bit(c3 & 0x3F))
+            if i + 2 < length:
+                res.append(_encode_6bit(c4 & 0x3F))
+            i += 3
+        return "".join(res)
 
-    res = []
-    i = 0
-    length = len(compressed)
-    while i < length:
-        b1 = compressed[i]
-        b2 = compressed[i + 1] if i + 1 < length else 0
-        b3 = compressed[i + 2] if i + 2 < length else 0
-        
-        c1 = b1 >> 2
-        c2 = ((b1 & 0x3) << 4) | (b2 >> 4)
-        c3 = ((b2 & 0xF) << 2) | (b3 >> 6)
-        c4 = b3 & 0x3F
-        
-        res.append(_encode_6bit(c1 & 0x3F))
-        res.append(_encode_6bit(c2 & 0x3F))
-        if i + 1 < length:
-            res.append(_encode_6bit(c3 & 0x3F))
-        if i + 2 < length:
-            res.append(_encode_6bit(c4 & 0x3F))
-            
-        i += 3
-        
-    encoded = "".join(res)
-    url = PLANTUML_SERVER.rstrip("/") + "/" + encoded
+    encoded = _plantuml_encode(plantuml_source)
     
-    req = urllib.request.Request(url, headers={"User-Agent": "AIRAM-UML/1.0"})
-    with urllib.request.urlopen(req, timeout=25) as response:
-        if response.status != 200:
-            raise RuntimeError(f"PlantUML server returned HTTP {response.status}")
-        return response.read()
+    # Try PNG first, then SVG converted to PNG-like if URL is too long
+    for fmt in ["png", "svg"]:
+        url = f"http://www.plantuml.com/plantuml/{fmt}/{encoded}"
+        
+        # Skip if URL is excessively long (>8000 chars)
+        if len(url) > 8000:
+            continue
+        
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "AIRAM-UML/1.0"})
+            with urllib.request.urlopen(req, timeout=30) as response:
+                if response.status != 200:
+                    continue
+                data = response.read()
+                # Check if the response is an error image (PlantUML returns images with error text)
+                if len(data) < 100:
+                    continue
+                if fmt == "svg":
+                    # For SVG, convert to a data URI-friendly format
+                    # Actually just return the SVG bytes — frontend can handle both
+                    return data
+                return data
+        except Exception:
+            continue
+    
+    raise RuntimeError("PlantUML rendering failed for all formats. The diagram may be too complex.")
+
+
+MAX_REQS_FOR_UML = 20  # Cap to keep diagrams simple and renderable
 
 
 def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: str = None) -> str:
@@ -633,6 +719,8 @@ def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: s
                    Defaults to all types.
     """
     import base64
+    import logging
+    logger = logging.getLogger("uml-generator")
 
     if not project_id:
         return _no_data("project_id is required to generate a UML diagram.")
@@ -660,10 +748,17 @@ def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: s
     if not all_reqs_text:
         return _no_data(f"No requirements found for the specified types ({', '.join(types_to_fetch)}) in this project.")
 
-    # Truncate to avoid exceeding context limits
+    total_reqs = len(all_reqs_text)
+    
+    # Cap requirements to avoid overly complex diagrams
+    if len(all_reqs_text) > MAX_REQS_FOR_UML:
+        logger.info(f"Capping requirements from {len(all_reqs_text)} to {MAX_REQS_FOR_UML} for UML generation")
+        all_reqs_text = all_reqs_text[:MAX_REQS_FOR_UML]
+
+    # Truncate individual texts to avoid exceeding context limits
     combined_text = "\n".join(all_reqs_text)
-    if len(combined_text) > 6000:
-        combined_text = combined_text[:6000] + "\n...[TRUNCATED]..."
+    if len(combined_text) > 5000:
+        combined_text = combined_text[:5000] + "\n...[TRUNCATED]..."
 
     # Call the LLM to generate PlantUML
     raw_response = ""
@@ -713,21 +808,32 @@ def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: s
         except Exception as e2:
             return _no_data(f"Error calling LLM for UML generation: {e2}")
 
+    logger.info(f"LLM raw response length: {len(raw_response)} chars")
+    
     plantuml_code = _extract_plantuml(raw_response, dt)
     if not plantuml_code:
         return _no_data("The model did not return usable PlantUML markup. Try rephrasing or selecting different requirement types.")
 
+    logger.info(f"Extracted PlantUML code length: {len(plantuml_code)} chars")
+
     # Render to PNG
     image_base64 = None
     render_error = None
+    image_format = "png"
     try:
-        png_bytes = _render_plantuml_png(plantuml_code)
-        image_base64 = base64.b64encode(png_bytes).decode("ascii")
+        img_bytes = _render_plantuml_png(plantuml_code)
+        # Detect if SVG was returned
+        if img_bytes[:5] == b'<?xml' or img_bytes[:4] == b'<svg':
+            image_format = "svg"
+            # Convert SVG to base64 data URI
+            import base64 as b64
+            svg_b64 = b64.b64encode(img_bytes).decode("ascii")
+            image_base64 = svg_b64
+        else:
+            image_base64 = base64.b64encode(img_bytes).decode("ascii")
     except Exception as e:
-        render_error = (
-            f"Diagram text was generated, but rendering failed: {e}. "
-            "You can copy the PlantUML source and paste it at https://www.plantuml.com/plantuml/uml/"
-        )
+        logger.warning(f"PlantUML rendering failed: {e}")
+        render_error = str(e)
 
     # Return as a JSON string with structured data
     result = {
@@ -735,8 +841,10 @@ def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: s
         "diagram_label": DIAGRAM_TYPES[dt]["label"],
         "plantuml_code": plantuml_code,
         "image_base64": image_base64,
+        "image_format": image_format,
         "render_error": render_error,
-        "requirements_used": len(all_reqs_text),
+        "requirements_used": min(total_reqs, MAX_REQS_FOR_UML),
+        "total_requirements": total_reqs,
     }
     return json.dumps(result)
 
