@@ -236,7 +236,7 @@ async def run_requirements_analysis_job(
                 parent_level = getattr(r, "trace_parent_level", "sys1")
                 child_level = getattr(r, "trace_child_level", "sys2")
                 cat = f"traceability:{parent_level}_to_{child_level}"
-                row_id = create_placeholder_result(run_id, None, None, category=cat)
+                row_id = create_placeholder_result(run_id, r.name, r.content, category=cat)
                 update_execution_result_by_id(
                     row_id=row_id,
                     status="PROCESSING",

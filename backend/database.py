@@ -188,6 +188,18 @@ def init_db():
     """)
     
     # Safely migrate existing databases
+    if IS_POSTGRES:
+        try:
+            cursor.execute("ALTER TABLE execution_results ALTER COLUMN req_id DROP NOT NULL")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        try:
+            cursor.execute("ALTER TABLE execution_results ALTER COLUMN input_req DROP NOT NULL")
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
     try:
         cursor.execute(f"ALTER TABLE execution_results {add_col} swe1_text TEXT")
         conn.commit()
@@ -202,6 +214,14 @@ def init_db():
     # Migrate old categories
     cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
     cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category = 'sys2'")
+    
+    # Migrate old data where req_id or input_req were left NULL in previous traceability runs
+    try:
+        cursor.execute("UPDATE execution_results SET req_id = swe1_id WHERE req_id IS NULL AND swe1_id IS NOT NULL")
+        cursor.execute("UPDATE execution_results SET input_req = swe1_text WHERE input_req IS NULL AND swe1_text IS NOT NULL")
+        conn.commit()
+    except Exception:
+        conn.rollback()
     
     # Projects Table
     cursor.execute("""

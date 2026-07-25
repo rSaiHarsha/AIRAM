@@ -181,10 +181,14 @@ import { ApiService } from '../../services/api.service';
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">{{ run.timestamp | date:'medium' }}</div>
               </div>
             </div>
-            <div class="history-actions" style="display: flex; align-items: center; gap: 16px;">
+            <div class="history-actions" style="display: flex; align-items: center; gap: 12px;">
               <span class="badge" [class.badge-pass]="run.status === 'completed'" [class.badge-fail]="run.status === 'stopped'" [class.badge-running]="run.status === 'running' || run.status === 'paused'">
                 {{ run.status }}
               </span>
+              <button (click)="$event.stopPropagation(); deleteRun(run.run_id)" title="Delete Execution Run" style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 4px; color: #ef4444; cursor: pointer; padding: 4px 8px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Delete
+              </button>
             </div>
           </div>
           
@@ -244,7 +248,7 @@ import { ApiService } from '../../services/api.service';
               </div>
 
               <!-- Right Column: Mini table -->
-              <div class="table-col" style="flex: 1; min-width: 0;" *ngIf="expandedResults[run.run_id] && expandedResults[run.run_id].length > 0">
+              <div class="table-col" style="flex: 1; min-width: 0;" *ngIf="expandedResults[run.run_id]">
                 <div class="table-container" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
                   <!-- Quality Table -->
                   <table *ngIf="!isTraceabilityRun(run.type)" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
@@ -257,6 +261,9 @@ import { ApiService } from '../../services/api.service';
                       </tr>
                     </thead>
                     <tbody>
+                      <tr *ngIf="expandedResults[run.run_id].length === 0">
+                        <td colspan="4" style="padding: 24px; text-align: center; color: var(--text-secondary);">No requirement results found for this run.</td>
+                      </tr>
                       <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 3:getCurrentPage(run.run_id) * 3" style="border-top: 1px solid var(--border-color);">
                         <td style="padding: 16px; font-weight: 600; color: var(--color-primary); white-space: nowrap; vertical-align: top;">{{ row.req_id }}</td>
                         <td style="padding: 16px; color: var(--text-primary); vertical-align: top;">{{ row.input_req }}</td>
@@ -279,6 +286,9 @@ import { ApiService } from '../../services/api.service';
                       </tr>
                     </thead>
                     <tbody>
+                      <tr *ngIf="expandedResults[run.run_id].length === 0">
+                        <td colspan="2" style="padding: 24px; text-align: center; color: var(--text-secondary);">No requirement results found for this run.</td>
+                      </tr>
                       <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 3:getCurrentPage(run.run_id) * 3" style="border-top: 1px solid var(--border-color);">
                         <td style="padding: 16px; vertical-align: top;">
                           <a href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: var(--color-primary); text-decoration: underline;">
