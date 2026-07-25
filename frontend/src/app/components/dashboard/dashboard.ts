@@ -181,14 +181,10 @@ import { ApiService } from '../../services/api.service';
                 <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">{{ run.timestamp | date:'medium' }}</div>
               </div>
             </div>
-            <div class="history-actions" style="display: flex; align-items: center; gap: 12px;">
+            <div class="history-actions" style="display: flex; align-items: center; gap: 16px;">
               <span class="badge" [class.badge-pass]="run.status === 'completed'" [class.badge-fail]="run.status === 'stopped'" [class.badge-running]="run.status === 'running' || run.status === 'paused'">
                 {{ run.status }}
               </span>
-              <button (click)="$event.stopPropagation(); deleteRun(run.run_id)" title="Delete Execution Run" style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 4px; color: #ef4444; cursor: pointer; padding: 4px 8px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                Delete
-              </button>
             </div>
           </div>
           
