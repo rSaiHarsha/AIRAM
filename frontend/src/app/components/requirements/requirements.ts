@@ -1020,6 +1020,15 @@ JSON Schema:
     this.apiService.getHistory().subscribe({
       next: (res) => {
         this.history = res;
+        // Auto-attach to an in-progress or saved active run on initial page load / refresh
+        if (!this.activeRunId) {
+          const savedRunId = localStorage.getItem('airam_active_run_id');
+          const activeInDb = res.find((r: any) => r.status === 'running' || r.status === 'paused');
+          const targetId = savedRunId || (activeInDb ? activeInDb.run_id : null);
+          if (targetId) {
+            this.loadResults(targetId);
+          }
+        }
       }
     });
   }
@@ -1106,6 +1115,7 @@ JSON Schema:
     ).subscribe({
       next: (res) => {
         this.activeRunId = res.run_id;
+        localStorage.setItem('airam_active_run_id', res.run_id);
         this.startPolling();
       },
       error: (err) => {
@@ -1140,11 +1150,13 @@ JSON Schema:
           if (status.status === 'completed') {
             this.isFinished = true;
             this.isRunning = false;
+            localStorage.removeItem('airam_active_run_id');
             this.stopPolling();
             this.loadHistory();
           } else if (status.status === 'stopped') {
             this.isFinished = true;
             this.isRunning = false;
+            localStorage.removeItem('airam_active_run_id');
             this.stopPolling();
             this.loadHistory();
           } else if (status.status === 'paused') {
@@ -1190,6 +1202,7 @@ JSON Schema:
       this.isPaused = false;
       this.isFinished = true;
       this.runStatus = 'stopped';
+      localStorage.removeItem('airam_active_run_id');
       this.stopPolling();
       this.loadHistory();
     });
