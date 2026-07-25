@@ -19,12 +19,22 @@ import { ApiService } from '../../services/api.service';
           </button>
         </div>
         
+        <div style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); background: #f8fafc;">
+          <div style="position: relative; width: 100%;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 8px; top: 7px; color: var(--text-secondary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" [(ngModel)]="projectSearchQuery" placeholder="Search projects..." style="width: 100%; padding: 4px 8px 4px 26px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.75rem; background: #fff;">
+          </div>
+        </div>
+        
         <div class="project-list" style="overflow-y: auto; flex: 1;">
           <div *ngIf="projects.length === 0" style="padding: 24px 14px; text-align: center; color: var(--text-secondary); font-size: 0.78rem;">
             No projects found. Click + to create one.
           </div>
+          <div *ngIf="projects.length > 0 && filteredProjects.length === 0" style="padding: 24px 14px; text-align: center; color: var(--text-secondary); font-size: 0.78rem;">
+            No matching projects found.
+          </div>
           
-          <div *ngFor="let p of projects" 
+          <div *ngFor="let p of filteredProjects" 
                class="project-item" 
                [class.active]="selectedProject?.id === p.id"
                (click)="selectProject(p)"
@@ -324,7 +334,7 @@ import { ApiService } from '../../services/api.service';
                   <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); background: #fff;">
                     <div style="position: relative; width: 240px;">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 10px; top: 8px; color: var(--text-secondary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                      <input type="text" placeholder="Search requirements..." style="width: 100%; padding: 6px 10px 6px 30px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.75rem; background: #fff;">
+                      <input type="text" [(ngModel)]="reqSearchQuery" placeholder="Search requirements..." style="width: 100%; padding: 6px 10px 6px 30px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.75rem; background: #fff;">
                     </div>
                     <div style="display: flex; gap: 6px;">
                       <button *ngIf="selectedReqs.size > 0" class="btn btn-outline-danger" (click)="deleteSelectedReqs()" [disabled]="isDeletingReqs" style="padding: 5px 10px; font-size: 0.75rem; border-radius: 6px; display: flex; align-items: center; gap: 5px; color: #dc2626; border-color: #dc2626; background: #fff;">
@@ -353,7 +363,7 @@ import { ApiService } from '../../services/api.service';
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let r of reqs[activeTab] || []" style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                      <tr *ngFor="let r of getFilteredReqs(activeTab)" style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                         <td style="padding: 10px; vertical-align: middle;">
                           <input type="checkbox" style="border-radius: 4px; border: 1px solid #cbd5e1;" [checked]="selectedReqs.has(r.id)" (change)="toggleReqSelection(r.id)">
                         </td>
@@ -389,9 +399,9 @@ import { ApiService } from '../../services/api.service';
                           <div style="font-size: 0.65rem; color: var(--text-secondary);">12:50 AM</div>
                         </td>
                       </tr>
-                      <tr *ngIf="!reqs[activeTab] || reqs[activeTab].length === 0">
+                      <tr *ngIf="getFilteredReqs(activeTab).length === 0">
                         <td colspan="7" style="text-align: center; padding: 48px; color: var(--text-secondary); background: #fff;">
-                          No requirements found for this section.
+                          {{ reqSearchQuery ? 'No requirements match your search query.' : 'No requirements found for this section.' }}
                         </td>
                       </tr>
                     </tbody>
@@ -399,7 +409,7 @@ import { ApiService } from '../../services/api.service';
                   
                   <div style="padding: 12px 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff;">
                     <div style="font-size: 0.75rem; color: var(--text-secondary);">
-                      Showing {{ reqs[activeTab]?.length ? 1 : 0 }} to {{ reqs[activeTab]?.length || 0 }} of {{ reqs[activeTab]?.length || 0 }} requirements
+                      Showing {{ getFilteredReqs(activeTab).length ? 1 : 0 }} to {{ getFilteredReqs(activeTab).length }} of {{ getFilteredReqs(activeTab).length }} requirements
                     </div>
                     <div style="display: flex; gap: 6px;">
                       <button class="btn btn-outline" style="padding: 3px 9px; border-radius: 4px; background: #fff; font-size: 0.8rem;">&lt;</button>
@@ -831,6 +841,32 @@ export class ProjectsComponent implements OnInit {
     this.isFullscreen = false;
   }
 
+  projectSearchQuery: string = '';
+  reqSearchQuery: string = '';
+
+  get filteredProjects(): any[] {
+    if (!this.projectSearchQuery || !this.projectSearchQuery.trim()) {
+      return this.projects;
+    }
+    const q = this.projectSearchQuery.toLowerCase().trim();
+    return this.projects.filter(p => 
+      (p.name && p.name.toLowerCase().includes(q)) || 
+      (p.description && p.description.toLowerCase().includes(q))
+    );
+  }
+
+  getFilteredReqs(tab: string): any[] {
+    const list = (this.reqs as any)[tab] || [];
+    if (!this.reqSearchQuery || !this.reqSearchQuery.trim()) {
+      return list;
+    }
+    const q = this.reqSearchQuery.toLowerCase().trim();
+    return list.filter((r: any) => 
+      (r.id && r.id.toLowerCase().includes(q)) || 
+      (r.text && r.text.toLowerCase().includes(q))
+    );
+  }
+
   projects: any[] = [];
   selectedProject: any = null;
   
@@ -853,6 +889,7 @@ export class ProjectsComponent implements OnInit {
     if (this._activeTab !== val) {
       this._activeTab = val;
       this.selectedReqs.clear();
+      this.reqSearchQuery = '';
     }
   }
   
@@ -992,6 +1029,7 @@ export class ProjectsComponent implements OnInit {
     this.selectedProject = project;
     this.isLoadingReqs = true;
     this.activeTab = 'overview';
+    this.reqSearchQuery = '';
     this.selectedReqs.clear();
     this.reqs = { sys1: [], sys2: [], sys3: [], swe1: [], swe2: [] };
     this.projectHistory = [];
