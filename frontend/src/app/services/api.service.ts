@@ -296,11 +296,11 @@ export class ApiService {
               const data = JSON.parse(trimmed.substring(6));
               this.zone.run(() => {
                 subscriber.next(data);
-                if (data.type === 'final' || data.type === 'error') {
+                if (data.type === 'final' || data.type === 'error' || data.type === 'image') {
                   subscriber.complete();
                 }
               });
-              if (data.type === 'final' || data.type === 'error') {
+              if (data.type === 'final' || data.type === 'error' || data.type === 'image') {
                 return true;
               }
             } catch (e) {

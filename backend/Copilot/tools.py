@@ -460,6 +460,288 @@ def get_project_summary(project_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# UML Diagram Generation
+# ---------------------------------------------------------------------------
+
+DIAGRAM_TYPES = {
+    "usecase": {
+        "label": "Use Case Diagram",
+        "hint": (
+            "Model actors and use cases. Use `actor` for external users/systems, "
+            "ellipses (use case names) for system behaviors, and connect them with "
+            "association lines. Use <<include>> / <<extend>> where relevant."
+        ),
+    },
+    "class": {
+        "label": "Class Diagram",
+        "hint": (
+            "Model classes with their key attributes and methods, and show "
+            "relationships (association, aggregation, composition, inheritance) "
+            "with correct PlantUML arrow notation (e.g. --|>, *--, o--, --> )."
+        ),
+    },
+    "sequence": {
+        "label": "Sequence Diagram",
+        "hint": (
+            "Model the participants (actors/objects) and the ordered messages "
+            "exchanged between them. For conditional branches, use PlantUML syntax:\n"
+            "- `alt [condition] ... else [condition] ... end` (CRITICAL: NEVER use `else if`, `endif`, `endopt`, or `endalt`; conditional blocks MUST terminate with `end`)\n"
+            "- `opt [condition] ... end`\n"
+            "- `loop [condition] ... end`"
+        ),
+    },
+    "activity": {
+        "label": "Activity Diagram",
+        "hint": (
+            "Model the workflow as an activity diagram using PlantUML's "
+            "`start`, `stop`, `if (condition) then (yes) ... else (no) ... endif`, and `:action;` syntax to capture "
+            "the process steps and decision points in the requirements."
+        ),
+    },
+}
+
+PLANTUML_SERVER = "http://www.plantuml.com/plantuml/img/"
+
+
+def _build_uml_prompt(requirements_text: str, diagram_type: str) -> list:
+    """Builds the chat messages sent to the LLM for UML generation."""
+    diagram_info = DIAGRAM_TYPES[diagram_type]
+
+    system_prompt = (
+        "/no_think\n"
+        "You are a senior software architect who translates software "
+        "engineering requirements into precise UML diagrams. "
+        "You respond with VALID PlantUML markup ONLY - no explanations, "
+        "no markdown code fences, no commentary before or after. "
+        "Your entire response must start with '@startuml' and end with "
+        "'@enduml'. Keep names concise, derive them directly from the "
+        "requirements, and make sure the PlantUML syntax is syntactically "
+        "correct so it renders without errors."
+    )
+
+    user_prompt = (
+        f"Diagram type: {diagram_info['label']}\n"
+        f"Modeling guidance: {diagram_info['hint']}\n\n"
+        f"Software requirements:\n\"\"\"\n{requirements_text}\n\"\"\"\n\n"
+        "Generate the PlantUML source for this diagram now."
+    )
+
+    return [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+
+def _sanitize_plantuml(puml: str, diagram_type: str) -> str:
+    """Fix common PlantUML syntax mistakes made by LLMs."""
+    import re as _re
+    if not puml:
+        return ""
+
+    if diagram_type == "sequence":
+        # Replace invalid `else if ...` with `else ...`
+        puml = _re.sub(r'^\s*else\s+if\b', 'else', puml, flags=_re.MULTILINE | _re.IGNORECASE)
+        # Replace invalid block terminators `endif`, `endopt`, `endalt`, `endloop` with `end`
+        puml = _re.sub(r'^\s*(?:endif|endopt|endalt|endloop)\b', 'end', puml, flags=_re.MULTILINE | _re.IGNORECASE)
+
+    return puml
+
+
+def _extract_plantuml(raw_text: str, diagram_type: str = "") -> str:
+    """Pulls the @startuml ... @enduml block out of an LLM response and sanitizes syntax."""
+    import re as _re
+    if not raw_text:
+        return ""
+
+    cleaned = _re.sub(r"<think>.*?</think>", "", raw_text, flags=_re.DOTALL | _re.IGNORECASE)
+    fenced = _re.search(r"```(?:plantuml|puml)?\s*(.*?)```", cleaned, _re.DOTALL | _re.IGNORECASE)
+    candidate = fenced.group(1) if fenced else cleaned
+    match = _re.search(r"(@startuml.*?@enduml)", candidate, _re.DOTALL | _re.IGNORECASE)
+    
+    if match:
+        puml = match.group(1).strip()
+    else:
+        stripped = candidate.strip()
+        puml = f"@startuml\n{stripped}\n@enduml" if stripped else ""
+
+    return _sanitize_plantuml(puml, diagram_type)
+
+
+def _render_plantuml_png(plantuml_source: str) -> bytes:
+    """Render PlantUML source to PNG via public PlantUML server using standard library only."""
+    import urllib.request
+    import zlib
+
+    def _encode_6bit(b):
+        if b < 10:
+            return chr(48 + b)
+        b -= 10
+        if b < 26:
+            return chr(65 + b)
+        b -= 26
+        if b < 26:
+            return chr(97 + b)
+        b -= 26
+        if b == 0:
+            return '-'
+        if b == 1:
+            return '_'
+        return '?'
+
+    compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
+    compressed = compressor.compress(plantuml_source.encode('utf-8')) + compressor.flush()
+
+    res = []
+    i = 0
+    length = len(compressed)
+    while i < length:
+        b1 = compressed[i]
+        b2 = compressed[i + 1] if i + 1 < length else 0
+        b3 = compressed[i + 2] if i + 2 < length else 0
+        
+        c1 = b1 >> 2
+        c2 = ((b1 & 0x3) << 4) | (b2 >> 4)
+        c3 = ((b2 & 0xF) << 2) | (b3 >> 6)
+        c4 = b3 & 0x3F
+        
+        res.append(_encode_6bit(c1 & 0x3F))
+        res.append(_encode_6bit(c2 & 0x3F))
+        if i + 1 < length:
+            res.append(_encode_6bit(c3 & 0x3F))
+        if i + 2 < length:
+            res.append(_encode_6bit(c4 & 0x3F))
+            
+        i += 3
+        
+    encoded = "".join(res)
+    url = PLANTUML_SERVER.rstrip("/") + "/" + encoded
+    
+    req = urllib.request.Request(url, headers={"User-Agent": "AIRAM-UML/1.0"})
+    with urllib.request.urlopen(req, timeout=25) as response:
+        if response.status != 200:
+            raise RuntimeError(f"PlantUML server returned HTTP {response.status}")
+        return response.read()
+
+
+def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: str = None) -> str:
+    """Generate a UML diagram from project requirements.
+    
+    Args:
+        diagram_type: One of 'usecase', 'class', 'sequence', 'activity'
+        project_id: The project to fetch requirements from
+        req_types: Comma-separated requirement types to include (e.g. 'sys1,swe1'). 
+                   Defaults to all types.
+    """
+    import base64
+
+    if not project_id:
+        return _no_data("project_id is required to generate a UML diagram.")
+
+    dt = diagram_type.lower().strip()
+    if dt not in DIAGRAM_TYPES:
+        return _no_data(f"Unknown diagram type '{diagram_type}'. Supported: usecase, class, sequence, activity.")
+
+    # Determine which requirement types to fetch
+    if req_types:
+        types_to_fetch = [t.strip().lower().replace(".", "") for t in req_types.split(",")]
+    else:
+        types_to_fetch = ["sys1", "sys2", "sys3", "swe1", "swe2"]
+
+    # Gather requirements text
+    all_reqs_text = []
+    for rt in types_to_fetch:
+        reqs = get_project_requirements_from_db(project_id, rt)
+        for req in reqs:
+            req_id = req.get("id") or req.get("req_id") or "UNKNOWN"
+            req_text = req.get("text") or ""
+            if req_text:
+                all_reqs_text.append(f"{req_id}: {req_text}")
+
+    if not all_reqs_text:
+        return _no_data(f"No requirements found for the specified types ({', '.join(types_to_fetch)}) in this project.")
+
+    # Truncate to avoid exceeding context limits
+    combined_text = "\n".join(all_reqs_text)
+    if len(combined_text) > 6000:
+        combined_text = combined_text[:6000] + "\n...[TRUNCATED]..."
+
+    # Call the LLM to generate PlantUML
+    raw_response = ""
+    try:
+        from Model.llm import LLMManager
+        llm_mgr = LLMManager()
+        messages = _build_uml_prompt(combined_text, dt)
+        
+        response = llm_mgr.client.chat.completions.create(
+            model="nvidia/llama-3.3-nemotron-super-49b-v1.5",
+            messages=messages,
+            temperature=0.2,
+            top_p=0.7,
+            max_tokens=2048,
+            stream=False,
+        )
+        raw_response = response.choices[0].message.content or ""
+    except Exception as exc:
+        # Fallback to pure stdlib urllib HTTP POST if openai module isn't loaded in interpreter
+        try:
+            import os
+            import urllib.request
+            api_key = os.getenv("NVIDIA_API_KEY", "")
+            if not api_key:
+                return _no_data(f"Error calling LLM for UML generation: {exc}")
+            
+            messages = _build_uml_prompt(combined_text, dt)
+            payload_bytes = json.dumps({
+                "model": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+                "messages": messages,
+                "temperature": 0.2,
+                "top_p": 0.7,
+                "max_tokens": 2048
+            }).encode("utf-8")
+            
+            req = urllib.request.Request(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                data=payload_bytes,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                raw_response = data["choices"][0]["message"]["content"]
+        except Exception as e2:
+            return _no_data(f"Error calling LLM for UML generation: {e2}")
+
+    plantuml_code = _extract_plantuml(raw_response, dt)
+    if not plantuml_code:
+        return _no_data("The model did not return usable PlantUML markup. Try rephrasing or selecting different requirement types.")
+
+    # Render to PNG
+    image_base64 = None
+    render_error = None
+    try:
+        png_bytes = _render_plantuml_png(plantuml_code)
+        image_base64 = base64.b64encode(png_bytes).decode("ascii")
+    except Exception as e:
+        render_error = (
+            f"Diagram text was generated, but rendering failed: {e}. "
+            "You can copy the PlantUML source and paste it at https://www.plantuml.com/plantuml/uml/"
+        )
+
+    # Return as a JSON string with structured data
+    result = {
+        "diagram_type": dt,
+        "diagram_label": DIAGRAM_TYPES[dt]["label"],
+        "plantuml_code": plantuml_code,
+        "image_base64": image_base64,
+        "render_error": render_error,
+        "requirements_used": len(all_reqs_text),
+    }
+    return json.dumps(result)
+
+
+# ---------------------------------------------------------------------------
 # Registry + schemas
 # ---------------------------------------------------------------------------
 
@@ -480,6 +762,7 @@ TOOL_REGISTRY = {
     "get_previous_runs_info": get_previous_runs_info,
     "list_projects": list_projects,
     "get_project_summary": get_project_summary,
+    "generate_uml_diagram": generate_uml_diagram,
 }
 
 TOOL_SCHEMAS = [
@@ -686,6 +969,29 @@ TOOL_SCHEMAS = [
                 "type": "object",
                 "properties": {"project_id": {"type": "string"}},
                 "required": ["project_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_uml_diagram",
+            "description": "Generate a UML diagram (use case, class, sequence, or activity) from the project's requirements. Returns a rendered PNG image.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "diagram_type": {
+                        "type": "string",
+                        "enum": ["usecase", "class", "sequence", "activity"],
+                        "description": "Type of UML diagram to generate"
+                    },
+                    "project_id": {"type": "string"},
+                    "req_types": {
+                        "type": "string",
+                        "description": "Comma-separated requirement types to use as context (e.g. 'sys1,swe1'). Defaults to all types."
+                    }
+                },
+                "required": ["diagram_type", "project_id"],
             },
         },
     },
