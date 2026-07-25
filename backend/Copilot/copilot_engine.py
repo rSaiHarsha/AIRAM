@@ -258,22 +258,30 @@ def run_copilot_turn_stream(project_id: str, user_message: str, history: list):
             if not final_text:
                 final_text = "I wasn't able to generate a response — please try rephrasing your question."
             
-            # Check if any tool result contains UML image data
+            # Check if any tool result contains UML diagram data
             image_base64 = None
             plantuml_code = None
+            image_format = "png"
             for tr in last_tool_results:
                 try:
                     parsed = json.loads(tr)
-                    if isinstance(parsed, dict) and parsed.get("image_base64"):
-                        image_base64 = parsed["image_base64"]
+                    if isinstance(parsed, dict) and parsed.get("plantuml_code"):
+                        image_base64 = parsed.get("image_base64")
                         plantuml_code = parsed.get("plantuml_code", "")
+                        image_format = parsed.get("image_format", "png")
                         break
                 except (json.JSONDecodeError, TypeError):
                     pass
             
-            if image_base64:
-                yield {"type": "image", "image_base64": image_base64, "plantuml_code": plantuml_code, "text": final_text}
-                print(f"[Copilot Final Answer] Model: '{target_model}' | Output Length: {len(final_text)} chars | Has Image: True", flush=True)
+            if plantuml_code:
+                yield {
+                    "type": "image",
+                    "image_base64": image_base64,
+                    "plantuml_code": plantuml_code,
+                    "image_format": image_format,
+                    "text": final_text
+                }
+                print(f"[Copilot Final Answer] Model: '{target_model}' | Output Length: {len(final_text)} chars | Has Image: {bool(image_base64)} | Format: {image_format}", flush=True)
             else:
                 print(f"[Copilot Final Answer] Model: '{target_model}' | Output Length: {len(final_text)} chars", flush=True)
                 yield {"type": "final", "text": final_text}

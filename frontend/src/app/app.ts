@@ -67,6 +67,15 @@ import { ApiService } from './services/api.service';
         </div>
         
         <div class="header-right">
+          <!-- Refresh Button -->
+          <button class="refresh-btn" (click)="refreshData()" [class.spinning]="isRefreshing" title="Refresh data">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+
           <!-- Backend Connection Status Indicator -->
           <div class="backend-status-badge" 
                [class.connected]="backendStatus === 'connected'" 
@@ -261,10 +270,37 @@ import { ApiService } from './services/api.service';
       50% { opacity: 1; transform: scale(1.2); }
       100% { opacity: 0.4; transform: scale(0.8); }
     }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .refresh-btn:hover {
+      background: var(--surface-hover);
+      color: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+    .refresh-btn.spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   `]
 })
 export class App implements OnInit {
   activeTab = 'dashboard';
+  isRefreshing = false;
   
   backendStatus: 'connected' | 'connecting' | 'disconnected' = 'connecting';
   backendUrl = '';
@@ -337,11 +373,33 @@ export class App implements OnInit {
 
   onViewHistoryRun(runId: string) {
     this.activeTab = 'analysis';
-    // Let view render, then load results
     setTimeout(() => {
       if (this.requirementsComp) {
         this.requirementsComp.loadResults(runId);
       }
     }, 100);
+  }
+
+  refreshData() {
+    if (this.isRefreshing) return;
+    this.isRefreshing = true;
+
+    if (this.activeTab === 'dashboard' && this.dashboardComp) {
+      this.dashboardComp.loadData();
+    } else if (this.activeTab === 'projects' && this.projectsComp) {
+      this.projectsComp.loadProjects();
+    } else if (this.activeTab === 'analysis' && this.requirementsComp) {
+      this.requirementsComp.loadProjects();
+      this.requirementsComp.loadGuidelines();
+      this.requirementsComp.loadHistory();
+    } else if (this.activeTab === 'rag' && this.ragConfigComp) {
+      this.ragConfigComp.loadMetrics();
+      this.ragConfigComp.loadCollections();
+    }
+
+    setTimeout(() => {
+      this.isRefreshing = false;
+      this.cdr.detectChanges();
+    }, 800);
   }
 }
