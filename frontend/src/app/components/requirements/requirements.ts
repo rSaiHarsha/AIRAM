@@ -1284,8 +1284,12 @@ JSON Schema:
   }
 
   getParsedSwe2List(row: any): any[] {
-    if (!row || !row.req_id || row.req_id === '-' || !row.req_id.trim()) {
-      return [{ id: '-', text: 'Nothing found' }];
+    if (!row) return [{ id: '-', text: 'Nothing found' }];
+    if (row.status === 'PROCESSING') {
+      return [{ id: '-', text: 'Analyzing...' }];
+    }
+    if (!row.req_id || row.req_id === '-' || !row.req_id.trim() || row.req_id === row.swe1_id) {
+      return [{ id: '-', text: row.input_req && row.input_req !== row.swe1_text && row.input_req !== '-' ? row.input_req : 'Nothing found' }];
     }
     
     const ids = row.req_id.split(',').map((id: string) => id.trim()).filter((id: string) => id.length > 0);
