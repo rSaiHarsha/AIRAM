@@ -7,6 +7,9 @@ interface Message {
   role: 'user' | 'bot';
   content: string;
   timestamp: Date;
+  imageBase64?: string;
+  plantumlCode?: string;
+  _showCode?: boolean;
 }
 
 @Component({
@@ -67,6 +70,13 @@ interface Message {
               <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
             </div>
             <div class="message-bubble" [innerHTML]="formatMessage(msg.content)"></div>
+            <div *ngIf="msg.imageBase64" class="uml-image-container">
+              <img [src]="'data:image/png;base64,' + msg.imageBase64" alt="UML Diagram" class="uml-diagram-img" (click)="openImageFullscreen(msg.imageBase64)" />
+              <div *ngIf="msg.plantumlCode" class="plantuml-toggle">
+                <button class="btn-plantuml-toggle" (click)="msg._showCode = !msg._showCode">{{ msg._showCode ? 'Hide' : 'Show' }} PlantUML Source</button>
+                <pre *ngIf="msg._showCode" class="plantuml-source">{{ msg.plantumlCode }}</pre>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -134,6 +144,10 @@ interface Message {
         <div class="suggestion-chip" (click)="sendSuggestion('Fetch the guidelines')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
           Fetch Guidelines
+        </div>
+        <div class="suggestion-chip" (click)="sendSuggestion('Generate a sequence diagram from SWE.1 requirements')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+          Sequence Diagram
         </div>
       </div>
 
@@ -260,6 +274,16 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
       next: (res) => {
         if (res.type === 'thinking') {
           this.thinkingSteps.push(res.message);
+        } else if (res.type === 'image') {
+          this.isLoading = false;
+          this.messages.push({
+            role: 'bot',
+            content: res.text || 'Here is the generated UML diagram:',
+            timestamp: new Date(),
+            imageBase64: res.image_base64,
+            plantumlCode: res.plantuml_code
+          });
+          this.thinkingSteps = [];
         } else if (res.type === 'final' || res.type === 'error') {
           this.isLoading = false;
           this.messages.push({
@@ -386,5 +410,20 @@ export class CopilotComponent implements OnInit, AfterViewChecked {
     });
 
     return `<div class="message-content">${html}</div>`;
+  }
+
+  openImageFullscreen(base64: string) {
+    const win = window.open();
+    if (win) {
+      win.document.write(`
+        <html>
+          <head><title>UML Diagram</title></head>
+          <body style="margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #1a1a2e;">
+            <img src="data:image/png;base64,${base64}" style="max-width: 95vw; max-height: 95vh; object-fit: contain; border-radius: 8px;" />
+          </body>
+        </html>
+      `);
+      win.document.close();
+    }
   }
 }

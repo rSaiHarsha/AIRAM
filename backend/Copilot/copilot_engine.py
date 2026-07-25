@@ -68,6 +68,7 @@ multiple lookups (e.g. "orphans and their risk"), call tools in sequence.
 If the user asks to perform an action on requirements (like summarizing or listing) but does not specify the type (e.g. SYS.1, SWE.1, etc.), you MUST ask them to clarify by providing them with options (SYS.1, SYS.2, SYS.3, SWE.1, SWE.2). 
 If the user asks to fetch or summarize strict guidelines, use `list_guideline_files` to show the available documents as options, wait for their selection, then use `fetch_guideline_content` to fetch the full rules text of the selected document.
 If the user asks about previous execution runs, history, or which guideline/rules were used in a past quality/correction run, use `get_previous_runs_info` to find the run history and the guideline name. If they want the details of that guideline, you can then call `fetch_guideline_content` with that name.
+If the user asks for a UML diagram (use case, class, sequence, or activity diagram), use `generate_uml_diagram` with the appropriate diagram_type. You can optionally specify which requirement types to include (e.g. req_types='swe1,swe2'). After the tool returns, describe the generated diagram briefly.
 If no tool result answers the question, say so plainly."""
 
 MAX_TOOL_HOPS = 4
@@ -120,7 +121,9 @@ How are you? -> CHAT
 Explain FastAPI -> CHAT
 What is requirement REQ-10? -> TOOL
 Show failed rules -> TOOL
-Search for braking requirements -> TOOL"""
+Search for braking requirements -> TOOL
+Generate a use case diagram -> TOOL
+Create a sequence diagram from requirements -> TOOL"""
     try:
         res = _retry_call(
             llm.client.chat.completions.create,
@@ -254,9 +257,27 @@ def run_copilot_turn_stream(project_id: str, user_message: str, history: list):
             final_text = _strip_reasoning(message.content or "")
             if not final_text:
                 final_text = "I wasn't able to generate a response — please try rephrasing your question."
-            print(f"[Copilot Final Answer] Model: '{target_model}' | Output Length: {len(final_text)} chars", flush=True)
+            
+            # Check if any tool result contains UML image data
+            image_base64 = None
+            plantuml_code = None
+            for tr in last_tool_results:
+                try:
+                    parsed = json.loads(tr)
+                    if isinstance(parsed, dict) and parsed.get("image_base64"):
+                        image_base64 = parsed["image_base64"]
+                        plantuml_code = parsed.get("plantuml_code", "")
+                        break
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            if image_base64:
+                yield {"type": "image", "image_base64": image_base64, "plantuml_code": plantuml_code, "text": final_text}
+                print(f"[Copilot Final Answer] Model: '{target_model}' | Output Length: {len(final_text)} chars | Has Image: True", flush=True)
+            else:
+                print(f"[Copilot Final Answer] Model: '{target_model}' | Output Length: {len(final_text)} chars", flush=True)
+                yield {"type": "final", "text": final_text}
             print(f"==================== [COPILOT TURN END] ====================\n", flush=True)
-            yield {"type": "final", "text": final_text}
             return
 
         except Exception as e:
