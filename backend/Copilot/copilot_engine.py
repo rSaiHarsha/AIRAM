@@ -66,13 +66,15 @@ requirements, traceability, or analysis results. Never invent requirement IDs,
 statuses, or rule names — only report what tools return. If a question needs
 multiple lookups (e.g. "orphans and their risk"), call tools in sequence.
 If the user asks to perform an action on requirements (like summarizing or listing) but does not specify the type (e.g. SYS.1, SWE.1, etc.), you MUST ask them to clarify by providing them with options (SYS.1, SYS.2, SYS.3, SWE.1, SWE.2). 
+If the user asks to fetch or summarize strict guidelines, use `list_guideline_files` to show the available documents as options, wait for their selection, then use `fetch_guideline_content` to fetch the full rules text of the selected document.
+If the user asks about previous execution runs, history, or which guideline/rules were used in a past quality/correction run, use `get_previous_runs_info` to find the run history and the guideline name. If they want the details of that guideline, you can then call `fetch_guideline_content` with that name.
 If no tool result answers the question, say so plainly."""
 
 MAX_TOOL_HOPS = 4
 MAX_HISTORY_MESSAGES = 12  # bound context growth across a long chat session
 
 SMALL_TOOL_MODEL = "nvidia/nemotron-nano-12b-v2-vl"
-LARGE_SYNTHESIS_MODEL = ""
+LARGE_SYNTHESIS_MODEL = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
 
 THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 

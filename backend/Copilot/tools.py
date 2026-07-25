@@ -14,10 +14,8 @@ from database import (
     get_all_projects,
     get_project_by_id,
     get_project_requirements_from_db,
-    update_project_requirement,
     append_project_requirements,
 )
-from rag_service import rag_engine
 
 NO_DATA_MARKER = "[NO_DATA]"
 
@@ -136,24 +134,30 @@ def find_target_run(project_id: str, run_type_keyword: str):
 # ---------------------------------------------------------------------------
 
 def search_requirements(query: str, project_id: str = None) -> str:
-    """Semantic search over project requirements in Qdrant."""
+    """Keyword search over project requirements."""
     try:
-        kwargs = {"search_text": query, "collection_name": "project_requirements", "top_k": 5}
-        if project_id:
-            kwargs["filter_dict"] = {"project_id": project_id}
-        results = _call_with_supported_kwargs(rag_engine.search, **kwargs)
-        if not results:
+        if not project_id:
+            return _no_data("project_id is required to search requirements.")
+        
+        matches = []
+        query_lower = query.lower()
+        
+        for req_type in ["sys1", "sys2", "sys3", "swe1", "swe2"]:
+            reqs = get_project_requirements_from_db(project_id, req_type)
+            for req in reqs:
+                req_text = (req.get("text") or "").lower()
+                req_id = (req.get("id") or req.get("req_id") or "").lower()
+                
+                if query_lower in req_text or query_lower in req_id:
+                    matches.append(
+                        f"ID: {req.get('id') or req.get('req_id')} | Type: {req_type.upper()} "
+                        f"\nText: {req.get('text', '')}"
+                    )
+                    
+        if not matches:
             return _no_data(f"No matching requirements found for query '{query}'.")
-
-        formatted = []
-        for r in results:
-            payload = r.get("payload", {})
-            meta = payload.get("metadata", {})
-            formatted.append(
-                f"ID: {meta.get('req_id', 'UNKNOWN')} | Type: {meta.get('req_type', 'UNKNOWN')} "
-                f"| Score: {r.get('score', 0):.2f}\nText: {payload.get('text', '')}"
-            )
-        return "\n\n".join(formatted)
+            
+        return "\n\n".join(matches[:10])  # return top 10 matches to avoid context bloat
     except Exception as e:
         return _no_data(f"Error searching requirements: {e}")
 
@@ -310,22 +314,118 @@ def get_failed_rules_summary(project_id: str) -> str:
 
 
 def search_guidelines(query: str) -> str:
+    """Keyword search over guideline rules in database."""
     try:
-        results = _call_with_supported_kwargs(
-            rag_engine.search, search_text=query, collection_name="airam_guidelines", top_k=3
-        )
-        if not results:
+        from database import get_all_guidelines, get_guideline_content
+        import json
+        
+        guidelines = get_all_guidelines()
+        if not guidelines:
+            return _no_data("No guidelines available to search.")
+            
+        query_lower = query.lower()
+        matches = []
+        
+        for g in guidelines:
+            g_id = g.get("id")
+            g_name = g.get("name") or "Unnamed Guideline"
+            content = get_guideline_content(g_id)
+            if not content:
+                continue
+                
+            content_str = json.dumps(content)
+            if query_lower in content_str.lower():
+                matches.append(
+                    f"Source Document: {g_name} (ID: {g_id})\nMatching Content Snippet:\n{content_str[:1500]}..."
+                )
+                
+        if not matches:
             return _no_data(f"No relevant guidelines found for query '{query}'.")
-
-        formatted = []
-        for r in results:
-            payload = r.get("payload", {})
-            formatted.append(
-                f"Source: {payload.get('source')} | Score: {r.get('score', 0):.2f}\n{payload.get('text', '')}"
-            )
-        return "\n\n".join(formatted)
+            
+        return "\n\n".join(matches[:5])
     except Exception as e:
         return _no_data(f"Error searching guidelines: {e}")
+
+
+def list_guideline_files() -> str:
+    """Get a list of all available guideline files."""
+    try:
+        from database import get_all_guidelines
+        guidelines = get_all_guidelines()
+        
+        if not guidelines:
+            return _no_data("No guidelines have been uploaded yet.")
+            
+        docs = [f"{g.get('name')} (ID: {g.get('id')})" for g in guidelines if g.get('name')]
+        return "Available guideline documents:\n- " + "\n- ".join(docs)
+    except Exception as e:
+        return _no_data(f"Error listing guidelines: {e}")
+
+
+def fetch_guideline_content(doc_name: str) -> str:
+    """Fetch the full structured content of a specific guideline document by name or ID."""
+    try:
+        from database import get_all_guidelines, get_guideline_content
+        import json
+        
+        guidelines = get_all_guidelines()
+        target_id = None
+        for g in guidelines:
+            if g.get('id') == doc_name or g.get('name') == doc_name:
+                target_id = g.get('id')
+                break
+                
+        if not target_id:
+            return _no_data(f"No content found for guideline '{doc_name}'.")
+            
+        content = get_guideline_content(target_id)
+        if not content:
+             return _no_data(f"Guideline '{doc_name}' is empty.")
+             
+        full_text = json.dumps(content, indent=2)
+        
+        if len(full_text) > 40000:
+            full_text = full_text[:40000] + "\n\n...[CONTENT TRUNCATED FOR LENGTH]..."
+            
+        return f"--- Content of {doc_name} ---\n\n{full_text}"
+    except Exception as e:
+        return _no_data(f"Error fetching guideline '{doc_name}': {e}")
+
+
+def get_previous_runs_info(project_id: str, run_type: str = None) -> str:
+    """Get information about previous execution runs for a project, including which guideline document was used."""
+    if not project_id:
+        return _no_data("project_id is required to fetch previous execution runs.")
+        
+    runs = _get_previous_executions(limit=20)
+    identifiers = get_project_identifiers(project_id)
+    
+    matching_runs = []
+    for r in runs:
+        r_pname = r.get("project_name") or ""
+        r_pid = r.get("project_id") or ""
+        r_type = (r.get("type") or "").lower()
+        
+        matches_proj = (
+            not identifiers
+            or r_pname in identifiers
+            or r_pname.lower() in identifiers
+            or r_pid in identifiers
+        )
+        if not matches_proj:
+            continue
+            
+        if run_type and run_type.lower() not in r_type:
+            continue
+            
+        matching_runs.append(
+            f"Run ID: {r.get('run_id')} | Type: {r.get('type')} | Status: {r.get('status')} | Guideline Used: {r.get('guideline_name') or 'Default/None'} | Date: {r.get('timestamp', '')}"
+        )
+        
+    if not matching_runs:
+        return _no_data(f"No previous execution runs found for project '{project_id}'.")
+        
+    return "Previous execution runs for this project:\n" + "\n".join(matching_runs[:10])
 
 
 def list_projects() -> str:
@@ -375,6 +475,9 @@ TOOL_REGISTRY = {
     "get_quality_results": get_quality_results,
     "get_failed_rules_summary": get_failed_rules_summary,
     "search_guidelines": search_guidelines,
+    "list_guideline_files": list_guideline_files,
+    "fetch_guideline_content": fetch_guideline_content,
+    "get_previous_runs_info": get_previous_runs_info,
     "list_projects": list_projects,
     "get_project_summary": get_project_summary,
 }
@@ -384,7 +487,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "search_requirements",
-            "description": "Semantic search over project requirements (SWE.1/SWE.2) to find requirements mentioning specific concepts.",
+            "description": "Keyword search over project requirements to find requirements mentioning specific concepts.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -528,6 +631,41 @@ TOOL_SCHEMAS = [
                 "type": "object",
                 "properties": {"query": {"type": "string"}},
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_guideline_files",
+            "description": "Get a list of all available strict guideline documents that have been uploaded.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_guideline_content",
+            "description": "Fetch the full text content of a specific guideline document by its filename.",
+            "parameters": {
+                "type": "object",
+                "properties": {"doc_name": {"type": "string", "description": "The exact name of the guideline document"}},
+                "required": ["doc_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_previous_runs_info",
+            "description": "Check previous execution runs (quality/traceability/correction history) for a project. Returns run history including which guideline document was used.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "project_id": {"type": "string"},
+                    "run_type": {"type": "string", "description": "Optional filter for run type: 'quality' or 'traceability'"}
+                },
+                "required": ["project_id"],
             },
         },
     },

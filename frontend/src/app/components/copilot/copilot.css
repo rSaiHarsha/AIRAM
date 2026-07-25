@@ -323,10 +323,10 @@
 
 .suggestions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 12px 24px;
   background: var(--surface-bg);
-  overflow-x: auto;
 }
 
 .suggestion-chip {
