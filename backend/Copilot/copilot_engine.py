@@ -2,7 +2,7 @@
 AIRAM Copilot Orchestration Engine
 ----------------------------------
 Routes user questions through a tool-calling loop against AIRAM's existing
-requirements / quality / traceability / RAG data, then synthesizes a final answer.
+requirements / quality / traceability / guideline rules data, then synthesizes a final answer.
 """
 
 import json
