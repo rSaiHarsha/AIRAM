@@ -236,7 +236,7 @@ async def run_requirements_analysis_job(
                 parent_level = getattr(r, "trace_parent_level", "sys1")
                 child_level = getattr(r, "trace_child_level", "sys2")
                 cat = f"traceability:{parent_level}_to_{child_level}"
-                row_id = create_placeholder_result(run_id, r.name, r.content, category=cat)
+                row_id = create_placeholder_result(run_id, "-", "-", category=cat)
                 update_execution_result_by_id(
                     row_id=row_id,
                     status="PROCESSING",
@@ -245,6 +245,8 @@ async def run_requirements_analysis_job(
                     corrected_req=None,
                     swe1_id=r.name,
                     swe1_text=r.content,
+                    req_id="-",
+                    input_req="Analyzing...",
                     category=cat
                 )
             else:
@@ -279,6 +281,8 @@ async def run_requirements_analysis_job(
                         corrected_req=None,
                         swe1_id="-",
                         swe1_text="-",
+                        req_id="-",
+                        input_req="Nothing found",
                         category=f"traceability:{parent_level}_to_{child_level}"
                     )
                     continue
@@ -292,8 +296,8 @@ async def run_requirements_analysis_job(
                 linked_children = [c for c in child_reqs if c.name in linked_ids]
                 
                 # Format outputs
-                child_ids_str = ", ".join([c.name for c in linked_children]) if linked_children else None
-                child_texts_str = "\n".join([f"• {c.name}: {c.content}" for c in linked_children]) if linked_children else None
+                child_ids_str = ", ".join([c.name for c in linked_children]) if linked_children else "-"
+                child_texts_str = "\n".join([f"• {c.name}: {c.content}" for c in linked_children]) if linked_children else "Nothing found"
                 
                 # Track covered
                 for c in linked_children:
