@@ -204,7 +204,7 @@ import { ApiService } from '../../services/api.service';
       </div>
 
       <!-- Main Results Datatable -->
-      <div class="card" *ngIf="results.length > 0" style="padding: 0;">
+      <div class="card" *ngIf="activeRunId || results.length > 0" style="padding: 0;">
         <div style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; align-items: center; gap: 12px;">
             <div class="icon-box">
@@ -226,7 +226,7 @@ import { ApiService } from '../../services/api.service';
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               Clear Results
             </button>
-            <button class="btn btn-outline" (click)="exportResults()" style="padding: 8px 16px; border-radius: 6px; color: #16a34a; border-color: #bbf7d0; background-color: #f0fdf4;">
+            <button class="btn btn-outline" (click)="exportResults()" *ngIf="results.length > 0" style="padding: 8px 16px; border-radius: 6px; color: #16a34a; border-color: #bbf7d0; background-color: #f0fdf4;">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Export CSV
             </button>
@@ -235,10 +235,10 @@ import { ApiService } from '../../services/api.service';
         
         <div style="padding: 0 24px;">
           <div class="tabs-nav">
-            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys1')">SYS 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'sys1'" (click)="activeTab = 'sys1'; currentPage = 1" *ngIf="!isTraceabilityRun && (results.length === 0 || hasCategory('sys1'))">SYS 1 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'sys2'" (click)="activeTab = 'sys2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys2')">SYS 2 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'sys3'" (click)="activeTab = 'sys3'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('sys3')">SYS 3 Quality</button>
-            <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe1')">SWE 1 Quality</button>
+            <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'; currentPage = 1" *ngIf="!isTraceabilityRun && (results.length === 0 || hasCategory('swe1'))">SWE 1 Quality</button>
             <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'; currentPage = 1" *ngIf="!isTraceabilityRun && hasCategory('swe2')">SWE 2 Quality</button>
             
             <button class="tab-btn" [class.active]="activeTab === 'traceability:sys1_to_sys2'" (click)="activeTab = 'traceability:sys1_to_sys2'; currentPage = 1" *ngIf="isTraceabilityRun || hasCategory('traceability:sys1_to_sys2')">SYS.1 to SYS.2</button>
@@ -271,6 +271,15 @@ import { ApiService } from '../../services/api.service';
               </tr>
             </thead>
             <tbody>
+              <tr *ngIf="filteredResults.length === 0">
+                <td [attr.colspan]="isTraceabilityRun ? (hasTraceCorrections() ? 8 : 7) : (hasCorrections() ? 6 : 5)" style="text-align: center; padding: 36px 16px; color: var(--text-secondary); font-size: 0.9rem;">
+                  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: #94a3b8;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                    <span style="font-weight: 500;">No requirement results found for this analysis run.</span>
+                    <span style="font-size: 0.8rem; color: #94a3b8;">You can delete this run using the "Delete Run" button above.</span>
+                  </div>
+                </td>
+              </tr>
               <ng-container *ngFor="let row of filteredResults | slice:(currentPage - 1) * pageSize : currentPage * pageSize">
                 <!-- Quality Analysis View -->
                 <ng-container *ngIf="!isTraceabilityRun">
