@@ -277,8 +277,8 @@ import { ApiService } from '../../services/api.service';
                   <table *ngIf="isTraceabilityRun(run.type)" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
                     <thead>
                       <tr style="background-color: #f8fafc;">
-                        <th style="padding: 12px 16px; width: 40%;">SYS.1 ID</th>
-                        <th style="padding: 12px 16px; width: 60%;">SYS.2 IDs</th>
+                        <th style="padding: 12px 16px; width: 40%;">Parent ID</th>
+                        <th style="padding: 12px 16px; width: 60%;">Child IDs</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -348,18 +348,18 @@ import { ApiService } from '../../services/api.service';
           
           <div *ngIf="traceModalData" style="display: flex; flex-direction: column; gap: 20px; max-height: 60vh; overflow-y: auto;">
             <div>
-              <div style="font-weight: 700; color: #0369a1; margin-bottom: 8px; font-size: 0.9rem;">SYS.1: {{ traceModalData.swe1_id || '-' }}</div>
+              <div style="font-weight: 700; color: #0369a1; margin-bottom: 8px; font-size: 0.9rem;">Parent: {{ traceModalData.swe1_id || '-' }}</div>
               
               <div *ngIf="traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-primary);">
                 {{ traceModalData.swe1_text || '-' }}
               </div>
               <div *ngIf="!traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: #94a3b8; font-style: italic;">
-                No requirement found (Orphaned in SYS.2)
+                No requirement found (Orphaned in Child)
               </div>
             </div>
             
             <div>
-              <div style="font-weight: 700; color: #0f766e; margin-bottom: 8px; font-size: 0.9rem;">Linked SYS.2 Requirements</div>
+              <div style="font-weight: 700; color: #0f766e; margin-bottom: 8px; font-size: 0.9rem;">Linked Child Requirements</div>
               <div style="display: flex; flex-direction: column; gap: 12px;">
                 <ng-container *ngIf="traceModalData.req_id">
                   <div *ngFor="let swe2 of traceModalData.parsed_swe2_list" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
@@ -369,7 +369,7 @@ import { ApiService } from '../../services/api.service';
                 </ng-container>
                 
                 <div *ngIf="!traceModalData.req_id" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
-                  <span style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">No requirement found (Orphaned in SYS.1)</span>
+                  <span style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">No requirement found (Orphaned in Parent)</span>
                 </div>
               </div>
             </div>

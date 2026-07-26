@@ -432,36 +432,88 @@ import { ApiService } from '../../services/api.service';
                  </div>
                  
                  <div *ngIf="projectHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
-                   <div *ngFor="let run of projectHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                     <div style="display: flex; gap: 12px; align-items: center;">
-                       <span class="badge" style="font-size: 0.58rem; background: #e0f2fe; color: #0284c7; padding: 3px 7px; border-radius: 12px; font-weight: 700;">{{ run.type | uppercase }} RUN</span>
-                       <div>
-                         <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Traceability Mapping Audit</div>
-                         <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
-                       </div>
-                     </div>
-                     <div style="display: flex; gap: 16px; align-items: center;">
-                       <div style="text-align: right;">
-                         <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Pass Rate</div>
-                         <div style="font-weight: 700; color: var(--color-success); font-size: 0.9rem;">
-                           {{ run.total_count ? ((run.pass_count / run.total_count) * 100 | number:'1.0-0') : 0 }}%
+                   <div *ngFor="let run of projectHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                     <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
+                       <div style="display: flex; gap: 12px; align-items: center;">
+                         <span class="badge" style="font-size: 0.58rem; background: #e0f2fe; color: #0284c7; padding: 3px 7px; border-radius: 12px; font-weight: 700;">{{ run.type | uppercase }} RUN</span>
+                         <div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Traceability Mapping Audit</div>
+                           <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
                          </div>
                        </div>
-                       <div style="text-align: right;">
-                         <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Status</div>
-                         <span class="badge" [ngStyle]="{'background': run.status === 'completed' ? '#dcfce7' : '#fee2e2', 'color': run.status === 'completed' ? '#166534' : '#991b1b', 'font-size': '0.65rem', 'border-radius': '4px', 'padding': '2px 6px'}">
-                           {{ run.status | uppercase }}
-                         </span>
+                       <div style="display: flex; gap: 16px; align-items: center;">
+                         <div style="text-align: right;">
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Pass Rate</div>
+                           <div style="font-weight: 700; color: var(--color-success); font-size: 0.9rem;">
+                             {{ run.total_count ? ((run.pass_count / run.total_count) * 100 | number:'1.0-0') : 0 }}%
+                           </div>
+                         </div>
+                         <div style="text-align: right;">
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Status</div>
+                           <span class="badge" [ngStyle]="{'background': run.status === 'completed' ? '#dcfce7' : '#fee2e2', 'color': run.status === 'completed' ? '#166534' : '#991b1b', 'font-size': '0.65rem', 'border-radius': '4px', 'padding': '2px 6px'}">
+                             {{ run.status | uppercase }}
+                           </span>
+                         </div>
+                         <button class="btn btn-primary btn-sm" (click)="$event.stopPropagation(); viewRun.emit(run.run_id)" title="View in details" style="padding: 4px 10px; font-size: 0.7rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
+                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                             <polyline points="15 3 21 3 21 9"></polyline>
+                             <line x1="10" y1="14" x2="21" y2="3"></line>
+                           </svg>
+                           View Details
+                         </button>
+                         <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                        </div>
-                        <button class="btn btn-primary btn-sm" (click)="viewRun.emit(run.run_id)" title="View in details" style="padding: 4px 10px; font-size: 0.7rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                          </svg>
-                          View Details
-                        </button>
                      </div>
+
+                     <!-- Expanded Table Content -->
+                     <div *ngIf="expandedResults[run.run_id]" style="border-top: 1px solid var(--border-color); background: #f8fafc; padding: 16px;">
+                       <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: #fff;">
+                         <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
+                           <thead>
+                             <tr style="background-color: #f8fafc;">
+                               <th style="padding: 12px 16px; width: 40%;">Parent ID</th>
+                               <th style="padding: 12px 16px; width: 60%;">Child IDs</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             <tr *ngIf="expandedResults[run.run_id].length === 0">
+                               <td colspan="2" style="padding: 24px; text-align: center; color: var(--text-secondary);">No requirement results found for this run.</td>
+                             </tr>
+                             <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 5:getCurrentPage(run.run_id) * 5" style="border-top: 1px solid var(--border-color);">
+                               <td style="padding: 16px; vertical-align: top;">
+                                 <a href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: var(--color-primary); text-decoration: underline;">
+                                   {{ row.swe1_id || '-' }}
+                                 </a>
+                               </td>
+                               <td style="padding: 16px; vertical-align: top;">
+                                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                   <a *ngFor="let swe2 of row.parsed_swe2_list" href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: #0f766e; text-decoration: underline;">
+                                     {{ swe2.id || '-' }}
+                                   </a>
+                                 </div>
+                               </td>
+                             </tr>
+                           </tbody>
+                         </table>
+
+                         <!-- Pagination Footer -->
+                         <div class="pagination-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border-color); background: #f8fafc; font-size: 0.75rem; color: var(--text-secondary);">
+                           <div>
+                             Showing {{ (getCurrentPage(run.run_id) - 1) * 5 + 1 }}-{{ getMin((getCurrentPage(run.run_id) * 5), expandedResults[run.run_id].length) }} of {{ expandedResults[run.run_id].length }} items
+                           </div>
+                           <div style="display: flex; gap: 8px;">
+                             <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === 1" (click)="setPage(run.run_id, getCurrentPage(run.run_id) - 1)">
+                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                             </button>
+                             <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === getTotalPages(run.run_id)" (click)="setPage(run.run_id, getCurrentPage(run.run_id) + 1)">
+                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                             </button>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+
                    </div>
                  </div>
                </div>
@@ -719,6 +771,45 @@ import { ApiService } from '../../services/api.service';
         </div>
       </div>
     </div>
+
+    <!-- Traceability Details Modal -->
+    <div class="modal-overlay" *ngIf="showTraceModal" (click)="closeTraceDetails()" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+      <div class="modal-content" style="background: #fff; border-radius: 12px; max-width: 600px; width: 90%; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);" (click)="$event.stopPropagation()">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 600;">Traceability Links</h3>
+          <button class="icon-btn-minimal" (click)="closeTraceDetails()" style="background: none; border: none; cursor: pointer; font-size: 1.2rem;">✕</button>
+        </div>
+        
+        <div *ngIf="traceModalData" style="display: flex; flex-direction: column; gap: 20px; max-height: 60vh; overflow-y: auto;">
+          <div>
+            <div style="font-weight: 700; color: #0369a1; margin-bottom: 8px; font-size: 0.9rem;">Parent: {{ traceModalData.swe1_id || '-' }}</div>
+            
+            <div *ngIf="traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-primary);">
+              {{ traceModalData.swe1_text || '-' }}
+            </div>
+            <div *ngIf="!traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: #94a3b8; font-style: italic;">
+              No requirement found (Orphaned in Child)
+            </div>
+          </div>
+          
+          <div>
+            <div style="font-weight: 700; color: #0f766e; margin-bottom: 8px; font-size: 0.9rem;">Linked Child Requirements</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <ng-container *ngIf="traceModalData.req_id">
+                <div *ngFor="let swe2 of traceModalData.parsed_swe2_list" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
+                  <div style="font-weight: 600; color: #0f766e; font-size: 0.8rem; margin-bottom: 4px;">{{ swe2.id || '-' }}</div>
+                  <div style="font-size: 0.85rem; color: var(--text-primary);">{{ swe2.text || '-' }}</div>
+                </div>
+              </ng-container>
+              
+              <div *ngIf="!traceModalData.req_id" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
+                <span style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">No requirement found (Orphaned in Parent)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .project-item:hover {
@@ -878,6 +969,10 @@ export class ProjectsComponent implements OnInit {
     swe2: [] as any[]
   };
   projectHistory: any[] = [];
+  expandedResults: { [runId: string]: any[] } = {};
+  currentPage: { [runId: string]: number } = {};
+  showTraceModal = false;
+  traceModalData: any = null;
   isLoadingReqs = false;
   private _activeTab: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' = 'overview';
   
@@ -1071,7 +1166,7 @@ export class ProjectsComponent implements OnInit {
     this.apiService.getHistory(100, 0).subscribe({
       next: (res) => {
         if (this.selectedProject) {
-          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type === 'traceability');
+          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase().includes('traceability'));
         }
         this.cdr.detectChanges();
       },
@@ -1315,5 +1410,68 @@ export class ProjectsComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  toggleExpandRun(runId: string) {
+    if (this.expandedResults[runId]) {
+      delete this.expandedResults[runId];
+    } else {
+      this.apiService.getRunResults(runId).subscribe(res => {
+        res.forEach((r: any) => r.parsed_swe2_list = this.getParsedSwe2List(r));
+        this.expandedResults[runId] = res;
+        this.currentPage[runId] = 1;
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  getCurrentPage(runId: string): number {
+    return this.currentPage[runId] || 1;
+  }
+
+  setPage(runId: string, page: number) {
+    if (page < 1 || page > this.getTotalPages(runId)) return;
+    this.currentPage[runId] = page;
+  }
+
+  getTotalPages(runId: string): number {
+    const total = this.expandedResults[runId]?.length || 0;
+    return Math.ceil(total / 5) || 1;
+  }
+
+  getMin(a: number, b: number): number {
+    return Math.min(a, b);
+  }
+
+  openTraceDetails(row: any) {
+    this.traceModalData = row;
+    this.showTraceModal = true;
+  }
+
+  closeTraceDetails() {
+    this.showTraceModal = false;
+    this.traceModalData = null;
+  }
+
+  getParsedSwe2List(row: any): any[] {
+    if (!row.req_id || row.req_id === '-' || row.req_id.trim() === '') {
+      return [{ id: '-', text: row.input_req || '-' }];
+    }
+    const ids = row.req_id.split(',').map((id: string) => id.trim());
+    const texts = row.input_req ? row.input_req.split('\n').map((t: string) => t.trim()) : [];
+    const parsedList = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      let text = '-';
+      const prefix = `• ${id}:`;
+      const match = texts.find((t: string) => t.startsWith(prefix));
+      if (match) {
+        text = match.substring(prefix.length).trim();
+      } else if (texts[i]) {
+        text = texts[i].replace(/^•\s*[A-Za-z0-9_\-\.]+:\s*/, '').trim();
+      }
+      parsedList.push({ id, text });
+    }
+    return parsedList.length > 0 ? parsedList : [{ id: '-', text: row.input_req || '-' }];
   }
 }
