@@ -1221,8 +1221,9 @@ JSON Schema:
         //
         // Now we fall back to inspecting the actual row shape: traceability
         // rows always carry category starting with 'traceability:'
-        const looksLikeTraceability = res.length > 0 && res.some((r: any) => r.category && r.category.startsWith('traceability:'));
-        this.isTraceabilityRun = matchedRun ? matchedRun.type === 'traceability' || matchedRun.type === 'traceability_analysis' : looksLikeTraceability;
+        const looksLikeTraceability = res.length > 0 && res.some((r: any) => r.category && r.category.toLowerCase().includes('traceability'));
+        const isTraceType = matchedRun && matchedRun.type && matchedRun.type.toLowerCase().includes('traceability');
+        this.isTraceabilityRun = !!(isTraceType || looksLikeTraceability);
 
         this.results = res.map((r: any) => {
           if (this.isTraceabilityRun && !r.parsed_swe2_list) {
@@ -1236,7 +1237,10 @@ JSON Schema:
           else if (this.hasCategory('traceability:sys2_to_sys3')) this.activeTab = 'traceability:sys2_to_sys3';
           else if (this.hasCategory('traceability:sys3_to_swe1')) this.activeTab = 'traceability:sys3_to_swe1';
           else if (this.hasCategory('traceability:swe1_to_swe2')) this.activeTab = 'traceability:swe1_to_swe2';
-          else this.activeTab = 'traceability:sys1_to_sys2';
+          else {
+            const firstTrace = res.find((r: any) => r.category && r.category.toLowerCase().includes('traceability'));
+            this.activeTab = firstTrace ? firstTrace.category : 'traceability:sys1_to_sys2';
+          }
         } else {
           if (this.hasCategory('sys1')) this.activeTab = 'sys1';
           else if (this.hasCategory('sys2')) this.activeTab = 'sys2';
@@ -1329,10 +1333,10 @@ JSON Schema:
 
   get filteredResults(): any[] {
     if (this.isTraceabilityRun) {
-      if (this.activeTab && this.activeTab.startsWith('traceability:')) {
+      if (this.activeTab && this.activeTab.toLowerCase().includes('traceability')) {
         return this.results.filter(r => r.category === this.activeTab || r.category == null);
       }
-      return this.results.filter(r => (r.category && r.category.startsWith('traceability')) || r.category == null);
+      return this.results.filter(r => (r.category && r.category.toLowerCase().includes('traceability')) || r.category == null);
     }
     return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'swe1' && r.category == null));
   }
@@ -1342,7 +1346,7 @@ JSON Schema:
       return this.results.some(r => r.category === category || r.category == null);
     }
     if (category === 'traceability') {
-      return this.results.some(r => r.category && r.category.startsWith('traceability'));
+      return this.results.some(r => r.category && r.category.toLowerCase().includes('traceability'));
     }
     return this.results.some(r => r.category === category);
   }
