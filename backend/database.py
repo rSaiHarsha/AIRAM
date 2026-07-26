@@ -211,9 +211,16 @@ def init_db():
     except Exception:
         conn.rollback()
         
-    # Migrate old categories
-    cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category = 'sys1'")
-    cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category = 'sys2'")
+    # Fix miscategorized or legacy categories where possible
+    try:
+        cursor.execute("UPDATE execution_results SET category = 'sys1' WHERE (category = 'swe1' OR category IS NULL) AND (lower(req_id) LIKE 'sys1%' OR lower(req_id) LIKE 'sys_%' OR lower(req_id) LIKE 'sys-%' OR lower(req_id) LIKE 'sys.%')")
+        cursor.execute("UPDATE execution_results SET category = 'sys2' WHERE (category = 'swe2' OR category IS NULL) AND (lower(req_id) LIKE 'sys2%' OR lower(req_id) LIKE 'sys_2%' OR lower(req_id) LIKE 'sys-2%' OR lower(req_id) LIKE 'sys.2%')")
+        cursor.execute("UPDATE execution_results SET category = 'sys3' WHERE (category = 'swe1' OR category = 'swe2' OR category IS NULL) AND (lower(req_id) LIKE 'sys3%' OR lower(req_id) LIKE 'sys_3%' OR lower(req_id) LIKE 'sys-3%' OR lower(req_id) LIKE 'sys.3%')")
+        cursor.execute("UPDATE execution_results SET category = 'swe1' WHERE category IS NULL AND (lower(req_id) LIKE 'swe1%' OR lower(req_id) LIKE 'swe_1%' OR lower(req_id) LIKE 'swe-1%' OR lower(req_id) LIKE 'swe.1%')")
+        cursor.execute("UPDATE execution_results SET category = 'swe2' WHERE category IS NULL AND (lower(req_id) LIKE 'swe2%' OR lower(req_id) LIKE 'swe_2%' OR lower(req_id) LIKE 'swe-2%' OR lower(req_id) LIKE 'swe.2%')")
+        conn.commit()
+    except Exception:
+        conn.rollback()
     
     # Migrate old data where req_id or input_req were left NULL in previous traceability runs
     try:
