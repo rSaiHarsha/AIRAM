@@ -937,16 +937,16 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "add_requirement",
-            "description": "Add a new requirement to the project.",
+            "description": "Add a new requirement to the project. The requirement ID is generated automatically to follow the same numbering scheme already used by existing requirements of this type in the project, so you do not need to invent one.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "req_id": {"type": "string", "description": "The new requirement ID"},
+                    "req_id": {"type": "string", "description": "Optional. A suggested ID. This is only used as a fallback if no existing requirements of this type exist yet to infer a pattern from — otherwise it is ignored in favor of the auto-generated, correctly-formatted ID."},
                     "text": {"type": "string", "description": "The text of the requirement"},
                     "req_type": {"type": "string", "description": "The type of the requirement (e.g. 'swe1', 'swe2')"},
                     "project_id": {"type": "string"}
                 },
-                "required": ["req_id", "text", "req_type", "project_id"],
+                "required": ["text", "req_type", "project_id"],
             },
         },
     },
