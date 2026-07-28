@@ -210,7 +210,8 @@ export class ApiService {
     correctQuality: boolean = false,
     correctTrace: boolean = false,
     customContext?: string,
-    customContextCorrection?: string
+    customContextCorrection?: string,
+    selectedLevels?: string
   ): Observable<any> {
     const formData = new FormData();
     formData.append('run_type', runType);
@@ -222,6 +223,7 @@ export class ApiService {
     formData.append('correct_trace', String(correctTrace));
     if (customContext) formData.append('custom_context', customContext);
     if (customContextCorrection) formData.append('custom_context_correction', customContextCorrection);
+    if (selectedLevels) formData.append('selected_levels', selectedLevels);
     return this.http.post(`${this.baseUrl}/api/analysis/start`, formData);
   }
 

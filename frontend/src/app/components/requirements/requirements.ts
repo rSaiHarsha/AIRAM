@@ -574,6 +574,56 @@ import { ApiService } from '../../services/api.service';
         </div>
       </div>
     </div>
+
+    <!-- Level Selection Modal -->
+    <div class="modal-backdrop" *ngIf="showLevelSelectModal">
+      <div class="modal-card" style="max-width: 520px;">
+        <div class="modal-header">
+          <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">📋 Select Requirement Levels</h3>
+          <button type="button" class="modal-close" (click)="closeLevelSelectModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px; margin-top: 0;">
+            Choose which requirement levels to include in the {{ isLevelSelectTraceability ? 'traceability' : 'quality' }} analysis.
+          </p>
+
+          <!-- Quality Mode: Individual level checkboxes -->
+          <ng-container *ngIf="!isLevelSelectTraceability">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label *ngFor="let lvl of qualityLevels" class="checkbox-lbl" style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #f8fafc; cursor: pointer; transition: all 0.2s;" [style.border-color]="lvl.selected ? 'var(--color-primary)' : 'var(--border-color)'" [style.background]="lvl.selected ? '#eff6ff' : '#f8fafc'">
+                <input type="checkbox" [(ngModel)]="lvl.selected">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                  <span style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ lvl.label }}</span>
+                  <span style="font-size: 0.75rem; color: var(--text-secondary);">{{ lvl.description }}</span>
+                </div>
+              </label>
+            </div>
+          </ng-container>
+
+          <!-- Traceability Mode: Pair checkboxes -->
+          <ng-container *ngIf="isLevelSelectTraceability">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label *ngFor="let pair of tracePairs" class="checkbox-lbl" style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #f8fafc; cursor: pointer; transition: all 0.2s;" [style.border-color]="pair.selected ? 'var(--color-primary)' : 'var(--border-color)'" [style.background]="pair.selected ? '#eff6ff' : '#f8fafc'">
+                <input type="checkbox" [(ngModel)]="pair.selected">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                  <span style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ pair.label }}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  <span style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ pair.labelTo }}</span>
+                </div>
+              </label>
+            </div>
+          </ng-container>
+
+          <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" (click)="closeLevelSelectModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" [disabled]="!hasAnyLevelSelected()" (click)="confirmAndRun()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Confirm & Run
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .checkbox-lbl {
@@ -731,6 +781,23 @@ export class RequirementsComponent implements OnInit, OnDestroy {
     trace: false,
     correctTrace: false
   };
+
+  // Level Selection Modal State
+  showLevelSelectModal = false;
+  isLevelSelectTraceability = false;
+  qualityLevels = [
+    { key: 'sys1', label: 'SYS.1', description: 'Requirements Elicitation', selected: true },
+    { key: 'sys2', label: 'SYS.2', description: 'System Req Analysis', selected: true },
+    { key: 'sys3', label: 'SYS.3', description: 'System Arch Design', selected: true },
+    { key: 'swe1', label: 'SWE.1', description: 'Software Req Analysis', selected: true },
+    { key: 'swe2', label: 'SWE.2', description: 'Software Arch Design', selected: true }
+  ];
+  tracePairs = [
+    { key: 'sys1_to_sys2', label: 'SYS.1', labelTo: 'SYS.2', selected: true },
+    { key: 'sys2_to_sys3', label: 'SYS.2', labelTo: 'SYS.3', selected: true },
+    { key: 'sys3_to_swe1', label: 'SYS.3', labelTo: 'SWE.1', selected: true },
+    { key: 'swe1_to_swe2', label: 'SWE.1', labelTo: 'SWE.2', selected: true }
+  ];
 
   rulesMode: 'strict' | 'rag' | 'custom' = 'strict';
   guidelines: any[] = [];
@@ -1069,14 +1136,45 @@ JSON Schema:
       return;
     }
 
+    // Determine mode and open the level selection modal
+    this.isLevelSelectTraceability = !!(this.actions.trace || this.actions.correctTrace);
+    // Reset all to selected by default
+    this.qualityLevels.forEach(l => l.selected = true);
+    this.tracePairs.forEach(p => p.selected = true);
+    this.showLevelSelectModal = true;
+  }
+
+  closeLevelSelectModal() {
+    this.showLevelSelectModal = false;
+  }
+
+  hasAnyLevelSelected(): boolean {
+    if (this.isLevelSelectTraceability) {
+      return this.tracePairs.some(p => p.selected);
+    }
+    return this.qualityLevels.some(l => l.selected);
+  }
+
+  confirmAndRun() {
+    this.showLevelSelectModal = false;
+
     let runType = 'quality';
-    if (this.actions.trace || this.actions.correctTrace) {
+    let selectedLevelsStr = '';
+    if (this.isLevelSelectTraceability) {
       runType = 'traceability';
       this.isTraceabilityRun = true;
-      this.activeTab = 'traceability:sys1_to_sys2';
+      const selectedPairs = this.tracePairs.filter(p => p.selected);
+      selectedLevelsStr = selectedPairs.map(p => p.key).join(',');
+      // Set active tab to first selected pair
+      const firstPair = selectedPairs[0];
+      this.activeTab = firstPair ? 'traceability:' + firstPair.key : 'traceability:sys1_to_sys2';
     } else {
       this.isTraceabilityRun = false;
-      this.activeTab = 'swe1';
+      const selectedLevels = this.qualityLevels.filter(l => l.selected);
+      selectedLevelsStr = selectedLevels.map(l => l.key).join(',');
+      // Set active tab to first selected quality level
+      const firstLevel = selectedLevels[0];
+      this.activeTab = firstLevel ? firstLevel.key : 'sys1';
     }
     
     this.isRunning = true;
@@ -1102,7 +1200,8 @@ JSON Schema:
       this.actions.correct,
       this.actions.correctTrace,
       customPromptVal,
-      customPromptCorrectionVal
+      customPromptCorrectionVal,
+      selectedLevelsStr || undefined
     ).subscribe({
       next: (res) => {
         this.activeRunId = res.run_id;
@@ -1334,11 +1433,15 @@ JSON Schema:
   get filteredResults(): any[] {
     if (this.isTraceabilityRun) {
       if (this.activeTab && this.activeTab.toLowerCase().includes('traceability')) {
-        return this.results.filter(r => r.category === this.activeTab || r.category == null);
+        return this.results.filter(r => r.category === this.activeTab);
       }
-      return this.results.filter(r => (r.category && r.category.toLowerCase().includes('traceability')) || r.category == null);
+      return this.results.filter(r => r.category && r.category.toLowerCase().includes('traceability'));
     }
-    return this.results.filter(r => r.category === this.activeTab || (this.activeTab === 'swe1' && r.category == null));
+    // For quality runs, match category exactly. Treat null/undefined category as 'swe1' for legacy data.
+    return this.results.filter(r => {
+      const cat = r.category || 'swe1';
+      return cat === this.activeTab;
+    });
   }
 
   hasCategory(category: string): boolean {

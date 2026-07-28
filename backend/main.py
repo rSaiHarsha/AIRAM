@@ -436,7 +436,8 @@ async def start_analysis(
     correct_quality: str = Form("false"),
     correct_trace: str = Form("false"),
     custom_context: str = Form(None),
-    custom_context_correction: str = Form(None)
+    custom_context_correction: str = Form(None),
+    selected_levels: str = Form(None)
 ):
     """Spawns an async row-by-row requirements analysis or traceability evaluation run."""
     run_id = str(uuid.uuid4())
@@ -477,7 +478,8 @@ async def start_analysis(
             correct_quality=correct_quality_bool,
             correct_trace=correct_trace_bool,
             custom_context=custom_context,
-            custom_context_correction=custom_context_correction
+            custom_context_correction=custom_context_correction,
+            selected_levels=selected_levels
         )
     )
     
