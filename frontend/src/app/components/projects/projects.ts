@@ -155,6 +155,7 @@ import { ApiService } from '../../services/api.service';
                 <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'">SWE.1 Reqs ({{reqs.swe1?.length || 0}})</button>
                 <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'">SWE.2 Reqs ({{reqs.swe2?.length || 0}})</button>
                 <button class="tab-btn" [class.active]="activeTab === 'trace'" (click)="activeTab = 'trace'">Traceability</button>
+                <button class="tab-btn" [class.active]="activeTab === 'correction'" (click)="activeTab = 'correction'">Correction Run</button>
               </div>
 
               <!-- Fullscreen Button -->
@@ -386,10 +387,14 @@ import { ApiService } from '../../services/api.service';
                           </div>
                         </td>
                         <td style="padding: 10px; vertical-align: middle;">
-                          <span *ngIf="r.analysis?.status === 'PASS'" class="badge" style="background: #dcfce7; color: #16a34a; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">PASS</span>
-                          <span *ngIf="r.analysis?.status === 'FAIL'" class="badge" style="background: #fee2e2; color: #dc2626; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">FAIL</span>
-                          <span *ngIf="r.analysis?.status === 'REVIEW'" class="badge" style="background: #fef3c7; color: #d97706; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">REVIEW</span>
-                          <span *ngIf="!r.analysis?.status" class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">UNTESTED</span>
+                          <ng-container *ngIf="getLatestStatus(r) as status; else untestedStatus">
+                            <span *ngIf="status === 'PASS'" class="badge" style="background: #dcfce7; color: #16a34a; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">PASS</span>
+                            <span *ngIf="status === 'FAIL'" class="badge" style="background: #fee2e2; color: #dc2626; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">FAIL</span>
+                            <span *ngIf="status === 'REVIEW'" class="badge" style="background: #fef3c7; color: #d97706; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">REVIEW</span>
+                          </ng-container>
+                          <ng-template #untestedStatus>
+                            <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">UNTESTED</span>
+                          </ng-template>
                         </td>
                         <td style="padding: 10px; vertical-align: middle; color: var(--text-secondary); font-size: 0.75rem;">
                           System_Reqs_v1.2.docx
@@ -514,6 +519,55 @@ import { ApiService } from '../../services/api.service';
                        </div>
                      </div>
 
+                   </div>
+                 </div>
+               </div>
+
+               <!-- Correction Run Tab -->
+               <div *ngIf="activeTab === 'correction'" style="padding: 20px; background: #f8fafc; min-height: 100%;">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                   <h3 style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">Correction Run History</h3>
+                 </div>
+                 
+                 <div *ngIf="correctionHistory.length === 0" style="text-align: center; color: var(--text-secondary); padding: 32px; background: #fff; border: 1px dashed var(--border-color); border-radius: 8px;">
+                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
+                   <p style="margin: 0; font-size: 0.82rem;">No correction runs found for this project.</p>
+                 </div>
+                 
+                 <div *ngIf="correctionHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
+                   <div *ngFor="let run of correctionHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                     <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
+                       <div style="display: flex; gap: 12px; align-items: center;">
+                         <span class="badge" style="font-size: 0.58rem; background: #fef3c7; color: #d97706; padding: 3px 7px; border-radius: 12px; font-weight: 700;">{{ run.type | uppercase }} RUN</span>
+                         <div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Correction Analysis</div>
+                           <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
+                         </div>
+                       </div>
+                       <div style="display: flex; gap: 16px; align-items: center;">
+                         <div style="text-align: right;">
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Corrected</div>
+                           <div style="font-weight: 700; color: var(--color-success); font-size: 0.9rem;">
+                             {{ run.total_count ? ((run.pass_count / run.total_count) * 100 | number:'1.0-0') : 0 }}%
+                           </div>
+                         </div>
+                         <div style="text-align: right;">
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Status</div>
+                           <span class="badge" [ngStyle]="{'background': run.status === 'completed' ? '#dcfce7' : '#fee2e2', 'color': run.status === 'completed' ? '#166534' : '#991b1b', 'font-size': '0.65rem', 'border-radius': '4px', 'padding': '2px 6px'}">
+                             {{ run.status | uppercase }}
+                           </span>
+                         </div>
+                         <button class="btn btn-primary btn-sm" (click)="$event.stopPropagation(); viewRun.emit(run.run_id)" title="View in details" style="padding: 4px 10px; font-size: 0.7rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
+                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                             <polyline points="15 3 21 3 21 9"></polyline>
+                             <line x1="10" y1="14" x2="21" y2="3"></line>
+                           </svg>
+                           View Details
+                         </button>
+                         <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                       </div>
+                     </div>
                    </div>
                  </div>
                </div>
@@ -960,7 +1014,19 @@ export class ProjectsComponent implements OnInit {
 
   projects: any[] = [];
   selectedProject: any = null;
-  
+  projectHistory: any[] = [];
+  correctionHistory: any[] = [];
+
+  getLatestStatus(r: any): string | null {
+    if (r.correction && r.correction.status) {
+      return r.correction.status;
+    }
+    if (r.analysis && r.analysis.status) {
+      return r.analysis.status;
+    }
+    return null;
+  }
+
   reqs = {
     sys1: [] as any[],
     sys2: [] as any[],
@@ -968,19 +1034,18 @@ export class ProjectsComponent implements OnInit {
     swe1: [] as any[],
     swe2: [] as any[]
   };
-  projectHistory: any[] = [];
   expandedResults: { [runId: string]: any[] } = {};
   currentPage: { [runId: string]: number } = {};
   showTraceModal = false;
   traceModalData: any = null;
   isLoadingReqs = false;
-  private _activeTab: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' = 'overview';
+  private _activeTab: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' | 'correction' = 'overview';
   
   get activeTab() {
     return this._activeTab;
   }
   
-  set activeTab(val: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace') {
+  set activeTab(val: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' | 'correction') {
     if (this._activeTab !== val) {
       this._activeTab = val;
       this.selectedReqs.clear();
@@ -1128,6 +1193,7 @@ export class ProjectsComponent implements OnInit {
     this.selectedReqs.clear();
     this.reqs = { sys1: [], sys2: [], sys3: [], swe1: [], swe2: [] };
     this.projectHistory = [];
+    this.correctionHistory = [];
     this.cdr.detectChanges();
     
     this.apiService.getProjectRequirements(project.id).subscribe({
@@ -1167,6 +1233,7 @@ export class ProjectsComponent implements OnInit {
       next: (res) => {
         if (this.selectedProject) {
           this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase().includes('traceability'));
+          this.correctionHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase().includes('correction'));
         }
         this.cdr.detectChanges();
       },

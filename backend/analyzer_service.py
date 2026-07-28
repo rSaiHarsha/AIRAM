@@ -104,7 +104,8 @@ async def run_requirements_analysis_job(
     correct_quality: bool = False,
     correct_trace: bool = False,
     custom_context: str = None,
-    custom_context_correction: str = None
+    custom_context_correction: str = None,
+    selected_levels: str = None
 ):
     """Executes the analysis process row-by-row supporting Pause, Resume, Stop operations."""
     print(f"[TRACE] Job {run_id} starting. type={run_type}", flush=True)
@@ -150,6 +151,12 @@ async def run_requirements_analysis_job(
         
         print(f"[TRACE] Loaded SYS1: {len(sys1_reqs)}, SYS2: {len(sys2_reqs)}, SYS3: {len(sys3_reqs)}, SWE1: {len(swe1_reqs)}, SWE2: {len(swe2_reqs)}", flush=True)
         
+        # Parse selected_levels filter (comma-separated string)
+        levels_filter = None
+        if selected_levels and selected_levels.strip():
+            levels_filter = [l.strip().lower() for l in selected_levels.split(',') if l.strip()]
+            print(f"[TRACE] Selected levels filter: {levels_filter}", flush=True)
+        
         # Determine what we are analyzing
         analysis_items = []
         mode = "quality"
@@ -161,6 +168,12 @@ async def run_requirements_analysis_job(
                 ("sys3", sys3_reqs, "swe1", swe1_reqs),
                 ("swe1", swe1_reqs, "swe2", swe2_reqs),
             ]
+            # Filter pairs by selected_levels if provided
+            if levels_filter:
+                pairs_to_trace = [
+                    (pl, pr, cl, cr) for pl, pr, cl, cr in pairs_to_trace
+                    if f"{pl}_to_{cl}" in levels_filter
+                ]
             for parent_level, parent_reqs, child_level, child_reqs in pairs_to_trace:
                 if parent_reqs and child_reqs:
                     for p in parent_reqs:
@@ -178,8 +191,17 @@ async def run_requirements_analysis_job(
                     analysis_items.append(dummy)
             mode = "traceability"
         else:
-            # For quality or combined analysis, process all requirements across all levels
-            analysis_items = sys1_reqs + sys2_reqs + sys3_reqs + swe1_reqs + swe2_reqs
+            # For quality or combined analysis, process requirements across selected levels
+            all_level_reqs = {
+                'sys1': sys1_reqs, 'sys2': sys2_reqs, 'sys3': sys3_reqs,
+                'swe1': swe1_reqs, 'swe2': swe2_reqs
+            }
+            if levels_filter:
+                for level_name in levels_filter:
+                    if level_name in all_level_reqs:
+                        analysis_items.extend(all_level_reqs[level_name])
+            else:
+                analysis_items = sys1_reqs + sys2_reqs + sys3_reqs + swe1_reqs + swe2_reqs
             mode = "quality"
             
         total_rows = len(analysis_items)
