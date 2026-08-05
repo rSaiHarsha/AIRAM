@@ -18,6 +18,7 @@ export class ApiService {
   copilotAbortController: AbortController | null = null;
   copilotProjectId: string | null = null;
   copilotCurrentInput: string = '';
+  copilotActiveConversationId: string | null = null;
 
   constructor(private http: HttpClient, private zone: NgZone) {}
 
@@ -264,7 +265,35 @@ export class ApiService {
   }
 
   // Copilot Feature
-  sendCopilotMessage(projectId: string | null, userMessage: string, history: any[] = [], signal?: AbortSignal): Observable<any> {
+  createCopilotConversation(title: string = 'New Chat', projectId?: string | null): Observable<any> {
+    return this.http.post(`${this.baseUrl}/api/copilot/conversations`, { title, project_id: projectId });
+  }
+
+  getCopilotConversations(limit: number = 50, offset: number = 0): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/api/copilot/conversations`, {
+      params: { limit: limit.toString(), offset: offset.toString() }
+    });
+  }
+
+  getCopilotConversationMessages(convId: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/api/copilot/conversations/${convId}/messages`);
+  }
+
+  updateCopilotConversationTitle(convId: string, title: string): Observable<any> {
+    return this.http.put(`${this.baseUrl}/api/copilot/conversations/${convId}`, { title });
+  }
+
+  deleteCopilotConversation(convId: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/api/copilot/conversations/${convId}`);
+  }
+
+  sendCopilotMessage(
+    projectId: string | null, 
+    userMessage: string, 
+    history: any[] = [], 
+    signal?: AbortSignal,
+    conversationId?: string | null
+  ): Observable<any> {
     return new Observable(subscriber => {
       fetch(`${this.baseUrl}/api/copilot/chat`, {
         method: 'POST',
@@ -272,6 +301,7 @@ export class ApiService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          conversation_id: conversationId || null,
           project_id: projectId,
           user_message: userMessage,
           history: history

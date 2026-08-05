@@ -70,27 +70,10 @@ import { ApiService } from '../../services/api.service';
         </div>
       </div>
 
+      
       <div class="runs-history-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Execution Runs History</h2>
+        <h2 style="font-size: 1.5rem; font-weight: 600; color: var(--text-primary); margin: 0;">Projects ({{ filteredProjects.length }})</h2>
         <div style="display: flex; gap: 12px; align-items: center; position: relative;">
-
-          <!-- History now loads all batches automatically in the background; this is just a passive indicator, not a button -->
-          <div *ngIf="isLoadingMoreHistory" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-secondary);">
-            <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin: 0;"></span>
-            Loading more runs...
-          </div>
-
-          <!-- Prev / Next quick-page control, shown next to the heading -->
-          <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary);">
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 10px;" title="Previous page">
-              ‹ Prev
-            </button>
-            <span style="font-weight: 500; color: var(--text-primary);">{{ historyPage }} / {{ getHistoryTotalPages() }}</span>
-            <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages() && !hasMoreHistory" (click)="nextHistoryPage()" style="padding: 4px 10px;" title="Next page">
-              Next ›
-            </button>
-          </div>
-
           <!-- Filter Button & Dropdown Container -->
           <div style="position: relative;" #filterContainer>
             <button class="btn btn-secondary" (click)="toggleFilterPanel($event)" [class.active]="showFilterPanel" style="position: relative; display: inline-flex; align-items: center; gap: 6px;">
@@ -106,277 +89,217 @@ import { ApiService } from '../../services/api.service';
             
             <!-- Filter Dropdown -->
             <div *ngIf="showFilterPanel" class="filter-dropdown" style="position: absolute; top: calc(100% + 8px); right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; display: flex; flex-direction: column; gap: 12px;">
-              <!-- 1. Search Project (TOP Option) -->
               <div>
                 <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Search Project</label>
                 <div style="position: relative; margin-bottom: 6px;">
                   <input type="text" [(ngModel)]="projectSearchTerm" placeholder="🔍 Search projects..." style="width: 100%; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.8rem; background-color: #fff;" />
                 </div>
-                <select [(ngModel)]="filterProject" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Projects</option>
-                  <option *ngFor="let p of filteredProjects" [value]="p.name">{{ p.name }}</option>
-                </select>
-              </div>
-              <!-- 2. Status -->
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Status</label>
-                <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Statuses</option>
-                  <option value="completed">Completed</option>
-                  <option value="running">Running / Paused</option>
-                  <option value="stopped">Stopped / Failed</option>
-                </select>
-              </div>
-              <!-- 3. Run Type -->
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Run Type</label>
-                <select [(ngModel)]="filterType" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Types</option>
-                  <option value="quality_analysis">Quality Analysis</option>
-                  <option value="quality_correction">Quality Correction</option>
-                  <option value="traceability_analysis">Traceability Analysis</option>
-                  <option value="traceability_correction">Traceability Correction</option>
-                </select>
-              </div>
-              <!-- 4. Date Filter -->
-              <div>
-                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Date Filter</label>
-                <select [(ngModel)]="filterDate" (ngModelChange)="onFilterChange()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.85rem; background-color: #f8fafc;">
-                  <option value="all">All Time</option>
-                  <option value="today">Today</option>
-                  <option value="week">Last 7 Days</option>
-                  <option value="month">Last 30 Days</option>
-                </select>
               </div>
             </div>
           </div>
-
-          <button class="btn btn-primary" (click)="newExecution.emit()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            New Execution
-          </button>
         </div>
       </div>
       
-      <div *ngIf="isLoadingHistory" class="loading-state" style="padding: 32px; text-align: center; color: var(--text-secondary);">
-        <div class="spinner"></div>
-        <div style="font-size: 0.9rem; font-weight: 500;">Loading data please wait...</div>
+      <div *ngIf="filteredProjects.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
+        No projects found matching the filters.
       </div>
 
-      <div *ngIf="!isLoadingHistory && filteredHistory.length === 0" class="no-runs" style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px 0;">
-        No execution runs found matching the filters.
-      </div>
-
-      <div *ngIf="!isLoadingHistory && filteredHistory.length > 0" class="minimized-shelf">
-        <div *ngFor="let run of pagedHistory" class="history-card" [class.minimized]="run.minimized === 1">
-          <div class="history-header" (click)="toggleMinimize(run.run_id, run.minimized === 1)" style="cursor: pointer; user-select: none;">
+      <div *ngIf="filteredProjects.length > 0" class="minimized-shelf">
+        <div *ngFor="let p of filteredProjects" class="history-card" [class.minimized]="!expandedProjects[p.id]">
+          <div class="history-header" (click)="toggleProjectExpand(p.id)" style="cursor: pointer; user-select: none;">
             <div class="history-meta" style="display: flex; gap: 16px; align-items: center;">
-              <div style="display: flex; gap: 8px;">
-                <span class="badge" [ngStyle]="getRunTypeBadgeStyle(run.type)">{{ getRunTypeTag(run.type) }}</span>
-              </div>
               <div>
-                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ getRunHeaderTitle(run) }}</div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">{{ run.timestamp | date:'medium' }}</div>
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">{{ p.name }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; max-width: 400px;">{{ p.description || 'No description provided' }}</div>
               </div>
             </div>
             <div class="history-actions" style="display: flex; align-items: center; gap: 16px;">
-              <span class="badge" [class.badge-pass]="run.status === 'completed'" [class.badge-fail]="run.status === 'stopped'" [class.badge-running]="run.status === 'running' || run.status === 'paused'">
-                {{ run.status }}
-              </span>
+               <div style="font-size: 0.75rem; color: var(--text-secondary);">Updated: {{ p.created_at | date:'MMM d, yyyy' }}</div>
+               <svg [style.transform]="expandedProjects[p.id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
           </div>
           
           <!-- Expanded content -->
-          <div class="history-body" *ngIf="run.minimized !== 1">
-            <div style="display: flex; gap: 24px;">
-              
-              <!-- Left Column: Summary Metrics -->
-              <div class="summary-col" style="flex: 0 0 320px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                  <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">Summary Metrics</span>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <button class="btn btn-primary btn-sm" (click)="$event.stopPropagation(); viewRun.emit(run.run_id)" title="View in details" style="padding: 4px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                      </svg>
-                      View Details
-                    </button>
-                    <button *ngIf="expandedResults[run.run_id] && expandedResults[run.run_id].length > 0" (click)="exportRun(run.run_id)" style="background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; color: var(--color-primary); font-size: 0.78rem; font-weight: 500; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                      Export CSV
-                    </button>
-                  </div>
+          <div class="history-body" *ngIf="expandedProjects[p.id]" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+            
+            <!-- Metadata Bar (like projects.ts) -->
+            <div style="display: flex; gap: 32px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border-color);">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  Created
                 </div>
-                
-                <div *ngIf="run.project_name" style="margin-bottom: 8px; font-size: 0.8rem; color: var(--text-secondary); background: #f1f5f9; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color);">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                  <span><strong style="color: var(--text-primary);">Project:</strong> {{ run.project_name }}</span>
-                </div>
-
-                <div *ngIf="isQualityRun(run.type)" style="margin-bottom: 16px; font-size: 0.8rem; color: var(--text-secondary); background: #f1f5f9; padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color);">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                  <span><strong style="color: var(--text-primary);">Rules File:</strong> {{ run.guideline_name || 'None' }}</span>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                  <div style="flex: 1; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
-                    <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Pass</div>
-                    <div style="font-size: 1.8rem; font-weight: 700; color: var(--color-success);">{{ run.pass_count }}</div>
-                  </div>
-                  <div style="flex: 1; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
-                    <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase;">Review</div>
-                    <div style="font-size: 1.8rem; font-weight: 700; color: #d97706;">{{ run.review_count + run.fail_count }}</div>
-                  </div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Overall Progress</span>
-                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary);">{{ getPercentage(run.pass_count, run.total_count) | number:'1.0-0' }}% Success</span>
-                </div>
-                <div class="run-bar" style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; background-color: #e2e8f0; width: 100%;">
-                  <div class="bar-segment bar-pass" [style.width.%]="getPercentage(run.pass_count, run.total_count)" title="Pass" style="background-color: var(--color-success); height: 100%;"></div>
-                  <div class="bar-segment bar-review" [style.width.%]="getPercentage(run.review_count + run.fail_count, run.total_count)" title="Review" style="background-color: #d97706; height: 100%;"></div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  {{ p.created_at | date:'MMM d, yyyy' }}
                 </div>
               </div>
-
-              <!-- Right Column: Mini table -->
-              <div class="table-col" style="flex: 1; min-width: 0;" *ngIf="expandedResults[run.run_id]">
-                <div class="table-container" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-                  <!-- Quality Table -->
-                  <table *ngIf="!isTraceabilityRun(run.type)" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
-                    <thead>
-                      <tr style="background-color: #f8fafc;">
-                        <th style="padding: 12px 16px; width: 80px;">ID</th>
-                        <th style="padding: 12px 16px;">Requirement</th>
-                        <th style="padding: 12px 16px; width: 100px;">Status</th>
-                        <th style="padding: 12px 16px;">Rationale</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngIf="expandedResults[run.run_id].length === 0">
-                        <td colspan="4" style="padding: 24px; text-align: center; color: var(--text-secondary);">No requirement results found for this run.</td>
-                      </tr>
-                      <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 3:getCurrentPage(run.run_id) * 3" style="border-top: 1px solid var(--border-color);">
-                        <td style="padding: 16px; font-weight: 600; color: var(--color-primary); white-space: nowrap; vertical-align: top;">{{ row.req_id }}</td>
-                        <td style="padding: 16px; color: var(--text-primary); vertical-align: top;">{{ row.input_req }}</td>
-                        <td style="padding: 16px; vertical-align: top; font-weight: 700;" [ngStyle]="{'color': row.status === 'PASS' ? 'var(--color-success)' : (row.status === 'FAIL' || row.status === 'REVIEW' ? '#d97706' : 'var(--text-primary)')}">
-                          {{ row.status === 'FAIL' ? 'REVIEW' : row.status }}
-                        </td>
-                        <td style="padding: 16px; color: var(--text-secondary); vertical-align: top;">
-                          {{ row.rationale || 'N/A' }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <!-- Traceability Table -->
-                  <table *ngIf="isTraceabilityRun(run.type)" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
-                    <thead>
-                      <tr style="background-color: #f8fafc;">
-                        <th style="padding: 12px 16px; width: 40%;">Parent ID</th>
-                        <th style="padding: 12px 16px; width: 60%;">Child IDs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngIf="expandedResults[run.run_id].length === 0">
-                        <td colspan="2" style="padding: 24px; text-align: center; color: var(--text-secondary);">No requirement results found for this run.</td>
-                      </tr>
-                      <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 3:getCurrentPage(run.run_id) * 3" style="border-top: 1px solid var(--border-color);">
-                        <td style="padding: 16px; vertical-align: top;">
-                          <a href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: var(--color-primary); text-decoration: underline;">
-                            {{ row.swe1_id || '-' }}
-                          </a>
-                        </td>
-                        <td style="padding: 16px; vertical-align: top;">
-                          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <a *ngFor="let swe2 of row.parsed_swe2_list" href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: #0f766e; text-decoration: underline;">
-                              {{ swe2.id || '-' }}
-                            </a>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <!-- Pagination Footer -->
-                  <div class="pagination-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border-color); background: #f8fafc; font-size: 0.75rem; color: var(--text-secondary);">
-                    <div>
-                      Showing {{ (getCurrentPage(run.run_id) - 1) * 3 + 1 }}-{{ getMin((getCurrentPage(run.run_id) * 3), expandedResults[run.run_id].length) }} of {{ expandedResults[run.run_id].length }} items
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                      <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === 1" (click)="setPage(run.run_id, getCurrentPage(run.run_id) - 1)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                      </button>
-                      <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === getTotalPages(run.run_id)" (click)="setPage(run.run_id, getCurrentPage(run.run_id) + 1)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                      </button>
-                    </div>
-                  </div>
+              <div style="width: 1px; background-color: var(--border-color);"></div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  Documents
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  <ng-container *ngIf="projectReqs[p.id]">
+                     {{ (projectReqs[p.id].sys1?.length ? 1 : 0) + (projectReqs[p.id].sys2?.length ? 1 : 0) + (projectReqs[p.id].sys3?.length ? 1 : 0) + (projectReqs[p.id].swe1?.length ? 1 : 0) + (projectReqs[p.id].swe2?.length ? 1 : 0) }}
+                  </ng-container>
+                  <ng-container *ngIf="!projectReqs[p.id]">-</ng-container>
+                </div>
+              </div>
+              <div style="width: 1px; background-color: var(--border-color);"></div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.75rem;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                  Total Requirements
+                </div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">
+                  <ng-container *ngIf="projectReqs[p.id]">
+                    {{ (projectReqs[p.id].sys1?.length || 0) + (projectReqs[p.id].sys2?.length || 0) + (projectReqs[p.id].sys3?.length || 0) + (projectReqs[p.id].swe1?.length || 0) + (projectReqs[p.id].swe2?.length || 0) }}
+                  </ng-container>
+                  <ng-container *ngIf="!projectReqs[p.id]">-</ng-container>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- History Pagination (client-side, 8 per page, kept in sync with the header control) -->
-      <div *ngIf="!isLoadingHistory && filteredHistory.length > historyPageSize" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; margin-bottom: 24px;">
-        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === 1" (click)="prevHistoryPage()" style="padding: 4px 14px;">
-          ‹ Prev
-        </button>
-        <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">
-          Page {{ historyPage }} of {{ getHistoryTotalPages() }} <span style="color: var(--text-primary);">({{ filteredHistory.length }} matching runs)</span>
-        </span>
-        <button class="btn btn-secondary btn-sm" [disabled]="historyPage === getHistoryTotalPages()" (click)="nextHistoryPage()" style="padding: 4px 14px;">
-          Next ›
-        </button>
-      </div>
-      
-      <!-- Traceability Details Modal -->
-      <div class="modal-overlay" *ngIf="showTraceModal" (click)="closeTraceDetails()">
-        <div class="modal-content" style="max-width: 600px; padding: 24px;" (click)="$event.stopPropagation()">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Traceability Links</h3>
-            <button class="icon-btn-minimal" (click)="closeTraceDetails()">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-          
-          <div *ngIf="traceModalData" style="display: flex; flex-direction: column; gap: 20px; max-height: 60vh; overflow-y: auto;">
-            <div>
-              <div style="font-weight: 700; color: #0369a1; margin-bottom: 8px; font-size: 0.9rem;">Parent: {{ traceModalData.swe1_id || '-' }}</div>
-              
-              <div *ngIf="traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-primary);">
-                {{ traceModalData.swe1_text || '-' }}
-              </div>
-              <div *ngIf="!traceModalData.swe1_id" style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; color: #94a3b8; font-style: italic;">
-                No requirement found (Orphaned in Child)
-              </div>
+
+            <!-- Overview Section -->
+            <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">Overview</h3>
+            
+            <div *ngIf="isLoadingProjectReqs[p.id]" style="color: var(--text-secondary); padding: 20px; text-align: center;">
+              <div class="spinner" style="margin-bottom: 12px; width: 20px; height: 20px;"></div>
+              <div>Loading project requirements...</div>
             </div>
             
-            <div>
-              <div style="font-weight: 700; color: #0f766e; margin-bottom: 8px; font-size: 0.9rem;">Linked Child Requirements</div>
-              <div style="display: flex; flex-direction: column; gap: 12px;">
-                <ng-container *ngIf="traceModalData.req_id">
-                  <div *ngFor="let swe2 of traceModalData.parsed_swe2_list" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
-                    <div style="font-weight: 600; color: #0f766e; font-size: 0.8rem; margin-bottom: 4px;">{{ swe2.id || '-' }}</div>
-                    <div style="font-size: 0.85rem; color: var(--text-primary);">{{ swe2.text || '-' }}</div>
+            <div *ngIf="!isLoadingProjectReqs[p.id] && projectReqs[p.id]" style="display: flex; gap: 16px; flex-wrap: wrap;">
+              
+              <!-- SYS 1 Card -->
+              <div class="document-card" *ngIf="projectReqs[p.id].sys1 && projectReqs[p.id].sys1.length > 0" style="width: 240px; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #f0fdf4);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                  <div style="display: flex; gap: 9px; align-items: flex-start;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    <div>
+                      <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">SYS.1 Requirements</div>
+                      <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">Requirements Elicitation</div>
+                    </div>
                   </div>
-                </ng-container>
-                
-                <div *ngIf="!traceModalData.req_id" style="background: #f0fdfa; padding: 12px; border-radius: 6px; border: 1px solid #ccfbf1;">
-                  <span style="color: #94a3b8; font-style: italic; font-size: 0.85rem;">No requirement found (Orphaned in Parent)</span>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 14px;">
+                  <div>
+                    <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ projectReqs[p.id].sys1.length }}</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.68rem; color: var(--text-secondary);">System Level 1</span>
+                  <button class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); viewProjectDetails.emit({projectId: p.id, tab: 'sys1'})" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0; font-size: 0.75rem;">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+
+              <!-- SYS 2 Card -->
+              <div class="document-card" *ngIf="projectReqs[p.id].sys2 && projectReqs[p.id].sys2.length > 0" style="width: 240px; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #eff6ff);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                  <div style="display: flex; gap: 9px; align-items: flex-start;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                    <div>
+                      <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">SYS.2 Requirements</div>
+                      <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">System Req Analysis</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 14px;">
+                  <div>
+                    <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ projectReqs[p.id].sys2.length }}</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.68rem; color: var(--text-secondary);">System Level 2</span>
+                  <button class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); viewProjectDetails.emit({projectId: p.id, tab: 'sys2'})" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0; font-size: 0.75rem;">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+
+              <!-- SYS 3 Card -->
+              <div class="document-card" *ngIf="projectReqs[p.id].sys3 && projectReqs[p.id].sys3.length > 0" style="width: 240px; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #faf5ff);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                  <div style="display: flex; gap: 9px; align-items: flex-start;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                    <div>
+                      <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">SYS.3 Requirements</div>
+                      <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">System Arch Design</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 14px;">
+                  <div>
+                    <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ projectReqs[p.id].sys3.length }}</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.68rem; color: var(--text-secondary);">System Level 3</span>
+                  <button class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); viewProjectDetails.emit({projectId: p.id, tab: 'sys3'})" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0; font-size: 0.75rem;">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+
+              <!-- SWE 1 Card -->
+              <div class="document-card" *ngIf="projectReqs[p.id].swe1 && projectReqs[p.id].swe1.length > 0" style="width: 240px; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #fdf4ff);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                  <div style="display: flex; gap: 9px; align-items: flex-start;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c026d3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                    <div>
+                      <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">SWE.1 Requirements</div>
+                      <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">Software Req Analysis</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 14px;">
+                  <div>
+                    <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ projectReqs[p.id].swe1.length }}</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.68rem; color: var(--text-secondary);">Software Level 1</span>
+                  <button class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); viewProjectDetails.emit({projectId: p.id, tab: 'swe1'})" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0; font-size: 0.75rem;">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+
+              <!-- SWE 2 Card -->
+              <div class="document-card" *ngIf="projectReqs[p.id].swe2 && projectReqs[p.id].swe2.length > 0" style="width: 240px; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); background: linear-gradient(to bottom right, #ffffff, #fffbeb);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                  <div style="display: flex; gap: 9px; align-items: flex-start;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+                    <div>
+                      <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">SWE.2 Requirements</div>
+                      <div style="font-size: 0.68rem; color: var(--text-secondary); margin-top: 2px;">Software Arch Design</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 16px; margin-bottom: 14px;">
+                  <div>
+                    <div style="font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Reqs</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">{{ projectReqs[p.id].swe2.length }}</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.68rem; color: var(--text-secondary);">Software Level 2</span>
+                  <button class="btn btn-secondary btn-sm" (click)="$event.stopPropagation(); viewProjectDetails.emit({projectId: p.id, tab: 'swe2'})" style="border: none; background: none; color: var(--color-primary); font-weight: 600; padding: 0; font-size: 0.75rem;">
+                    View Details →
+                  </button>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
-    </div>
   `,
   styles: [`
     .metric-card {
@@ -549,6 +472,29 @@ import { ApiService } from '../../services/api.service';
   `]
 })
 export class DashboardComponent implements OnInit {
+  @Output() viewProjectDetails = new EventEmitter<{projectId: string, tab: string}>();
+  expandedProjects: { [projectId: string]: boolean } = {};
+  projectReqs: { [projectId: string]: any } = {};
+  isLoadingProjectReqs: { [projectId: string]: boolean } = {};
+
+  toggleProjectExpand(projectId: string) {
+    this.expandedProjects[projectId] = !this.expandedProjects[projectId];
+    if (this.expandedProjects[projectId] && !this.projectReqs[projectId]) {
+      this.isLoadingProjectReqs[projectId] = true;
+      this.apiService.getProjectRequirements(projectId).subscribe({
+        next: (res: any) => {
+          this.projectReqs[projectId] = res;
+          this.isLoadingProjectReqs[projectId] = false;
+          this.cdr.detectChanges();
+        },
+        error: (err: any) => {
+          this.isLoadingProjectReqs[projectId] = false;
+          this.cdr.detectChanges();
+        }
+      });
+    }
+  }
+
   @Output() viewRun = new EventEmitter<string>();
   @Output() newExecution = new EventEmitter<void>();
   

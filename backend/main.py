@@ -41,7 +41,14 @@ from backend.database import (
     get_project_requirements_from_db,
     delete_project,
     update_project,
-    trigger_render_sync
+    trigger_render_sync,
+    create_copilot_conversation,
+    get_copilot_conversations,
+    get_copilot_conversation,
+    get_copilot_messages,
+    save_copilot_message,
+    update_copilot_conversation_title,
+    delete_copilot_conversation
 )
 from pydantic import BaseModel
 from backend.rag_service import train_document_stream, search_guideline_chunks, delete_rag_collection
@@ -541,7 +548,46 @@ async def delete_run(run_id: str):
     delete_execution_run(run_id)
     return {"status": "success", "run_id": run_id}
 
+class CreateConversationModel(BaseModel):
+    title: str | None = "New Chat"
+    project_id: str | None = None
+
+class UpdateConversationModel(BaseModel):
+    title: str
+
+@app.post("/api/copilot/conversations")
+async def create_conversation_endpoint(payload: CreateConversationModel):
+    conv_id = str(uuid.uuid4())
+    conv = create_copilot_conversation(conv_id, payload.title or "New Chat", payload.project_id)
+    return conv
+
+@app.get("/api/copilot/conversations")
+async def list_conversations_endpoint(limit: int = 50, offset: int = 0):
+    return get_copilot_conversations(limit, offset)
+
+@app.get("/api/copilot/conversations/{conv_id}/messages")
+async def get_messages_endpoint(conv_id: str):
+    conv = get_copilot_conversation(conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    msgs = get_copilot_messages(conv_id)
+    return {"conversation": conv, "messages": msgs}
+
+@app.put("/api/copilot/conversations/{conv_id}")
+async def update_conversation_endpoint(conv_id: str, payload: UpdateConversationModel):
+    conv = get_copilot_conversation(conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    update_copilot_conversation_title(conv_id, payload.title.strip())
+    return {"status": "success", "id": conv_id, "title": payload.title.strip()}
+
+@app.delete("/api/copilot/conversations/{conv_id}")
+async def delete_conversation_endpoint(conv_id: str):
+    delete_copilot_conversation(conv_id)
+    return {"status": "success", "id": conv_id}
+
 class CopilotRequest(BaseModel):
+    conversation_id: str | None = None
     project_id: str | None = None
     user_message: str
     history: list = []
@@ -551,8 +597,36 @@ def copilot_chat(req: CopilotRequest):
     from Copilot.copilot_engine import run_copilot_turn_stream
     import json
     
+    conv_id = req.conversation_id
+    if conv_id:
+        conv = get_copilot_conversation(conv_id)
+        if not conv:
+            title = req.user_message[:45] + ("..." if len(req.user_message) > 45 else "")
+            create_copilot_conversation(conv_id, title=title, project_id=req.project_id)
+        else:
+            if conv.get("title") == "New Chat":
+                title = req.user_message[:45] + ("..." if len(req.user_message) > 45 else "")
+                update_copilot_conversation_title(conv_id, title)
+        save_copilot_message(conv_id, "user", req.user_message)
+    
     def sse_generator():
+        bot_saved = False
         for event in run_copilot_turn_stream(req.project_id, req.user_message, req.history):
+            if conv_id and not bot_saved:
+                if event.get("type") in ("final", "image", "error"):
+                    b_content = event.get("text", "")
+                    b_img_base64 = event.get("image_base64")
+                    b_img_format = event.get("image_format")
+                    b_plantuml = event.get("plantuml_code")
+                    save_copilot_message(
+                        conv_id, 
+                        "bot", 
+                        b_content, 
+                        image_base64=b_img_base64, 
+                        image_format=b_img_format, 
+                        plantuml_code=b_plantuml
+                    )
+                    bot_saved = True
             yield f"data: {json.dumps(event)}\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
@@ -561,3 +635,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+

@@ -155,7 +155,8 @@ import { ApiService } from '../../services/api.service';
                 <button class="tab-btn" [class.active]="activeTab === 'swe1'" (click)="activeTab = 'swe1'">SWE.1 Reqs ({{reqs.swe1?.length || 0}})</button>
                 <button class="tab-btn" [class.active]="activeTab === 'swe2'" (click)="activeTab = 'swe2'">SWE.2 Reqs ({{reqs.swe2?.length || 0}})</button>
                 <button class="tab-btn" [class.active]="activeTab === 'trace'" (click)="activeTab = 'trace'">Traceability</button>
-                <button class="tab-btn" [class.active]="activeTab === 'correction'" (click)="activeTab = 'correction'">Correction Run</button>
+                <button class="tab-btn" [class.active]="activeTab === 'quality'" (click)="activeTab = 'quality'">Quality Analysis</button>
+                <button class="tab-btn" [class.active]="activeTab === 'correction'" (click)="activeTab = 'correction'">Correction Analysis</button>
               </div>
 
               <!-- Fullscreen Button -->
@@ -425,24 +426,24 @@ import { ApiService } from '../../services/api.service';
                 </div>
               </div>
 
-              <!-- Traceability Tab -->
-              <div *ngIf="activeTab === 'trace'" style="padding: 20px; background: #f8fafc; min-height: 100%;">
+              <!-- Quality Analysis Tab -->
+              <div *ngIf="activeTab === 'quality'" style="padding: 20px; background: #f8fafc; min-height: 100%;">
                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                   <h3 style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">Traceability Run History</h3>
+                   <h3 style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">Quality Analysis History</h3>
                  </div>
                  
-                 <div *ngIf="projectHistory.length === 0" style="text-align: center; color: var(--text-secondary); padding: 32px; background: #fff; border: 1px dashed var(--border-color); border-radius: 8px;">
+                 <div *ngIf="qualityHistory.length === 0" style="text-align: center; color: var(--text-secondary); padding: 32px; background: #fff; border: 1px dashed var(--border-color); border-radius: 8px;">
                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
-                   <p style="margin: 0; font-size: 0.82rem;">No traceability runs found for this project. Start an analysis from the Requirements Analysis tab.</p>
+                   <p style="margin: 0; font-size: 0.82rem;">No quality analysis runs found for this project.</p>
                  </div>
                  
-                 <div *ngIf="projectHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
-                   <div *ngFor="let run of projectHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                 <div *ngIf="qualityHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
+                   <div *ngFor="let run of qualityHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                      <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
                        <div style="display: flex; gap: 12px; align-items: center;">
-                         <span class="badge" style="font-size: 0.58rem; background: #e0f2fe; color: #0284c7; padding: 3px 7px; border-radius: 12px; font-weight: 700;">{{ run.type | uppercase }} RUN</span>
+                         <span class="badge" style="font-size: 0.58rem; background: #fef3c7; color: #d97706; padding: 3px 7px; border-radius: 12px; font-weight: 700;">QUALITY RUN</span>
                          <div>
-                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Traceability Mapping Audit</div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Quality Analysis</div>
                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
                          </div>
                        </div>
@@ -470,83 +471,83 @@ import { ApiService } from '../../services/api.service';
                          <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                        </div>
                      </div>
-
-                     <!-- Expanded Table Content -->
-                     <div *ngIf="expandedResults[run.run_id]" style="border-top: 1px solid var(--border-color); background: #f8fafc; padding: 16px;">
-                       <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; background: #fff;">
-                         <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; background: #fff;">
-                           <thead>
-                             <tr style="background-color: #f8fafc;">
-                               <th style="padding: 12px 16px; width: 40%;">Parent ID</th>
-                               <th style="padding: 12px 16px; width: 60%;">Child IDs</th>
-                             </tr>
-                           </thead>
-                           <tbody>
-                             <tr *ngIf="expandedResults[run.run_id].length === 0">
-                               <td colspan="2" style="padding: 24px; text-align: center; color: var(--text-secondary);">No requirement results found for this run.</td>
-                             </tr>
-                             <tr *ngFor="let row of expandedResults[run.run_id] | slice:(getCurrentPage(run.run_id) - 1) * 5:getCurrentPage(run.run_id) * 5" style="border-top: 1px solid var(--border-color);">
-                               <td style="padding: 16px; vertical-align: top;">
-                                 <a href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: var(--color-primary); text-decoration: underline;">
-                                   {{ row.swe1_id || '-' }}
-                                 </a>
-                               </td>
-                               <td style="padding: 16px; vertical-align: top;">
-                                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                   <a *ngFor="let swe2 of row.parsed_swe2_list" href="javascript:void(0)" (click)="openTraceDetails(row)" style="font-weight: 600; color: #0f766e; text-decoration: underline;">
-                                     {{ swe2.id || '-' }}
-                                   </a>
-                                 </div>
-                               </td>
-                             </tr>
-                           </tbody>
-                         </table>
-
-                         <!-- Pagination Footer -->
-                         <div class="pagination-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border-color); background: #f8fafc; font-size: 0.75rem; color: var(--text-secondary);">
-                           <div>
-                             Showing {{ (getCurrentPage(run.run_id) - 1) * 5 + 1 }}-{{ getMin((getCurrentPage(run.run_id) * 5), expandedResults[run.run_id].length) }} of {{ expandedResults[run.run_id].length }} items
-                           </div>
-                           <div style="display: flex; gap: 8px;">
-                             <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === 1" (click)="setPage(run.run_id, getCurrentPage(run.run_id) - 1)">
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                             </button>
-                             <button class="icon-btn-minimal" [disabled]="getCurrentPage(run.run_id) === getTotalPages(run.run_id)" (click)="setPage(run.run_id, getCurrentPage(run.run_id) + 1)">
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                             </button>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-
                    </div>
                  </div>
                </div>
 
-               <!-- Correction Run Tab -->
-               <div *ngIf="activeTab === 'correction'" style="padding: 20px; background: #f8fafc; min-height: 100%;">
+              <!-- Traceability Tab -->
+              <div *ngIf="activeTab === 'trace'" style="padding: 20px; background: #f8fafc; min-height: 100%;">
                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                   <h3 style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">Correction Run History</h3>
+                   <h3 style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">Traceability History</h3>
+                 </div>
+                 
+                 <div *ngIf="projectHistory.length === 0" style="text-align: center; color: var(--text-secondary); padding: 32px; background: #fff; border: 1px dashed var(--border-color); border-radius: 8px;">
+                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
+                   <p style="margin: 0; font-size: 0.82rem;">No traceability runs found for this project.</p>
+                 </div>
+                 
+                 <div *ngIf="projectHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
+                   <div *ngFor="let run of projectHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                     <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
+                       <div style="display: flex; gap: 12px; align-items: center;">
+                         <span class="badge" style="font-size: 0.58rem; background: #dbeafe; color: #1e40af; padding: 3px 7px; border-radius: 12px; font-weight: 700;">TRACEABILITY RUN</span>
+                         <div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Traceability Analysis</div>
+                           <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
+                         </div>
+                       </div>
+                       <div style="display: flex; gap: 16px; align-items: center;">
+                         <div style="text-align: right;">
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Pass Rate</div>
+                           <div style="font-weight: 700; color: var(--color-success); font-size: 0.9rem;">
+                             {{ run.total_count ? ((run.pass_count / run.total_count) * 100 | number:'1.0-0') : 0 }}%
+                           </div>
+                         </div>
+                         <div style="text-align: right;">
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Status</div>
+                           <span class="badge" [ngStyle]="{'background': run.status === 'completed' ? '#dcfce7' : '#fee2e2', 'color': run.status === 'completed' ? '#166534' : '#991b1b', 'font-size': '0.65rem', 'border-radius': '4px', 'padding': '2px 6px'}">
+                             {{ run.status | uppercase }}
+                           </span>
+                         </div>
+                         <button class="btn btn-primary btn-sm" (click)="$event.stopPropagation(); viewRun.emit(run.run_id)" title="View in details" style="padding: 4px 10px; font-size: 0.7rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.06);">
+                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                             <polyline points="15 3 21 3 21 9"></polyline>
+                             <line x1="10" y1="14" x2="21" y2="3"></line>
+                           </svg>
+                           View Details
+                         </button>
+                         <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+              <!-- Correction Analysis Tab -->
+              <div *ngIf="activeTab === 'correction'" style="padding: 20px; background: #f8fafc; min-height: 100%;">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                   <h3 style="margin: 0; color: var(--text-primary); font-size: 0.95rem; font-weight: 600;">Correction Analysis History</h3>
                  </div>
                  
                  <div *ngIf="correctionHistory.length === 0" style="text-align: center; color: var(--text-secondary); padding: 32px; background: #fff; border: 1px dashed var(--border-color); border-radius: 8px;">
                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg>
-                   <p style="margin: 0; font-size: 0.82rem;">No correction runs found for this project.</p>
+                   <p style="margin: 0; font-size: 0.82rem;">No correction analysis runs found for this project.</p>
                  </div>
                  
                  <div *ngIf="correctionHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
                    <div *ngFor="let run of correctionHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                      <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
                        <div style="display: flex; gap: 12px; align-items: center;">
-                         <span class="badge" style="font-size: 0.58rem; background: #fef3c7; color: #d97706; padding: 3px 7px; border-radius: 12px; font-weight: 700;">{{ run.type | uppercase }} RUN</span>
+                         <span class="badge" style="font-size: 0.58rem; background: #f3e8ff; color: #6b21a8; padding: 3px 7px; border-radius: 12px; font-weight: 700;">CORRECTION RUN</span>
                          <div>
-                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Correction Analysis</div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">{{ run.type === 'traceability_correction' ? 'Traceability Correction' : 'Quality Correction' }}</div>
                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
                          </div>
                        </div>
                        <div style="display: flex; gap: 16px; align-items: center;">
                          <div style="text-align: right;">
-                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Corrected</div>
+                           <div style="font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">Pass Rate</div>
                            <div style="font-weight: 700; color: var(--color-success); font-size: 0.9rem;">
                              {{ run.total_count ? ((run.pass_count / run.total_count) * 100 | number:'1.0-0') : 0 }}%
                            </div>
@@ -1015,6 +1016,7 @@ export class ProjectsComponent implements OnInit {
   projects: any[] = [];
   selectedProject: any = null;
   projectHistory: any[] = [];
+  qualityHistory: any[] = [];
   correctionHistory: any[] = [];
 
   getLatestStatus(r: any): string | null {
@@ -1039,13 +1041,13 @@ export class ProjectsComponent implements OnInit {
   showTraceModal = false;
   traceModalData: any = null;
   isLoadingReqs = false;
-  private _activeTab: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' | 'correction' = 'overview';
+  private _activeTab: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' | 'correction' | 'quality' = 'overview';
   
   get activeTab() {
     return this._activeTab;
   }
   
-  set activeTab(val: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' | 'correction') {
+  set activeTab(val: 'overview' | 'sys1' | 'sys2' | 'sys3' | 'swe1' | 'swe2' | 'trace' | 'correction' | 'quality') {
     if (this._activeTab !== val) {
       this._activeTab = val;
       this.selectedReqs.clear();
@@ -1158,6 +1160,18 @@ export class ProjectsComponent implements OnInit {
     this.loadProjects();
   }
 
+  openProjectTab(projectId: string, tab: any) {
+    if (!this.projects) return;
+    const project = this.projects.find(p => p.id === projectId);
+    if (project) {
+      this.selectProject(project);
+      setTimeout(() => {
+        this.activeTab = tab;
+        this.cdr.detectChanges();
+      }, 100);
+    }
+  }
+
   loadProjects() {
     this.apiService.getProjects().subscribe({
       next: (res) => {
@@ -1193,6 +1207,7 @@ export class ProjectsComponent implements OnInit {
     this.selectedReqs.clear();
     this.reqs = { sys1: [], sys2: [], sys3: [], swe1: [], swe2: [] };
     this.projectHistory = [];
+    this.qualityHistory = [];
     this.correctionHistory = [];
     this.cdr.detectChanges();
     
@@ -1232,7 +1247,8 @@ export class ProjectsComponent implements OnInit {
     this.apiService.getHistory(100, 0).subscribe({
       next: (res) => {
         if (this.selectedProject) {
-          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase().includes('traceability'));
+          this.qualityHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && (r.type.toLowerCase() === 'quality_analysis' || r.type.toLowerCase() === 'quality'));
+          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && (r.type.toLowerCase() === 'traceability_analysis' || r.type.toLowerCase() === 'traceability'));
           this.correctionHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase().includes('correction'));
         }
         this.cdr.detectChanges();

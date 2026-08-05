@@ -252,8 +252,34 @@ def init_db():
         )
     """)
     
+    # Copilot Conversations Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS copilot_conversations (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            project_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Copilot Messages Table
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS copilot_messages (
+            id {auto_inc},
+            conversation_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            image_base64 TEXT,
+            image_format TEXT,
+            plantuml_code TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (conversation_id) REFERENCES copilot_conversations(id) ON DELETE CASCADE
+        )
+    """)
+
     if IS_POSTGRES:
-        for tbl in ["execution_results", "project_requirements", "chunks"]:
+        for tbl in ["execution_results", "project_requirements", "chunks", "copilot_messages"]:
             try:
                 cursor.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 1))")
             except Exception:
@@ -795,4 +821,123 @@ def trigger_render_sync():
         threading.Thread(target=sync_sqlite_to_postgres, daemon=True).start()
     except Exception:
         pass
+
+
+# Copilot History Helpers
+def create_copilot_conversation(conv_id: str, title: str = "New Chat", project_id: str = None) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    if IS_POSTGRES:
+        cursor.execute(
+            "INSERT INTO copilot_conversations (id, title, project_id) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, project_id = EXCLUDED.project_id",
+            (conv_id, title, project_id)
+        )
+    else:
+        cursor.execute(
+            "INSERT OR REPLACE INTO copilot_conversations (id, title, project_id) VALUES (?, ?, ?)",
+            (conv_id, title, project_id)
+        )
+    conn.commit()
+    conn.close()
+    return {"id": conv_id, "title": title, "project_id": project_id}
+
+def get_copilot_conversations(limit: int = 50, offset: int = 0) -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"""
+        SELECT id, title, project_id, created_at, updated_at 
+        FROM copilot_conversations 
+        ORDER BY updated_at DESC, created_at DESC 
+        LIMIT {limit} OFFSET {offset}
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        d = dict(r)
+        if d.get("created_at"):
+            d["created_at"] = format_iso_timestamp(d["created_at"])
+        if d.get("updated_at"):
+            d["updated_at"] = format_iso_timestamp(d["updated_at"])
+        results.append(d)
+    return results
+
+def get_copilot_conversation(conv_id: str) -> dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM copilot_conversations WHERE id = ?", (conv_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        d = dict(row)
+        if d.get("created_at"):
+            d["created_at"] = format_iso_timestamp(d["created_at"])
+        if d.get("updated_at"):
+            d["updated_at"] = format_iso_timestamp(d["updated_at"])
+        return d
+    return None
+
+def get_copilot_messages(conv_id: str) -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM copilot_messages WHERE conversation_id = ? ORDER BY id ASC", (conv_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        d = dict(r)
+        if d.get("created_at"):
+            d["created_at"] = format_iso_timestamp(d["created_at"])
+        results.append(d)
+    return results
+
+def save_copilot_message(conv_id: str, role: str, content: str, image_base64: str = None, image_format: str = None, plantuml_code: str = None) -> int:
+    conn = get_connection()
+    cursor = conn.cursor()
+    if IS_POSTGRES:
+        try:
+            cursor.execute(
+                "INSERT INTO copilot_messages (conversation_id, role, content, image_base64, image_format, plantuml_code) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+                (conv_id, role, content, image_base64, image_format, plantuml_code)
+            )
+            last_id = cursor.fetchone()["id"]
+        except Exception:
+            conn.rollback()
+            cursor.execute("SELECT setval(pg_get_serial_sequence('copilot_messages', 'id'), COALESCE((SELECT MAX(id) FROM copilot_messages), 1))")
+            cursor.execute(
+                "INSERT INTO copilot_messages (conversation_id, role, content, image_base64, image_format, plantuml_code) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+                (conv_id, role, content, image_base64, image_format, plantuml_code)
+            )
+            last_id = cursor.fetchone()["id"]
+    else:
+        cursor.execute(
+            "INSERT INTO copilot_messages (conversation_id, role, content, image_base64, image_format, plantuml_code) VALUES (?, ?, ?, ?, ?, ?)",
+            (conv_id, role, content, image_base64, image_format, plantuml_code)
+        )
+        last_id = cursor.lastrowid
+    
+    # Touch updated_at on conversation
+    cursor.execute("UPDATE copilot_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", (conv_id,))
+    
+    conn.commit()
+    conn.close()
+    return last_id
+
+def update_copilot_conversation_title(conv_id: str, title: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE copilot_conversations SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (title, conv_id))
+    conn.commit()
+    conn.close()
+
+def delete_copilot_conversation(conv_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM copilot_messages WHERE conversation_id = ?", (conv_id,))
+    cursor.execute("DELETE FROM copilot_conversations WHERE id = ?", (conv_id,))
+    conn.commit()
+    conn.close()
+
 
