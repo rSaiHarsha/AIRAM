@@ -392,6 +392,7 @@ import { ApiService } from '../../services/api.service';
                             <span *ngIf="status === 'PASS'" class="badge" style="background: #dcfce7; color: #16a34a; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">PASS</span>
                             <span *ngIf="status === 'FAIL'" class="badge" style="background: #fee2e2; color: #dc2626; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">FAIL</span>
                             <span *ngIf="status === 'REVIEW'" class="badge" style="background: #fef3c7; color: #d97706; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">REVIEW</span>
+                            <span *ngIf="status === 'UNTESTED'" class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">UNTESTED</span>
                           </ng-container>
                           <ng-template #untestedStatus>
                             <span class="badge" style="background: #f1f5f9; color: #64748b; font-size: 0.6rem; padding: 3px 8px; font-weight: 700; border-radius: 12px;">UNTESTED</span>

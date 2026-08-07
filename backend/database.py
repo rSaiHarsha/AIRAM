@@ -699,6 +699,10 @@ def update_project_requirement(project_id: str, req_type: str, req_id: str, new_
     content_obj = json.loads(row["content"])
     content_obj["text"] = new_text
     content_obj["status"] = "UNTESTED"
+    if "analysis" in content_obj and isinstance(content_obj["analysis"], dict):
+        content_obj["analysis"]["status"] = "UNTESTED"
+    if "correction" in content_obj and isinstance(content_obj["correction"], dict):
+        content_obj["correction"]["status"] = "UNTESTED"
     
     cursor.execute(
         "UPDATE project_requirements SET content = ? WHERE id = ?",
