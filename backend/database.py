@@ -698,10 +698,15 @@ def update_project_requirement(project_id: str, req_type: str, req_id: str, new_
         
     content_obj = json.loads(row["content"])
     content_obj["text"] = new_text
+    content_obj["status"] = "UNTESTED"
     
     cursor.execute(
         "UPDATE project_requirements SET content = ? WHERE id = ?",
         (json.dumps(content_obj), row["id"])
+    )
+    cursor.execute(
+        "UPDATE execution_results SET status = 'UNTESTED' WHERE req_id = ?",
+        (req_id,)
     )
     conn.commit()
     conn.close()

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
@@ -439,7 +439,7 @@ import { ApiService } from '../../services/api.service';
                  
                  <div *ngIf="qualityHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
                    <div *ngFor="let run of qualityHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                     <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
+                     <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
                        <div style="display: flex; gap: 12px; align-items: center;">
                          <span class="badge" style="font-size: 0.58rem; background: #fef3c7; color: #d97706; padding: 3px 7px; border-radius: 12px; font-weight: 700;">QUALITY RUN</span>
                          <div>
@@ -468,7 +468,7 @@ import { ApiService } from '../../services/api.service';
                            </svg>
                            View Details
                          </button>
-                         <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
                        </div>
                      </div>
                    </div>
@@ -488,11 +488,11 @@ import { ApiService } from '../../services/api.service';
                  
                  <div *ngIf="projectHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
                    <div *ngFor="let run of projectHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                     <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
+                     <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
                        <div style="display: flex; gap: 12px; align-items: center;">
-                         <span class="badge" style="font-size: 0.58rem; background: #dbeafe; color: #1e40af; padding: 3px 7px; border-radius: 12px; font-weight: 700;">TRACEABILITY RUN</span>
+                         <span class="badge" style="font-size: 0.58rem; background: #dbeafe; color: #1e40af; padding: 3px 7px; border-radius: 12px; font-weight: 700;">{{ run.type === 'traceability_correction' ? 'TRACEABILITY CORRECTION' : 'TRACEABILITY RUN' }}</span>
                          <div>
-                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Traceability Analysis</div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">{{ run.type === 'traceability_correction' ? 'Traceability Correction' : 'Traceability Analysis' }}</div>
                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
                          </div>
                        </div>
@@ -517,7 +517,7 @@ import { ApiService } from '../../services/api.service';
                            </svg>
                            View Details
                          </button>
-                         <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
                        </div>
                      </div>
                    </div>
@@ -537,11 +537,11 @@ import { ApiService } from '../../services/api.service';
                  
                  <div *ngIf="correctionHistory.length > 0" style="display: flex; flex-direction: column; gap: 12px;">
                    <div *ngFor="let run of correctionHistory" style="background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                     <div (click)="toggleExpandRun(run.run_id)" style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; background: #fff;">
+                     <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #fff;">
                        <div style="display: flex; gap: 12px; align-items: center;">
                          <span class="badge" style="font-size: 0.58rem; background: #f3e8ff; color: #6b21a8; padding: 3px 7px; border-radius: 12px; font-weight: 700;">CORRECTION RUN</span>
                          <div>
-                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">{{ run.type === 'traceability_correction' ? 'Traceability Correction' : 'Quality Correction' }}</div>
+                           <div style="font-weight: 600; color: var(--text-primary); font-size: 0.82rem;">Quality Correction</div>
                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px;">{{ run.timestamp | date:'medium' }}</div>
                          </div>
                        </div>
@@ -566,7 +566,7 @@ import { ApiService } from '../../services/api.service';
                            </svg>
                            View Details
                          </button>
-                         <svg [style.transform]="expandedResults[run.run_id] ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.2s; color: var(--text-secondary);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
                        </div>
                      </div>
                    </div>
@@ -974,7 +974,8 @@ import { ApiService } from '../../services/api.service';
     }
   `]
 })
-export class ProjectsComponent implements OnInit {
+export class ProjectsComponent implements OnInit, OnDestroy {
+  private pollInterval: any;
   @Output() viewRun = new EventEmitter<string>();
   
   isFullscreen = false;
@@ -1158,17 +1159,40 @@ export class ProjectsComponent implements OnInit {
 
   ngOnInit() {
     this.loadProjects();
+    this.pollInterval = setInterval(() => {
+      if (this.selectedProject) {
+        this.loadProjectHistory();
+      }
+    }, 5000);
+  }
+
+  ngOnDestroy() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+    }
   }
 
   openProjectTab(projectId: string, tab: any) {
-    if (!this.projects) return;
-    const project = this.projects.find(p => p.id === projectId);
-    if (project) {
-      this.selectProject(project);
-      setTimeout(() => {
-        this.activeTab = tab;
-        this.cdr.detectChanges();
-      }, 100);
+    const doSelect = () => {
+      const project = this.projects.find(p => p.id === projectId);
+      if (project) {
+        this.selectProject(project);
+        setTimeout(() => {
+          this.activeTab = tab;
+          this.cdr.detectChanges();
+        }, 100);
+      }
+    };
+
+    if (!this.projects || this.projects.length === 0) {
+      this.apiService.getProjects().subscribe({
+        next: (res) => {
+          this.projects = res;
+          doSelect();
+        }
+      });
+    } else {
+      doSelect();
     }
   }
 
@@ -1248,8 +1272,8 @@ export class ProjectsComponent implements OnInit {
       next: (res) => {
         if (this.selectedProject) {
           this.qualityHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && (r.type.toLowerCase() === 'quality_analysis' || r.type.toLowerCase() === 'quality'));
-          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && (r.type.toLowerCase() === 'traceability_analysis' || r.type.toLowerCase() === 'traceability'));
-          this.correctionHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase().includes('correction'));
+          this.projectHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && (r.type.toLowerCase() === 'traceability_analysis' || r.type.toLowerCase() === 'traceability' || r.type.toLowerCase() === 'traceability_correction'));
+          this.correctionHistory = res.filter((r: any) => r.project_name === this.selectedProject.name && r.type && r.type.toLowerCase() === 'quality_correction');
         }
         this.cdr.detectChanges();
       },
@@ -1435,6 +1459,13 @@ export class ProjectsComponent implements OnInit {
       next: () => {
         this.isSavingReqEdit = false;
         req.text = this.tempReqText.trim();
+        if (req.analysis) {
+          req.analysis.status = 'UNTESTED';
+        }
+        if (req.correction) {
+          req.correction.status = 'UNTESTED';
+        }
+        req.status = 'UNTESTED';
         this.editingReqId = null;
         this.cdr.detectChanges();
       },

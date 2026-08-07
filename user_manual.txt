@@ -1,0 +1,107 @@
+AIRAM - AI-Assisted Requirements Analysis and Management
+USER MANUAL
+
+Welcome to the AIRAM (AI-Assisted Requirements Analysis and Management) application. AIRAM provides an intuitive workspace for managing, analyzing, and tracing software and system requirements through AI-assisted tools. 
+
+This user manual will guide you through the features available within the platform, organized by the main navigation tabs: Dashboard, Projects, Requirement Analysis, RAG Configuration, and AIRAM Copilot.
+
+-----------------------------------------------------------
+1. Dashboard
+-----------------------------------------------------------
+The Dashboard serves as the central hub of your workspace, providing a high-level overview of your metrics and quick access to your projects.
+
+Metrics Overview:
+- Requirements Pass Rate: The average percentage of requirements that have successfully passed the quality analysis checks across all your historical runs.
+- Total Executions: The total number of analysis runs (quality, traceability, etc.) performed in your workspace.
+- Total Projects: The number of active projects currently managed in your workspace.
+- Active RAG Chunks: The total number of vectorized text chunks available in the knowledge engine for semantic searches and context generation.
+
+Managing Projects from the Dashboard:
+- Filter Panel: Click the "Filter" button to sort and find specific projects based on name or search keywords. You can easily reset filters by clicking the clear "X" icon.
+- Project Cards: Your projects are listed below the metrics. You can expand any project card (using the dropdown arrow) to view its details.
+- When a project card is expanded, you can see a summary of the project's requirement documents (SYS.1, SYS.2, SYS.3, SWE.1, SWE.2). 
+- View Details: Click "View Details" on any requirement card to navigate directly to that specific section in the Projects tab.
+
+-----------------------------------------------------------
+2. Projects
+-----------------------------------------------------------
+The Projects tab is where you manage individual projects, upload documents, and view detailed analysis results and traceability matrices.
+
+Left Sidebar (Project Management):
+- Create New Project: Click the "+" icon at the top of the sidebar to create a new project and upload requirement documents.
+- Search Projects: Use the search bar to find existing projects quickly.
+- Select a Project: Click on a project in the list to load its details into the main workspace. You can also click the edit (pencil) icon to update project details like the name and description.
+
+Main Workspace (Project Details):
+- Top Action Bar: Provides options to "Edit Details", "Export Report", "Share/Upload", or "Delete Project".
+- Overview Tab: Displays summary cards for each requirement level (SYS.1, SYS.2, SYS.3, SWE.1, SWE.2). Shows the total number of requirements extracted for each level.
+
+Requirement Views (SYS.1, SYS.2, SYS.3, SWE.1, SWE.2 Tabs):
+- Requirement List: View a table of all requirements for the selected level. The table includes the ID, Requirement Text, Status (PASS, FAIL, REVIEW, or UNTESTED), Document Source, and Last Updated time.
+- Inline Editing: Hover over the Requirement Text and click the edit (pencil) icon to modify a requirement directly. When you save an edit, the requirement's status will automatically reset to UNTESTED to signify that it needs re-evaluation.
+- Manage Requirements: Use the search bar to find specific requirements. You can also select multiple requirements using the checkboxes on the left and delete them using the "Delete" button.
+- Pagination: Use the pagination controls at the bottom of the table to navigate through large lists of requirements.
+
+History Tabs:
+- Traceability Tab: View historical traceability analysis runs (e.g., mapping SYS.1 to SYS.2). You can expand a run to see its pass rate and click "View Details" to load the complete matrix into the Requirement Analysis view.
+- Quality Analysis Tab: View historical quality analysis runs. Expand runs to see pass rates and click "View Details" to inspect the exact rules violated.
+
+-----------------------------------------------------------
+3. Requirement Analysis (Evaluation Workspace)
+-----------------------------------------------------------
+The Requirement Analysis tab is your primary tool for evaluating requirements against standards and generating traceability links.
+
+Workspace Setup:
+- Select Project: Choose the target project from the dropdown menu.
+- Analysis Model: Select the AI model to use for the analysis (e.g., Llama 3.3 Nemotron).
+- Select Analysis Actions: Choose what the AI should do:
+    - Quality Analysis: Evaluates requirements for clarity, testability, and adherence to rules.
+    - Quality Correction: Automatically suggests corrections for requirements that fail the quality analysis.
+    - Traceability Analysis: Evaluates the linkages between adjacent requirement layers (e.g., SYS.1 to SYS.2).
+    - Traceability Correction: Suggests missing or corrected traces for poorly linked requirements.
+
+Mode Selection:
+- Strict Rules: Validates requirements against uploaded standard documents in JSON format (e.g., INCOSE rules). Click "Manage" to upload new rules or select existing rules from the dropdown list.
+- RAG Engine: Uses the Knowledge Engine to ground the analysis in uploaded reference documents (e.g., manuals, specifications). You can choose the RAG Embedding Model for semantic searches.
+- Custom LLM: Define your own custom validation rules. Click "Configure Custom Context" to provide specific instructions to the AI Auditor and Corrector.
+
+Execution Controls:
+- Start Execution: Begins processing the requirements based on your setup.
+- Pause/Resume/Stop: Control the execution flow at any time. A progress bar will show the current status and processed rows.
+
+Analysis Matrix Results:
+- View Results: Once the analysis completes (or when viewing a historical run), the results are displayed in a detailed table.
+- Quality Results: The table displays the Requirement ID, Requirement Text, Status, Violated Rule, Rationale, and (if enabled) the Corrected Requirement.
+- Traceability Results: The table displays the Parent Requirement, Child Requirement, Trace Level, Status, Rationale, and Corrected linkages.
+- Export: Click "Export CSV" to download the results for offline viewing.
+- Clear/Delete: Clear the current view or permanently delete the run.
+
+-----------------------------------------------------------
+4. Knowledge Engine Configuration (RAG Config)
+-----------------------------------------------------------
+This tab allows you to train the AI with your own reference documents and test its retrieval capabilities.
+
+Manual Retrieval Evaluation:
+- Test the system by selecting a Target Collection and entering a keyword or sentence. The system will return the most relevant text chunks and their relevance scores.
+
+Chunking Metrics & Ingestion:
+- Ingest Document: Click "+ Ingest Document" to upload a PDF, TXT, or JSON file. You can choose to add the document to an existing collection (e.g., airam_guidelines) or create a new one. For PDFs, you can specify the start and end pages to extract.
+- Training Progress Log: Monitor the real-time ingestion process, including parsing, chunking, and database saving.
+- Manage Collections: View the total tokens and chunks across collections. You can delete outdated collections using the delete icon next to the collection name.
+
+-----------------------------------------------------------
+5. AIRAM Copilot
+-----------------------------------------------------------
+The AIRAM Copilot is an integrated AI chat assistant designed to help you interrogate your projects, summarize findings, and generate diagrams.
+
+Chat Interface:
+- Ask Questions: Type questions into the chat bar at the bottom. For example: "Summarize SWE.1 requirements" or "List available guidelines".
+- Project Context: Use the dropdown at the top right to limit the Copilot's knowledge to a specific project, or leave it on "Global" to query across all projects.
+- Quick Suggestions: Click on any of the suggestion chips above the chat input for quick, common commands (e.g., "List Projects", "Gap Analysis").
+- Diagrams: Copilot can generate PlantUML sequence diagrams. If a diagram is generated, you can click on the image to view it in full screen, or toggle the "Show PlantUML Source" button to copy the code.
+
+Chat History:
+- Sidebar: The left sidebar automatically saves your past conversations, organized by time (Today, Yesterday, etc.).
+- New Chat: Click "New Chat" to start a fresh conversation context.
+- Search: Use the search bar in the sidebar to find past conversations.
+- Delete: Remove old or irrelevant chats using the delete (trash) icon next to the chat title. You can also collapse the sidebar to maximize your chat view.

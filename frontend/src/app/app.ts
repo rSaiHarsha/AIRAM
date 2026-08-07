@@ -96,6 +96,7 @@ import { ApiService } from './services/api.service';
         [hidden]="activeTab !== 'dashboard'"
         [active]="activeTab === 'dashboard'"
         (viewRun)="onViewHistoryRun($event)"
+        (viewProjectDetails)="onViewProjectDetails($event)"
         (newExecution)="setTab('analysis')">
       </app-dashboard>
       
@@ -376,6 +377,15 @@ export class App implements OnInit {
     setTimeout(() => {
       if (this.requirementsComp) {
         this.requirementsComp.loadResults(runId);
+      }
+    }, 100);
+  }
+
+  onViewProjectDetails(event: { projectId: string; tab: string }) {
+    this.setTab('projects');
+    setTimeout(() => {
+      if (this.projectsComp) {
+        this.projectsComp.openProjectTab(event.projectId, event.tab as any);
       }
     }, 100);
   }
