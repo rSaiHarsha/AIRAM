@@ -258,8 +258,8 @@ AIRAM is in active development with all core features implemented and functional
 | **Database** | SQLite (WAL mode) | Built-in |
 | **Vector Database** | Qdrant Cloud | Latest |
 | **LLM Provider** | NVIDIA NIM API | — |
-| **LLM Model (Analysis)** | `nvidia/llama-3.3-nemotron-super-49b-v1.5` | — |
-| **Embedding Model** | `nvidia/nv-embedqa-e5-v5` | — |
+| **LLM Model (Analysis)** | `nvidia/nemotron-3-super-120b-a12b` | — |
+| **Embedding Model** | `nvidia/llama-nemotron-embed-1b-v2` | — |
 | **PDF Processing** | PyMuPDF + pymupdf4llm | Latest |
 | **Excel Processing** | Built-in zipfile/xml + pandas | Built-in |
 
@@ -423,7 +423,7 @@ ReQualiTrace_Studio/
 **Vector Storage:**
 - **Primary:** Qdrant Cloud vector database with cosine similarity
 - **Fallback:** In-memory NumPy-based cosine similarity search
-- **Embedding Model:** `nvidia/nv-embedqa-e5-v5` (dimension auto-detected at startup)
+- **Embedding Model:** `nvidia/llama-nemotron-embed-1b-v2` (dimension auto-detected at startup)
 
 **Collection Management:**
 - Create new collections or append to existing ones
@@ -653,10 +653,10 @@ ReQualiTrace_Studio/
 
 | Property | Default Value |
 |---|---|
-| `model_name` | `nvidia/llama-3.3-nemotron-super-49b-v1.5` |
-| `rag_model_name` | `nvidia/llama-3.3-nemotron-super-49b-v1.5` |
-| `analysis_model_name` | `nvidia/llama-3.3-nemotron-super-49b-v1.5` |
-| `embedding_model` | `nvidia/nv-embedqa-e5-v5` |
+| `model_name` | `nvidia/nemotron-3-super-120b-a12b` |
+| `rag_model_name` | `nvidia/nemotron-3-super-120b-a12b` |
+| `analysis_model_name` | `nvidia/nemotron-3-super-120b-a12b` |
+| `embedding_model` | `nvidia/llama-nemotron-embed-1b-v2` |
 | `base_url` | `https://integrate.api.nvidia.com/v1` |
 | `retries` | 3 (exponential backoff: 1s, 2s, 4s) |
 
@@ -892,7 +892,7 @@ The `trainRAG()` method uses the native `fetch()` API with `ReadableStream` to p
 - **Project Selection:** Dropdown selector for targeting an active workspace Project
 - **Run Type Selection:** Quality, Traceability, or Combined
 - **Guidelines Source:** RAG Engine or Strict Guidelines (with guideline selection dropdown)
-- **Model Selection:** Default `nvidia/llama-3.3-nemotron-super-49b-v1.5`
+- **Model Selection:** Default `nvidia/nemotron-3-super-120b-a12b`
 - **Correction Options:** Checkboxes for Quality Correction and Traceability Correction
 - **Custom Context:** Free-text areas for custom analysis and correction evaluation criteria
 - **Execution Controls:** Start, Pause, Resume, Stop buttons

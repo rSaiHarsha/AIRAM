@@ -54,7 +54,7 @@ import { ApiService } from '../../services/api.service';
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                 </svg>
                 <select class="form-control" [(ngModel)]="selectedAnalysisModel">
-                  <option value="nvidia/llama-3.3-nemotron-super-49b-v1.5">Llama 3.3 Nemotron 49B (NVIDIA)</option>
+                  <option value="nvidia/nemotron-3-super-120b-a12b">Nemotron 3 Super 120B / gpt-oss 120B (NVIDIA)</option>
                 </select>
               </div>
             </div>
@@ -156,7 +156,7 @@ import { ApiService } from '../../services/api.service';
             <div class="form-group" *ngIf="rulesMode === 'rag'">
               <label class="form-label">RAG Embedding Model</label>
               <select [(ngModel)]="selectedEmbedModel" style="width: 100%;">
-                <option value="nvidia/embeddings-nv-embed-qa-4">nv-embed-qa-4 (NVIDIA)</option>
+                <option value="nvidia/llama-nemotron-embed-1b-v2">llama-nemotron-embed-1b-v2 (NVIDIA)</option>
               </select>
             </div>
             
@@ -858,8 +858,8 @@ JSON Schema:
   isUploadingStandard = false;
   uploadedStatus = '';
   
-  selectedEmbedModel = 'nvidia/embeddings-nv-embed-qa-4';
-  selectedAnalysisModel = 'nvidia/llama-3.3-nemotron-super-49b-v1.5';
+  selectedEmbedModel = 'nvidia/llama-nemotron-embed-1b-v2';
+  selectedAnalysisModel = 'nvidia/nemotron-3-super-120b-a12b';
 
   isRunning = false;
   isPaused = false;
