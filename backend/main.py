@@ -439,7 +439,7 @@ async def start_analysis(
     project_id: str = Form(...),
     guideline_id: str = Form(None),
     use_rag: str = Form("false"),
-    model_name: str = Form("nvidia/llama-3.3-nemotron-super-49b-v1.5"),
+    model_name: str = Form("nvidia/nemotron-3-super-120b-a12b"),
     correct_quality: str = Form("false"),
     correct_trace: str = Form("false"),
     custom_context: str = Form(None),

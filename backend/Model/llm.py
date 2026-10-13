@@ -13,7 +13,7 @@ for p in env_paths:
         break
 
 class LLMManager:
-    def __init__(self, model_name="meta/llama-3.3-70b-instruct", rag_model_name="meta/llama-3.3-70b-instruct", analysis_model_name="meta/llama-3.3-70b-instruct"):
+    def __init__(self, model_name="nvidia/nemotron-3-super-120b-a12b", rag_model_name="nvidia/nemotron-3-super-120b-a12b", analysis_model_name="nvidia/nemotron-3-super-120b-a12b"):
         # Check Streamlit secrets first, fallback to environment variable
         api_key = None
         try:
@@ -35,7 +35,7 @@ class LLMManager:
         self.model_name = model_name
         self.rag_model_name = rag_model_name
         self.analysis_model_name = analysis_model_name
-        self.embedding_model = "nvidia/nv-embedqa-e5-v5"
+        self.embedding_model = "nvidia/llama-nemotron-embed-1b-v2"
         self.retries = 3
 
     def _retry_api_call(self, api_func, *args, **kwargs):

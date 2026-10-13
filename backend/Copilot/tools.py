@@ -768,7 +768,7 @@ def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: s
         messages = _build_uml_prompt(combined_text, dt)
         
         response = llm_mgr.client.chat.completions.create(
-            model="nvidia/llama-3.3-nemotron-super-49b-v1.5",
+            model="nvidia/nemotron-3-super-120b-a12b",
             messages=messages,
             temperature=0.2,
             top_p=0.7,
@@ -787,7 +787,7 @@ def generate_uml_diagram(diagram_type: str, project_id: str = None, req_types: s
             
             messages = _build_uml_prompt(combined_text, dt)
             payload_bytes = json.dumps({
-                "model": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+                "model": "nvidia/nemotron-3-super-120b-a12b",
                 "messages": messages,
                 "temperature": 0.2,
                 "top_p": 0.7,

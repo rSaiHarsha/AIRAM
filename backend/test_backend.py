@@ -76,7 +76,7 @@ async def run_tests():
             sys2_reqs_raw=sys2_reqs,
             guideline_id=None,
             use_rag=False,
-            model_name="nvidia/llama-3.3-nemotron-super-49b-v1.5"
+            model_name="nvidia/nemotron-3-super-120b-a12b"
         )
     )
     

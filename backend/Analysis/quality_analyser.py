@@ -313,7 +313,7 @@ def analyze_single_requirement(
             {"role": "user", "content": user_content}
         ]
         
-        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")))
+        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/nemotron-3-super-120b-a12b")))
         
         data = clean_and_parse_json(response.choices[0].message.content)
         
@@ -430,7 +430,7 @@ def analyze_batch(batch_items, llm, rag, selected_collections=None, is_strict_js
     ]
 
     try:
-        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")))
+        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/nemotron-3-super-120b-a12b")))
         raw_text = response.choices[0].message.content
         data = clean_and_parse_json(raw_text)
         
@@ -685,7 +685,7 @@ def correct_single_requirement(index, r, llm, rag, rag_context=None, selected_co
             {"role": "user", "content": user_content}
         ]
         
-        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")))
+        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/nemotron-3-super-120b-a12b")))
 
         raw_response = response.choices[0].message.content.strip()
 
@@ -793,7 +793,7 @@ def correct_batch(batch_items, llm, rag, selected_collections=None):
     ]
 
     try:
-        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")))
+        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", getattr(llm, "model_name", "nvidia/nemotron-3-super-120b-a12b")))
         raw_text = response.choices[0].message.content
         data = clean_and_parse_json(raw_text)
         

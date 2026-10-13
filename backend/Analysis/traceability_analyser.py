@@ -33,7 +33,7 @@ def analyze_traceability_generic_with_llm(parent_req: Requirement, child_reqs: l
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content}
         ]
-        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5"))
+        response = llm.get_response(messages, stream=False, model=getattr(llm, "analysis_model_name", "nvidia/nemotron-3-super-120b-a12b"))
         res_data = clean_and_parse_json(response.choices[0].message.content)
         
         status_raw = res_data.get("status", "REVIEW").upper()
@@ -204,7 +204,7 @@ def correct_traceability_requirement(
         ]
         response = llm.get_response(
             messages, stream=False,
-            model=getattr(llm, "analysis_model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
+            model=getattr(llm, "analysis_model_name", "nvidia/nemotron-3-super-120b-a12b")
         )
 
         raw_response = response.choices[0].message.content.strip()
@@ -288,7 +288,7 @@ def correct_orphaned_swe2(
         ]
         response = llm.get_response(
             messages, stream=False,
-            model=getattr(llm, "analysis_model_name", "nvidia/llama-3.3-nemotron-super-49b-v1.5")
+            model=getattr(llm, "analysis_model_name", "nvidia/nemotron-3-super-120b-a12b")
         )
 
         raw_response = response.choices[0].message.content.strip()

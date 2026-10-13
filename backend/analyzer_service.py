@@ -100,7 +100,7 @@ async def run_requirements_analysis_job(
     guideline_id: str = None,
     project_name: str = None,
     use_rag: bool = False,
-    model_name: str = "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+    model_name: str = "nvidia/nemotron-3-super-120b-a12b",
     correct_quality: bool = False,
     correct_trace: bool = False,
     custom_context: str = None,
